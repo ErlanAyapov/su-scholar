@@ -1,0 +1,78 @@
+{% extends 'main/base.html' %}
+
+{% block title %}SU Science - Қолданушылар{% endblock %}
+
+{% block content %}
+<section> 
+
+    <div id="employees-list" class="row">
+        {% for user in page_obj.object_list %}
+            {% include 'account/user_card.html' with user=user %}
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-light border mb-0">No employees found.</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div id="employees-loader" class="text-center py-4 {% if not page_obj.has_next %}d-none{% endif %}">
+        <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+        <span>Жүктелуде...</span>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        let nextPage = {{ next_page|default:'null' }};
+        let hasNext = {{ page_obj.has_next|yesno:'true,false' }};
+        let isLoading = false;
+        const endpoint = "{% url 'employees_load' %}";
+
+        function setLoaderVisible(visible) {
+            const loader = $("#employees-loader");
+            loader.toggleClass("d-none", !visible);
+        }
+
+        function loadNextPage() {
+            if (!hasNext || isLoading || nextPage === null) {
+                return;
+            }
+
+            isLoading = true;
+            setLoaderVisible(true);
+
+            $.ajax({
+                url: endpoint,
+                method: "GET",
+                data: { page: nextPage },
+                success: function (response) {
+                    if (response.html) {
+                        $("#employees-list").append(response.html);
+                    }
+                    hasNext = response.has_next;
+                    nextPage = response.next_page;
+                    setLoaderVisible(hasNext);
+                },
+                complete: function () {
+                    isLoading = false;
+                }
+            });
+        }
+
+        $(window).on("scroll", function () {
+            if (!hasNext || isLoading) {
+                return;
+            }
+
+            const viewportBottom = $(window).scrollTop() + $(window).height();
+            const threshold = $(document).height() - 180;
+
+            if (viewportBottom >= threshold) {
+                loadNextPage();
+            }
+        });
+    })();
+</script>
+{% endblock %}

@@ -95,7 +95,7 @@ class Author(models.Model):
 
 class Publication(models.Model):
     """
-    Основная сущность вместо Work.
+    Основная сущность
     """
     STATUS_CHOICES = [
         ("submitted", "Submitted"),

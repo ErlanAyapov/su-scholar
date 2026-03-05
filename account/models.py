@@ -39,6 +39,11 @@ class Department(models.Model):
 
 
 class User(AbstractUser):
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female')
+    ]
+
     father_name = models.CharField(max_length=100, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
     inn = models.CharField(max_length=20, blank=True)
@@ -62,6 +67,7 @@ class User(AbstractUser):
         Role,
         blank=True
     )
+    is_user = models.BooleanField(default=True)
 
     banned = models.BooleanField(default=False)
     quiet_mode = models.BooleanField(default=False)
@@ -73,6 +79,10 @@ class User(AbstractUser):
     wos_id = models.CharField(max_length=20, blank=True)
     researchgate = models.URLField(blank=True)
     google_scholar = models.URLField(blank=True)
+    satbayev_profile_url = models.URLField(blank=True)
+    journal_links = models.JSONField(default=list, blank=True)
+    journal_ids = models.JSONField(default=list, blank=True)
+    gender = models.CharField(max_length=20, blank=True, choices=GENDER_CHOICES)
 
     def __str__(self):
         return f"{self.username}"

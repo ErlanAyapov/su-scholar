@@ -1,0 +1,289 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% block title %}SU Science{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center search-jumbotron">
+    <h1 class="display-4">SU Science</h1>
+
+    <div class="search-container" id="searchContainer">
+        <form method="get" action="{% url 'main' %}" class="d-flex justify-content-center">
+            <input
+                type="search"
+                name="search"
+                placeholder="Поиск по публикациям, DOI, авторам, журналам..."
+                value="{{ request.GET.search|default:'' }}"
+            >
+
+            {% if request.GET.type %}<input type="hidden" name="type" value="{{ request.GET.type }}">{% endif %}
+            {% if request.GET.lang %}<input type="hidden" name="lang" value="{{ request.GET.lang }}">{% endif %}
+            {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
+            {% if request.GET.oa %}<input type="hidden" name="oa" value="{{ request.GET.oa }}">{% endif %}
+            {% if request.GET.y_min %}<input type="hidden" name="y_min" value="{{ request.GET.y_min }}">{% endif %}
+            {% if request.GET.y_max %}<input type="hidden" name="y_max" value="{{ request.GET.y_max }}">{% endif %}
+            {% if request.GET.db %}<input type="hidden" name="db" value="{{ request.GET.db }}">{% endif %}
+            {% if request.GET.quartile %}<input type="hidden" name="quartile" value="{{ request.GET.quartile }}">{% endif %}
+            {% if request.GET.area %}<input type="hidden" name="area" value="{{ request.GET.area }}">{% endif %}
+            {% if request.GET.venue %}<input type="hidden" name="venue" value="{{ request.GET.venue }}">{% endif %}
+            {% for tag in selected_tags %}
+                <input type="hidden" name="tags" value="{{ tag }}">
+            {% endfor %}
+
+            <button type="submit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                </svg>
+            </button>
+
+            <button id="filterButton" type="button" aria-controls="filterPanel" aria-expanded="false">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+                    <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/>
+                </svg>
+            </button>
+        </form>
+    </div>
+
+    <div class="filter-container">
+        <div class="filter-panel" id="filterPanel" aria-hidden="true">
+            <div class="filter-header">
+                <div class="filter-title">Фильтры</div>
+                <button type="button" class="filter-close" id="filterCloseBtn">✕</button>
+            </div>
+
+            <form method="get" action="{% url 'main' %}" id="filterForm" class="filter-form">
+                <input type="hidden" name="search" value="{{ request.GET.search|default:'' }}">
+                <div class="chips" id="activeChips"></div>
+
+                <div class="filter-group">
+                    <button type="button" class="group-toggle" data-target="grp-main">
+                        <span>Основное</span>
+                        <span class="chev">▾</span>
+                    </button>
+                    <div class="group-body" id="grp-main">
+                        <div class="grid-2">
+                            <label class="field">
+                                <span class="label">Тип</span>
+                                <select name="type" class="control">
+                                    <option value="">Все</option>
+                                    {% for t in pub_types %}
+                                        <option value="{{ t.id }}" {% if request.GET.type == t.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ t.name }}{% if t.c %} ({{ t.c }}){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label class="field">
+                                <span class="label">Язык</span>
+                                <select name="lang" class="control">
+                                    <option value="">Все</option>
+                                    {% for l in languages %}
+                                        <option value="{{ l.id }}" {% if request.GET.lang == l.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ l.name }}{% if l.c %} ({{ l.c }}){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label class="field">
+                                <span class="label">Статус</span>
+                                <select name="status" class="control">
+                                    <option value="">Все</option>
+                                    <option value="submitted" {% if request.GET.status == "submitted" %}selected{% endif %}>submitted</option>
+                                    <option value="accepted" {% if request.GET.status == "accepted" %}selected{% endif %}>accepted</option>
+                                    <option value="published" {% if request.GET.status == "published" %}selected{% endif %}>published</option>
+                                </select>
+                            </label>
+
+                            <label class="field">
+                                <span class="label">Open Access</span>
+                                <select name="oa" class="control">
+                                    <option value="">Все</option>
+                                    <option value="1" {% if request.GET.oa == "1" %}selected{% endif %}>Да</option>
+                                    <option value="0" {% if request.GET.oa == "0" %}selected{% endif %}>Нет</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="grid-2">
+                            <label class="field">
+                                <span class="label">Год от</span>
+                                <input type="number" class="control" name="y_min" min="1940" max="2100" value="{{ request.GET.y_min|default:year_min }}">
+                            </label>
+                            <label class="field">
+                                <span class="label">Год до</span>
+                                <input type="number" class="control" name="y_max" min="1940" max="2100" value="{{ request.GET.y_max|default:year_max }}">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <button type="button" class="group-toggle" data-target="grp-index">
+                        <span>Индексация и метрики</span>
+                        <span class="chev">▾</span>
+                    </button>
+                    <div class="group-body" id="grp-index">
+                        <div class="grid-2">
+                            <label class="field">
+                                <span class="label">База индексации</span>
+                                <select name="db" class="control">
+                                    <option value="">Все</option>
+                                    {% for db in indexing_dbs %}
+                                        <option value="{{ db.id }}" {% if request.GET.db == db.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ db.name }}{% if db.c %} ({{ db.c }}){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label class="field">
+                                <span class="label">Квартиль</span>
+                                <select name="quartile" class="control">
+                                    <option value="">Любой</option>
+                                    <option value="Q1" {% if request.GET.quartile == "Q1" %}selected{% endif %}>Q1</option>
+                                    <option value="Q2" {% if request.GET.quartile == "Q2" %}selected{% endif %}>Q2</option>
+                                    <option value="Q3" {% if request.GET.quartile == "Q3" %}selected{% endif %}>Q3</option>
+                                    <option value="Q4" {% if request.GET.quartile == "Q4" %}selected{% endif %}>Q4</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <button type="button" class="group-toggle" data-target="grp-topic">
+                        <span>Тематика</span>
+                        <span class="chev">▾</span>
+                    </button>
+                    <div class="group-body" id="grp-topic">
+                        <label class="field">
+                            <span class="label">Область</span>
+                            <select name="area" class="control">
+                                <option value="">Все</option>
+                                {% for a in areas %}
+                                    <option value="{{ a.id }}" {% if request.GET.area == a.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ a.name }}{% if a.c %} ({{ a.c }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </label>
+
+                        <div class="field">
+                            <span class="label">Теги</span>
+                            <div class="pill-list">
+                                {% for t in tags_top %}
+                                <label class="pill">
+                                    <input type="checkbox" name="tags" value="{{ t.id }}" {% if t.id|stringformat:"s" in selected_tags %}checked{% endif %}>
+                                    <span>{{ t.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <button type="button" class="group-toggle" data-target="grp-venue">
+                        <span>Источник</span>
+                        <span class="chev">▾</span>
+                    </button>
+                    <div class="group-body" id="grp-venue">
+                        <label class="field">
+                            <span class="label">Журнал / конференция</span>
+                            <select name="venue" class="control">
+                                <option value="">Все</option>
+                                {% for v in venues_top %}
+                                    <option value="{{ v.id }}" {% if request.GET.venue == v.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ v.name }}{% if v.c %} ({{ v.c }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">Применить</button>
+                    <button type="button" class="btn-ghost" id="resetFilters">Сбросить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="result-container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 m-0">Публикации</h2>
+            <span class="text-muted">Найдено: {{ total_count }}</span>
+        </div>
+
+        {% if results %}
+            <div class="results-grid">
+                {% for publication in results %}
+                    <article class="result-card">
+                        <h3 class="result-title">
+                            <a href="{% url 'publication_detail' publication.id %}" class="result-title-link">
+                                {{ publication.title_original }}
+                            </a>
+                        </h3>
+                        <p class="result-meta">
+                            {{ publication.year }} • {{ publication.pub_type.name }} • {{ publication.venue.name }}
+                        </p>
+                        <p class="result-meta">
+                            Язык: {{ publication.language.name }}
+                            {% if publication.quartile %} • Квартиль: {{ publication.quartile }}{% endif %}
+                            {% if publication.open_access %} • OA{% endif %}
+                        </p>
+                        {% if publication.doi %}
+                            <p class="result-link">
+                                DOI: <a href="https://doi.org/{{ publication.doi }}" target="_blank" rel="noopener noreferrer">{{ publication.doi }}</a>
+                            </p>
+                        {% endif %}
+                        {% if publication.url_publisher %}
+                            <p class="result-link">
+                                Источник: <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer">{{ publication.url_publisher }}</a>
+                            </p>
+                        {% endif %}
+                        <p class="result-link mt-2">
+                            <a href="{% url 'publication_detail' publication.id %}">Открыть полную карточку</a>
+                        </p>
+                    </article>
+                {% endfor %}
+            </div>
+
+            {% if page_obj.paginator.num_pages > 1 %}
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{{ base_query }}{% if base_query %}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Назад</span></li>
+                        {% endif %}
+
+                        <li class="page-item disabled">
+                            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{{ base_query }}{% if base_query %}&{% endif %}page={{ page_obj.next_page_number }}">Далее</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Далее</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-light border">По выбранным условиям ничего не найдено.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'main/scripts/main_filter.js' %}"></script>
+{% endblock %}
