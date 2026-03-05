@@ -1,16 +1,15 @@
 {% extends 'main/base.html' %}
 
-{% block title %}SU Science - Қолданушылар{% endblock %}
+{% block title %}SU Science - Қызметкерлер{% endblock %}
 
 {% block content %}
-<section> 
-
+<section>
     <div id="employees-list" class="row">
         {% for user in page_obj.object_list %}
             {% include 'account/user_card.html' with user=user %}
         {% empty %}
             <div class="col-12">
-                <div class="alert alert-light border mb-0">No employees found.</div>
+                <div class="alert alert-light border mb-0">Қызметкерлер табылмады.</div>
             </div>
         {% endfor %}
     </div>

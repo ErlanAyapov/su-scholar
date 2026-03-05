@@ -1,29 +1,75 @@
-﻿<article class="col-12 col-md-6 col-lg-4 mb-3">
-    <div class="card h-100 shadow-sm">
-        <div class="card-body">
-            <h2 class="h6 mb-2">
-                {{ user.last_name }} {{ user.first_name }}{% if user.father_name %} {{ user.father_name }}{% endif %}
-            </h2>
-            <p class="mb-1 text-body-secondary">
-                Username: <code>{{ user.username }}</code>
-            </p>
-            <p class="mb-1">
-                Gender:
-                {% if user.gender == 'female' %}
-                    Female
-                {% elif user.gender == 'male' %}
-                    Male
-                {% else %}
-                    -
-                {% endif %}
-            </p>
+{% load static %}
+<article class="col-12 col-md-6 col-lg-4 mb-3">
+    <div class="card h-100 shadow-sm employee-card">
+        <div class="card-body d-flex flex-column">
+            <div class="employee-top">
+                <div class="employee-avatar-wrap">
+                    {% if user.photo %}
+                        <img class="employee-avatar" src="{{ user.photo.url }}" alt="{{ user.get_full_name|default:user.username }}">
+                    {% else %}
+                        {% if user.gender == 'female' %}
+                            <img src="{% static 'main/images/woman-user-color-icon.svg' %}" alt="Әдепкі аватар" class="employee-avatar default-avatar">
+                        {% else %}
+                            <img src="{% static 'main/images/man-user-color-icon.svg' %}" alt="Әдепкі аватар" class="employee-avatar default-avatar">
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <div class="employee-meta">
+                    <h2 class="h6 mb-1">
+                        {{ user.last_name }} {{ user.first_name }}{% if user.father_name %} {{ user.father_name }}{% endif %}
+                    </h2>
+
+                    {% if not user.photo %}
+                        <p class="mb-1 text-body-secondary employee-username">
+                            Пайдаланушы аты: <code>{{ user.username }}</code>
+                        </p>
+                    {% endif %}
+
+                    <p class="mb-0 employee-gender-row">
+                        {% if user.gender == 'female' %}
+                            <span class="gender-icon female" title="Әйел" aria-label="Әйел">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 1a5 5 0 1 0 2.1 9.537V13H8v1h2.1v2h1.8v-2H14v-1h-2.1v-2.463A5 5 0 0 0 8 1m0 1.5A3.5 3.5 0 1 1 8 9.5a3.5 3.5 0 0 1 0-7"/>
+                                </svg>
+                            </span>
+                            <span>Әйел</span>
+                        {% elif user.gender == 'male' %}
+                            <span class="gender-icon male" title="Ер" aria-label="Ер">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 1a5 5 0 1 0 3.923 8.1l2.488 2.489 1.06-1.06-2.489-2.488A5 5 0 0 0 8 1m0 1.5A3.5 3.5 0 1 1 8 9.5a3.5 3.5 0 0 1 0-7m3.95-1.45v1.5h1.93l-2.66 2.66 1.06 1.06 2.66-2.66v1.93h1.5V1.05z"/>
+                                </svg>
+                            </span>
+                            <span>Ер</span>
+                        {% else %}
+                            <span class="gender-icon unknown" title="Көрсетілмеген" aria-label="Көрсетілмеген">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m-.25-4.5h1.5v1.5h-1.5zm1.35-1.65-.1.05v.6h-1.5V9.55c0-.55.35-.9.8-1.1l.34-.15c.56-.25.86-.55.86-1.06a1.2 1.2 0 0 0-2.4 0h-1.5a2.7 2.7 0 0 1 5.4 0c0 1.22-.7 1.92-1.9 2.46"/>
+                                </svg>
+                            </span>
+                            <span>Көрсетілмеген</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
             {% if user.email %}
-                <p class="mb-2">
-                    Email:
+                <p class="mb-2 mt-3">
+                    E-mail:
                     <a href="mailto:{{ user.email }}">{{ user.email }}</a>
                 </p>
             {% endif %}
-            <div class="d-flex flex-wrap gap-2 mt-2">
+            {% if user.journal_links %}
+                <details class="mt-3">
+                    <summary>Журнал сілтемелері ({{ user.journal_links|length }})</summary>
+                    <div class="mt-2 d-flex flex-column gap-1">
+                        {% for link in user.journal_links %}
+                            <a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ link }}</a>
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endif %}
+            <div class="d-flex flex-wrap gap-2 mt-2 mb-3">
                 {% if user.satbayev_profile_url %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ user.satbayev_profile_url }}" target="_blank" rel="noopener noreferrer">Satbayev</a>
                 {% endif %}
@@ -40,19 +86,12 @@
                     <a class="btn btn-sm btn-outline-info" href="{{ user.researchgate }}" target="_blank" rel="noopener noreferrer">ResearchGate</a>
                 {% endif %}
                 {% if user.wos_id %}
-                    <a href="{{ user.wos_id }}" target="_blank">WoS</a>
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ user.wos_id }}" target="_blank" rel="noopener noreferrer">WoS</a>
                 {% endif %}
             </div>
-            {% if user.journal_links %}
-                <details class="mt-3">
-                    <summary>Journal links ({{ user.journal_links|length }})</summary>
-                    <div class="mt-2 d-flex flex-column gap-1">
-                        {% for link in user.journal_links %}
-                            <a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ link }}</a>
-                        {% endfor %}
-                    </div>
-                </details>
-            {% endif %}
+            <a class="btn btn-sm btn-primary mt-auto" href="{% url 'main' %}?staff_user={{ user.id }}&status=published">
+                Жұмыстарын көрсету
+            </a>
         </div>
     </div>
 </article>

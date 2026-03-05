@@ -1,6 +1,6 @@
 {% extends 'main/base.html' %}
 
-{% block title %}Publication{% endblock %}
+{% block title %}Жарияланым{% endblock %}
 
 {% block content %}
 <div class="publication-detail">
@@ -8,31 +8,31 @@
         <div>
             <h1 class="h3 mb-2">{{ publication.title_original }}</h1>
             <p class="text-muted mb-0">
-                {{ publication.year }} • {{ publication.pub_type.name }} • {{ publication.venue.name }}
+                {{ publication.year }} &bull; {{ publication.pub_type.name }} &bull; {{ publication.venue.name }}
             </p>
         </div>
-        <a href="{% url 'main' %}" class="btn btn-outline-secondary btn-sm">Back to search</a>
+        <a href="{% url 'main' %}" id="backToSearchBtn" class="btn btn-outline-secondary btn-sm">Іздеуге оралу</a>
     </div>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Main</h2>
+        <h2 class="h5 mb-3">Негізгі ақпарат</h2>
         <div class="row g-3">
             <div class="col-md-6">
-                <p class="mb-1"><strong>Status:</strong> {{ publication.get_status_display }}</p>
-                <p class="mb-1"><strong>Language:</strong> {{ publication.language.name }}</p>
-                <p class="mb-1"><strong>Open Access:</strong> {% if publication.open_access %}Yes{% else %}No{% endif %}</p>
-                <p class="mb-1"><strong>OA Type:</strong> {{ publication.get_oa_type_display|default:"-" }}</p>
-                <p class="mb-1"><strong>Quartile:</strong> {{ publication.quartile|default:"-" }}</p>
-                <p class="mb-1"><strong>Quartile Year:</strong> {{ publication.quartile_year|default:"-" }}</p>
-                <p class="mb-1"><strong>Citations:</strong> {{ publication.citations_count }}</p>
+                <p class="mb-1"><strong>Мәртебе:</strong> {{ publication.get_status_display }}</p>
+                <p class="mb-1"><strong>Тіл:</strong> {{ publication.language.name }}</p>
+                <p class="mb-1"><strong>Ашық қолжетімділік:</strong> {% if publication.open_access %}Иә{% else %}Жоқ{% endif %}</p>
+                <p class="mb-1"><strong>OA түрі:</strong> {{ publication.get_oa_type_display|default:"-" }}</p>
+                <p class="mb-1"><strong>Квартиль:</strong> {{ publication.quartile|default:"-" }}</p>
+                <p class="mb-1"><strong>Квартиль жылы:</strong> {{ publication.quartile_year|default:"-" }}</p>
+                <p class="mb-1"><strong>Дәйексөз саны:</strong> {{ publication.citations_count }}</p>
             </div>
             <div class="col-md-6">
-                <p class="mb-1"><strong>Publication Date:</strong> {{ publication.publication_date|default:"-" }}</p>
-                <p class="mb-1"><strong>Accepted Date:</strong> {{ publication.accepted_date|default:"-" }}</p>
-                <p class="mb-1"><strong>Volume / Issue:</strong> {{ publication.volume|default:"-" }} / {{ publication.issue|default:"-" }}</p>
-                <p class="mb-1"><strong>Pages:</strong> {{ publication.pages|default:"-" }}</p>
-                <p class="mb-1"><strong>Article #:</strong> {{ publication.article_number|default:"-" }}</p>
-                <p class="mb-1"><strong>Total Pages:</strong> {{ publication.total_pages|default:"-" }}</p>
+                <p class="mb-1"><strong>Жарияланған күні:</strong> {{ publication.publication_date|default:"-" }}</p>
+                <p class="mb-1"><strong>Қабылданған күні:</strong> {{ publication.accepted_date|default:"-" }}</p>
+                <p class="mb-1"><strong>Том / Нөмір:</strong> {{ publication.volume|default:"-" }} / {{ publication.issue|default:"-" }}</p>
+                <p class="mb-1"><strong>Беттер:</strong> {{ publication.pages|default:"-" }}</p>
+                <p class="mb-1"><strong>Мақала №:</strong> {{ publication.article_number|default:"-" }}</p>
+                <p class="mb-1"><strong>Жалпы бет саны:</strong> {{ publication.total_pages|default:"-" }}</p>
             </div>
         </div>
         {% if publication.doi %}
@@ -42,31 +42,31 @@
             </p>
         {% endif %}
         {% if publication.url_publisher %}
-            <p class="mb-1"><strong>Publisher URL:</strong> <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer">{{ publication.url_publisher }}</a></p>
+            <p class="mb-1"><strong>Баспагер сілтемесі:</strong> <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer">{{ publication.url_publisher }}</a></p>
         {% endif %}
         {% if publication.url_open_access %}
-            <p class="mb-1"><strong>OA URL:</strong> <a href="{{ publication.url_open_access }}" target="_blank" rel="noopener noreferrer">{{ publication.url_open_access }}</a></p>
+            <p class="mb-1"><strong>OA сілтемесі:</strong> <a href="{{ publication.url_open_access }}" target="_blank" rel="noopener noreferrer">{{ publication.url_open_access }}</a></p>
         {% endif %}
         {% if publication.keywords %}
-            <p class="mt-3 mb-1"><strong>Keywords:</strong> {{ publication.keywords }}</p>
+            <p class="mt-3 mb-1"><strong>Түйін сөздер:</strong> {{ publication.keywords }}</p>
         {% endif %}
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Venue</h2>
-        <p class="mb-1"><strong>Name:</strong> {{ publication.venue.name }}</p>
-        <p class="mb-1"><strong>Kind:</strong> {{ publication.venue.get_kind_display }}</p>
-        <p class="mb-1"><strong>Character:</strong> {{ publication.venue.get_character_display }}</p>
-        <p class="mb-1"><strong>Publisher:</strong> {{ publication.venue.publisher|default:"-" }}</p>
+        <h2 class="h5 mb-3">Басылым көзі</h2>
+        <p class="mb-1"><strong>Атауы:</strong> {{ publication.venue.name }}</p>
+        <p class="mb-1"><strong>Түрі:</strong> {{ publication.venue.get_kind_display }}</p>
+        <p class="mb-1"><strong>Сипаты:</strong> {{ publication.venue.get_character_display }}</p>
+        <p class="mb-1"><strong>Баспагер:</strong> {{ publication.venue.publisher|default:"-" }}</p>
         <p class="mb-1"><strong>ISSN:</strong> {{ publication.venue.issn|default:"-" }}</p>
         <p class="mb-1"><strong>ISBN:</strong> {{ publication.venue.isbn|default:"-" }}</p>
-        <p class="mb-1"><strong>Conference:</strong> {{ publication.venue.conference_name|default:"-" }}</p>
-        <p class="mb-1"><strong>Conference Location:</strong> {{ publication.venue.conference_country|default:"-" }} / {{ publication.venue.conference_city|default:"-" }}</p>
-        <p class="mb-0"><strong>Series:</strong> {{ publication.venue.series|default:"-" }}</p>
+        <p class="mb-1"><strong>Конференция:</strong> {{ publication.venue.conference_name|default:"-" }}</p>
+        <p class="mb-1"><strong>Конференция орны:</strong> {{ publication.venue.conference_country|default:"-" }} / {{ publication.venue.conference_city|default:"-" }}</p>
+        <p class="mb-0"><strong>Серия:</strong> {{ publication.venue.series|default:"-" }}</p>
 
         {% if publication.venue.metrics.all %}
             <hr>
-            <h3 class="h6">Venue Metrics</h3>
+            <h3 class="h6">Басылым метрикалары</h3>
             <ul class="mb-0">
                 {% for metric in publication.venue.metrics.all %}
                     <li>{{ metric.metric|upper }} ({{ metric.year }}): {{ metric.value }}</li>
@@ -76,17 +76,17 @@
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Authors</h2>
+        <h2 class="h5 mb-3">Авторлар</h2>
         {% if author_links %}
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Name</th>
-                            <th>Role</th>
+                            <th>Аты-жөні</th>
+                            <th>Рөлі</th>
                             <th>ORCID</th>
-                            <th>Department Staff</th>
+                            <th>Кафедра қызметкері</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -96,28 +96,28 @@
                                 <td>{{ link.author.full_name }}</td>
                                 <td>{{ link.get_role_display }}</td>
                                 <td>{{ link.author.orcid|default:"-" }}</td>
-                                <td>{% if link.author.is_department_staff %}Yes{% else %}No{% endif %}</td>
+                                <td>{% if link.author.is_department_staff %}Иә{% else %}Жоқ{% endif %}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         {% else %}
-            <p class="mb-0 text-muted">No authors attached.</p>
+            <p class="mb-0 text-muted">Авторлар тіркелмеген.</p>
         {% endif %}
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Classification</h2>
-        <p class="mb-1"><strong>Area:</strong> {{ publication.area.name|default:"-" }}</p>
-        <p class="mb-1"><strong>Indexing:</strong>
+        <h2 class="h5 mb-3">Жіктеу</h2>
+        <p class="mb-1"><strong>Сала:</strong> {{ publication.area.name|default:"-" }}</p>
+        <p class="mb-1"><strong>Индекстеу:</strong>
             {% for db in publication.indexing.all %}
                 {{ db.name }}{% if not forloop.last %}, {% endif %}
             {% empty %}
                 -
             {% endfor %}
         </p>
-        <p class="mb-0"><strong>Tags:</strong>
+        <p class="mb-0"><strong>Тегтер:</strong>
             {% for tag in publication.tags.all %}
                 {{ tag.name }}{% if not forloop.last %}, {% endif %}
             {% empty %}
@@ -127,7 +127,7 @@
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">External IDs</h2>
+        <h2 class="h5 mb-3">Сыртқы идентификаторлар</h2>
         {% if publication.identifiers.all %}
             <ul class="mb-0">
                 {% for item in publication.identifiers.all %}
@@ -135,45 +135,45 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p class="mb-0 text-muted">No external identifiers.</p>
+            <p class="mb-0 text-muted">Сыртқы идентификаторлар жоқ.</p>
         {% endif %}
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Projects</h2>
+        <h2 class="h5 mb-3">Жобалар</h2>
         {% if project_links %}
             <ul class="mb-0">
                 {% for link in project_links %}
                     <li>
                         {{ link.project.name }} ({{ link.project.get_project_type_display }})
-                        {% if link.project.contract_number %} • {{ link.project.contract_number }}{% endif %}
+                        {% if link.project.contract_number %} &bull; {{ link.project.contract_number }}{% endif %}
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p class="mb-0 text-muted">No linked projects.</p>
+            <p class="mb-0 text-muted">Байланыстырылған жобалар жоқ.</p>
         {% endif %}
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Files</h2>
+        <h2 class="h5 mb-3">Файлдар</h2>
         {% if publication.files.all %}
             <ul class="mb-0">
                 {% for file in publication.files.all %}
                     <li>
                         {{ file.get_kind_display }}
-                        {% if file.description %} — {{ file.description }}{% endif %}
-                        • <a href="{{ file.file.url }}" target="_blank" rel="noopener noreferrer">open</a>
+                        {% if file.description %} &mdash; {{ file.description }}{% endif %}
+                        &bull; <a href="{{ file.file.url }}" target="_blank" rel="noopener noreferrer">ашу</a>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p class="mb-0 text-muted">No files attached.</p>
+            <p class="mb-0 text-muted">Файлдар тіркелмеген.</p>
         {% endif %}
     </section>
 
     <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Repository Links</h2>
+        <h2 class="h5 mb-3">Репозиторий сілтемелері</h2>
         {% if publication.repo_links.all %}
             <ul class="mb-0">
                 {% for link in publication.repo_links.all %}
@@ -184,17 +184,37 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p class="mb-0 text-muted">No repository links.</p>
+            <p class="mb-0 text-muted">Репозиторий сілтемелері жоқ.</p>
         {% endif %}
     </section>
 
     <section class="result-card">
-        <h2 class="h5 mb-3">System Fields</h2>
-        <p class="mb-1"><strong>Record ID:</strong> {{ publication.record_id|default:"-" }}</p>
-        <p class="mb-1"><strong>Report Period:</strong> {{ publication.report_period|default:"-" }}</p>
-        <p class="mb-1"><strong>Created By:</strong> {{ publication.created_by|default:"-" }}</p>
-        <p class="mb-1"><strong>Created At:</strong> {{ publication.created_at }}</p>
-        <p class="mb-0"><strong>Updated At:</strong> {{ publication.updated_at }}</p>
+        <h2 class="h5 mb-3">Жүйелік өрістер</h2>
+        <p class="mb-1"><strong>Жазба ID:</strong> {{ publication.record_id|default:"-" }}</p>
+        <p class="mb-1"><strong>Есеп кезеңі:</strong> {{ publication.report_period|default:"-" }}</p>
+        <p class="mb-1"><strong>Құрған пайдаланушы:</strong> {{ publication.created_by|default:"-" }}</p>
+        <p class="mb-1"><strong>Құрылған уақыты:</strong> {{ publication.created_at }}</p>
+        <p class="mb-0"><strong>Жаңартылған уақыты:</strong> {{ publication.updated_at }}</p>
     </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        const backButton = document.getElementById("backToSearchBtn");
+        if (!backButton) {
+            return;
+        }
+
+        try {
+            const savedQuery = localStorage.getItem("su_science_main_filters");
+            if (savedQuery !== null) {
+                backButton.href = `{% url 'main' %}${savedQuery}`;
+            }
+        } catch (error) {
+            // Ignore localStorage failures and keep default link.
+        }
+    })();
+</script>
 {% endblock %}
