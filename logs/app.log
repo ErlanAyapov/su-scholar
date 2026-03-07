@@ -2802,3 +2802,56 @@ django.template.exceptions.TemplateDoesNotExist: document/main.html
 2026-03-07 20:12:17,430 [WARNING] django.request: Not Found: /onlyoffice/generator/callback/29
 2026-03-07 20:12:17,431 [WARNING] django.server: "POST /onlyoffice/generator/callback/29 HTTP/1.1" 404 12
 2026-03-07 20:12:20,876 [INFO] django.server: "GET / HTTP/1.1" 200 21132
+2026-03-07 20:13:06,632 [INFO] django.server: "GET / HTTP/1.1" 200 21132
+2026-03-07 20:13:07,383 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 10520
+2026-03-07 20:13:07,385 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-07 20:13:07,585 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-07 20:13:07,619 [INFO] django.server: "GET /static/main/scripts/main_filter.js HTTP/1.1" 200 9162
+2026-03-07 20:13:08,434 [INFO] django.server: "GET /static/main/images/favicon.ico HTTP/1.1" 200 15406
+2026-03-07 20:13:10,408 [INFO] django.server: "GET /employees/ HTTP/1.1" 200 59174
+2026-03-07 20:13:11,141 [INFO] django.server: "GET /static/main/images/man-user-color-icon.svg HTTP/1.1" 200 2332
+2026-03-07 20:13:11,141 [INFO] django.server: "GET /static/main/images/woman-user-color-icon.svg HTTP/1.1" 200 1764
+2026-03-07 20:13:12,041 [INFO] django.server: "GET /?staff_user=1&status=published HTTP/1.1" 200 48166
+2026-03-07 20:13:15,300 [WARNING] django.security.csrf: Forbidden (Origin checking failed - https://nondomineering-presufficient-gerda.ngrok-free.dev does not match any trusted origins.): /
+2026-03-07 20:13:15,301 [WARNING] django.server: "POST / HTTP/1.1" 403 2590
+2026-03-07 20:13:15,837 [WARNING] django.request: Not Found: /favicon.ico
+2026-03-07 20:13:15,837 [WARNING] django.server: "GET /favicon.ico HTTP/1.1" 404 12979
+2026-03-07 20:13:33,814 [WARNING] django.security.csrf: Forbidden (Origin checking failed - https://nondomineering-presufficient-gerda.ngrok-free.dev does not match any trusted origins.): /
+2026-03-07 20:13:33,819 [WARNING] django.server: "POST / HTTP/1.1" 403 2590
+2026-03-07 20:13:36,473 [WARNING] django.security.csrf: Forbidden (Origin checking failed - https://nondomineering-presufficient-gerda.ngrok-free.dev does not match any trusted origins.): /
+2026-03-07 20:13:36,473 [WARNING] django.server: "POST / HTTP/1.1" 403 2590
+2026-03-07 20:13:38,608 [INFO] django.server: "GET /?staff_user=1&status=published HTTP/1.1" 200 48166
+2026-03-07 20:13:39,114 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 304 0
+2026-03-07 20:13:41,755 [WARNING] django.security.csrf: Forbidden (Origin checking failed - https://nondomineering-presufficient-gerda.ngrok-free.dev does not match any trusted origins.): /
+2026-03-07 20:13:41,756 [WARNING] django.server: "POST / HTTP/1.1" 403 2590
+2026-03-07 20:13:44,644 [INFO] django.server: "GET /account/ HTTP/1.1" 200 10833
+2026-03-07 20:13:46,581 [WARNING] django.security.csrf: Forbidden (Origin checking failed - https://nondomineering-presufficient-gerda.ngrok-free.dev does not match any trusted origins.): /account/
+2026-03-07 20:13:46,582 [WARNING] django.server: "POST /account/ HTTP/1.1" 403 2590
+2026-03-07 20:14:17,111 [INFO] django.utils.autoreload: D:\PROJECTs\su_science\project\project\settings.py changed, reloading.
+2026-03-07 20:14:17,653 [INFO] django.utils.autoreload: Watching for file changes with StatReloader
+2026-03-07 20:16:45,792 [INFO] django.server: "GET / HTTP/1.1" 200 21132
+2026-03-07 20:16:46,369 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 304 0
+2026-03-07 20:16:50,886 [INFO] django.server: "GET /documents HTTP/1.1" 200 7696
+2026-03-07 20:16:51,436 [INFO] django.server: "GET /static/document/css/style.css HTTP/1.1" 200 3529
+2026-03-07 20:17:04,603 [INFO] django.server: "GET / HTTP/1.1" 200 21132
+2026-03-07 20:17:08,163 [INFO] django.server: "GET /documents HTTP/1.1" 200 7696
+2026-03-07 20:17:11,107 [INFO] django.server: "GET / HTTP/1.1" 200 21132
+2026-03-07 20:17:11,569 [INFO] django.server: "GET /employees/ HTTP/1.1" 200 59174
+2026-03-07 20:17:14,886 [INFO] django.server: "GET /?staff_user=39&status=published HTTP/1.1" 200 49825
+2026-03-07 20:17:16,950 [INFO] main.views: Generation request accepted user=None template_id=13 filters_tags=0
+2026-03-07 20:17:16,951 [INFO] main.views: Anonymous generation start template_id=13 template_file_type=docx publications_count=11 requested_title=
+2026-03-07 20:17:16,951 [INFO] utils.document_generator: Template render start template_id=13 base_len=0
+2026-03-07 20:17:16,952 [INFO] utils.document_generator: Template render after synonyms template_id=13 len=0
+2026-03-07 20:17:16,952 [WARNING] utils.document_generator: Template render result is empty template_id=13
+2026-03-07 20:17:17,006 [INFO] utils.document_generator: DOCX render start template_id=13 source=D:\PROJECTs\su_science\project\media\synthetic_documents\template-from-document-5.docx output=C:\Users\admin\AppData\Local\Temp\tmponolbpxq.docx
+2026-03-07 20:17:17,084 [INFO] utils.document_generator: DOCX render finished template_id=13 output=C:\Users\admin\AppData\Local\Temp\tmponolbpxq.docx
+2026-03-07 20:17:17,084 [INFO] main.views: Anonymous generation finished template_id=13 file_type=docx size=25743
+2026-03-07 20:17:17,085 [INFO] django.server: "POST / HTTP/1.1" 200 25743
+2026-03-07 20:17:46,382 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 304 0
+2026-03-07 20:17:54,607 [INFO] django.server: "GET /employees/ HTTP/1.1" 200 59174
+2026-03-07 20:17:57,186 [INFO] django.server: "GET /account/ HTTP/1.1" 200 10833
+2026-03-07 20:18:06,736 [INFO] django.server: "POST /account/ HTTP/1.1" 200 11142
+2026-03-07 20:18:08,975 [INFO] django.server: "GET / HTTP/1.1" 200 21132
+2026-03-07 20:18:18,324 [INFO] django.server: "GET /?show=all HTTP/1.1" 200 69652
+2026-03-07 20:18:35,283 [INFO] django.server: "GET /?show=all HTTP/1.1" 200 69652
+2026-03-07 20:18:36,803 [INFO] django.server: "GET /static/main/images/favicon.ico HTTP/1.1" 200 15406

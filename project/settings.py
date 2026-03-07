@@ -22,6 +22,12 @@ LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _as_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -58,6 +64,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# DEV convenience:
+# - by default with DEBUG=True, CSRF checks are disabled (allow all origins, including ngrok)
+# - override via .env: DISABLE_CSRF_CHECKS=0 to re-enable checks
+DISABLE_CSRF_CHECKS = _as_bool(os.getenv('DISABLE_CSRF_CHECKS'), default=DEBUG)
+if DISABLE_CSRF_CHECKS:
+    MIDDLEWARE = [mw for mw in MIDDLEWARE if mw != 'django.middleware.csrf.CsrfViewMiddleware']
 
 ROOT_URLCONF = 'project.urls'
 
