@@ -11,6 +11,8 @@
   const suggestionsBox = document.getElementById("searchSuggestions");
   const suggestionsUrl = searchInput?.dataset?.suggestionsUrl || "";
   const SEARCH_STATE_KEY = "su_science_main_filters";
+  const quickSearchPanel = document.getElementById("quickSearchPanel");
+
   if (!panel || !form) return;
 
   function saveSearchState(queryString) {
@@ -30,6 +32,7 @@
     searchContainer.style.borderBottomRightRadius = "0";
     searchContainer.style.borderTopLeftRadius = "20px";
     searchContainer.style.borderTopRightRadius = "20px";
+    quickSearchPanel.style.display = "none";
 
   }
 
@@ -40,6 +43,7 @@
     searchContainer.style.borderBottomRightRadius = "50px";
     searchContainer.style.borderTopLeftRadius = "50px";
     searchContainer.style.borderTopRightRadius = "50px";
+    quickSearchPanel.style.display = "flex";
   }
 
   if (filterBtn) {
@@ -222,6 +226,7 @@
     for (const [k, v] of data.entries()) {
       if (!v) continue;
       if (k === "search") continue;
+      if (k === "show") continue;
       if (k === "staff_user") continue;
       entries.push([k, v]);
     }
@@ -262,10 +267,13 @@
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
       const search = form.querySelector('input[name="search"]')?.value || "";
+      const show = form.querySelector('input[name="show"]')?.value || "";
       const staffUser = form.querySelector('input[name="staff_user"]')?.value || "";
       form.reset();
       const searchInput = form.querySelector('input[name="search"]');
       if (searchInput) searchInput.value = search;
+      const showInput = form.querySelector('input[name="show"]');
+      if (showInput) showInput.value = show;
       const staffUserInput = form.querySelector('input[name="staff_user"]');
       if (staffUserInput) staffUserInput.value = staffUser;
       rebuildChips();
@@ -273,6 +281,7 @@
       saveSearchState(params.toString() ? `?${params.toString()}` : "");
       hideSuggestions();
       form.submit();
+      window.open('/', '_self');
     });
   }
 })();

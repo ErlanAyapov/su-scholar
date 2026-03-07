@@ -14,15 +14,22 @@ main {
     color: #000;
     font-weight: bold;
     margin-left: 15px;
-    padding-bottom: 2px;
+    opacity: 0.7;
+    /* padding-bottom: 2px; */
 }
 .nav-link-custom:hover {
-    padding-bottom: 7px;
-    transition: padding-bottom 0.3s ease;
-    border-bottom: 2px solid #000;
+    /* padding-bottom: 7px; */
+    opacity: 1;
+    transition: all 0.3s ease;
+    /* border-bottom: 2px solid #000; */
 }
 .search-jumbotron {
     margin-top: 20vh;
+    transition: margin-top .22s ease;
+}
+
+.search-jumbotron.search-jumbotron-compact {
+    margin-top: 2vh;
 }
 
 .search-container {
@@ -51,6 +58,56 @@ main {
     color: #333;
     font-size: 18px;
     cursor: pointer;
+}
+
+.quick-search-panel {
+    max-width: 700px;
+    margin: 12px auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.quick-search-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #000000;
+    text-decoration: none;
+    border: 1px solid rgba(0, 0, 0, .12);
+    font-size: .88rem;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .04);
+    opacity: 0.5;
+    transition: all 0.2s ease;
+}
+
+.quick-search-link:hover {
+    border-color: #1a81f7;
+    color: #1a81f7;
+    opacity: 1;
+
+}
+
+.search-empty-state {
+    max-width: 760px;
+    margin: 26px auto 0;
+    text-align: center;
+    color: #5d6470;
+}
+
+.search-empty-title {
+    margin: 0;
+    font-weight: 600;
+    color: #344054;
+}
+
+.search-empty-subtitle {
+    margin: 6px 0 0;
+    font-size: .95rem;
 }
 
 .search-suggestions {
@@ -392,6 +449,10 @@ footer {
 
     #mainContainer {
         margin-top: 2vh;
+    }
+
+    .quick-search-panel {
+        justify-content: flex-start;
     }
 
     .staff-filter-alert {

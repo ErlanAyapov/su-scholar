@@ -1,13 +1,85 @@
 {% extends "document/base.html" %}
 
 {% block document_content %}
-<div class="card shadow-sm border-0">
-    <div class="card-body p-4">
-        <h1 class="h4 mb-2">Құжаттар бөлімі</h1>
-        <p class="text-muted mb-0">
-            Бұл `document` қосымшасының базалық беті. Келесі қадамда құжаттарды жүктеу,
-            сақтау және қарау функционалын осы жерге қоса аламыз.
-        </p>
-    </div>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h4 m-0">Құжаттар</h1>
+    {% if request.user.is_authenticated %}
+        <form method="post" action="{% url 'document_main' %}" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="text" name="title" class="form-control form-control-sm" placeholder="Жаңа құжат атауы" style="min-width: 220px;">
+            <button class="btn btn-primary btn-sm" type="submit">Құру</button>
+        </form>
+    {% endif %}
 </div>
+
+{% if documents %}
+    <div class="document-list-grid">
+        {% for document in documents %}
+            <article class="card border-0 shadow-sm generator-card" data-doc-id="{{ document.id }}">
+                <div class="card-body">
+                    <h2 class="h6 mb-1">{{ document.title }}</h2>
+                    <p class="generator-meta mb-2">
+                        {{ document.updated_at|date:"d.m.Y H:i" }} • v{{ document.version }}
+                    </p>
+                    <p class="mb-2 text-muted small">
+                        Иесі: {{ document.user.get_full_name|default:document.user.username }}
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'document_edit' document.id %}">
+                            Ашу
+                        </a>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'document_detail' document.id %}" target="_blank" rel="noopener noreferrer">
+                            JSON
+                        </a>
+                        {% if request.user.id == document.user_id %}
+                            <button class="btn btn-sm btn-outline-danger js-delete-doc" type="button" data-delete-url="{% url 'document_detail' document.id %}">
+                                Жою
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-light border mb-0">Құжаттар табылмады.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    (function () {
+        const buttons = document.querySelectorAll(".js-delete-doc");
+        buttons.forEach((button) => {
+            button.addEventListener("click", async () => {
+                const confirmed = window.confirm("Құжатты жою керек пе?");
+                if (!confirmed) return;
+
+                const url = button.getAttribute("data-delete-url");
+                if (!url) return;
+
+                const csrfToken = document.querySelector("input[name='csrfmiddlewaretoken']")?.value || "";
+                try {
+                    const response = await fetch(url, {
+                        method: "DELETE",
+                        headers: {
+                            "X-CSRFToken": csrfToken,
+                            "Accept": "application/json",
+                        },
+                    });
+                    if (!response.ok) {
+                        throw new Error("Delete failed");
+                    }
+                    const card = button.closest("[data-doc-id]");
+                    if (card) {
+                        card.remove();
+                    }
+                } catch (error) {
+                    window.alert("Жою кезінде қате шықты.");
+                }
+            });
+        });
+    })();
+</script>
 {% endblock %}

@@ -1,3 +1,77 @@
 .document-page .card {
     border-radius: 16px;
 }
+
+.document-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.generator-card {
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.generator-meta {
+    font-size: 0.88rem;
+    color: #5f6974;
+}
+
+.onlyoffice-wrap {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    height: 620px;
+    background: #f7f8fb;
+}
+
+.onlyoffice-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.editor-textarea {
+    min-height: 220px;
+    resize: vertical;
+}
+
+.synonym-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 550px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.synonym-item {
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+    padding: 8px 10px;
+    cursor: grab;
+}
+
+.synonym-item:active {
+    cursor: grabbing;
+}
+
+.synonym-item:hover {
+    border-color: #1a81f7;
+    box-shadow: 0 0 0 3px rgba(26, 129, 247, 0.12);
+}
+
+.synonym-code {
+    display: block;
+    font-size: 0.78rem;
+    color: #697586;
+}
+
+.synonym-value {
+    display: block;
+    font-size: 0.95rem;
+    color: #1f2937;
+}

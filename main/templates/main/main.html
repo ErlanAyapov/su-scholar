@@ -3,7 +3,7 @@
 {% block title %}SU Science{% endblock %}
 
 {% block content %}
-<div class="jumbotron text-center search-jumbotron" id="mainContainer">
+<div class="jumbotron text-center search-jumbotron {% if show_results %}search-jumbotron-compact{% endif %}" id="mainContainer">
     <h1 class="display-4" id="brandText">SU Science</h1>
 
     <div class="search-container" id="searchContainer">
@@ -17,8 +17,8 @@
                 placeholder="Жарияланым, DOI, автор, журнал бойынша іздеу..."
                 value="{{ request.GET.search|default:'' }}"
             >
+            {% if request.GET.show %}<input type="hidden" name="show" value="{{ request.GET.show }}">{% endif %}
             {% if request.GET.staff_user %}<input type="hidden" name="staff_user" value="{{ request.GET.staff_user }}">{% endif %}
-
             {% if request.GET.type %}<input type="hidden" name="type" value="{{ request.GET.type }}">{% endif %}
             {% if request.GET.lang %}<input type="hidden" name="lang" value="{{ request.GET.lang }}">{% endif %}
             {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
@@ -49,6 +49,14 @@
         <div id="searchSuggestions" class="search-suggestions d-none" role="listbox" aria-label="Іздеу ұсыныстары"></div>
     </div>
 
+    <div class="quick-search-panel" id="quickSearchPanel">
+        <a class="quick-search-link" href="{% url 'main' %}?show=all">Барлығын көрсету</a>
+        <a class="quick-search-link" href="{% url 'main' %}?status=published">Жарияланғандар</a>
+        <a class="quick-search-link" href="{% url 'main' %}?oa=1">Open Access</a>
+        <a class="quick-search-link" href="{% url 'main' %}?quartile=Q1">Q1</a>
+        <a class="quick-search-link" href="{% url 'main' %}?status=published&y_min={{ quick_year_from }}">Соңғы 5 жыл</a>
+    </div>
+
     <div class="filter-container">
         <div class="filter-panel" id="filterPanel" aria-hidden="true">
             <div class="filter-header">
@@ -58,6 +66,7 @@
 
             <form method="get" action="{% url 'main' %}" id="filterForm" class="filter-form">
                 <input type="hidden" name="search" value="{{ request.GET.search|default:'' }}">
+                <input type="hidden" name="show" value="{{ request.GET.show|default:'' }}">
                 <input type="hidden" name="staff_user" value="{{ request.GET.staff_user|default:'' }}">
                 <div class="chips" id="activeChips"></div>
 
@@ -218,11 +227,65 @@
         </div>
     </div>
 
+    {% if show_results %}
     <div class="result-container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3 results-header">
             <p class="m-0 text-muted">Жарияланымдар</p>
             <span class="text-muted">Табылды: {{ total_count }}</span>
         </div>
+
+        {% if request.user.is_authenticated %}
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h2 class="h6 mb-2">Есеп генерациясы</h2>
+                    <p class="text-muted small mb-3">Ағымдағы сүзгі нәтижелері бойынша есеп жасаңыз.</p>
+                    {% if report_templates %}
+                        <form method="post" action="{% url 'main' %}" class="row g-2 align-items-end">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="generate_report">
+                            <input type="hidden" name="search" value="{{ request.GET.search|default:'' }}">
+                            <input type="hidden" name="show" value="{{ request.GET.show|default:'' }}">
+                            <input type="hidden" name="staff_user" value="{{ request.GET.staff_user|default:'' }}">
+                            <input type="hidden" name="type" value="{{ request.GET.type|default:'' }}">
+                            <input type="hidden" name="lang" value="{{ request.GET.lang|default:'' }}">
+                            <input type="hidden" name="status" value="{{ request.GET.status|default:'' }}">
+                            <input type="hidden" name="oa" value="{{ request.GET.oa|default:'' }}">
+                            <input type="hidden" name="y_min" value="{{ request.GET.y_min|default:'' }}">
+                            <input type="hidden" name="y_max" value="{{ request.GET.y_max|default:'' }}">
+                            <input type="hidden" name="db" value="{{ request.GET.db|default:'' }}">
+                            <input type="hidden" name="quartile" value="{{ request.GET.quartile|default:'' }}">
+                            <input type="hidden" name="area" value="{{ request.GET.area|default:'' }}">
+                            <input type="hidden" name="venue" value="{{ request.GET.venue|default:'' }}">
+                            {% for tag in selected_tags %}
+                                <input type="hidden" name="tags" value="{{ tag }}">
+                            {% endfor %}
+
+                            <div class="col-md-4">
+                                <label class="form-label mb-1" for="reportTemplate">Шаблон</label>
+                                <select id="reportTemplate" name="template_id" class="form-select" required>
+                                    <option value="">Шаблон таңдаңыз</option>
+                                    {% for template in report_templates %}
+                                        <option value="{{ template.id }}">{{ template.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-5">
+                                <label class="form-label mb-1" for="reportTitle">Есеп атауы</label>
+                                <input id="reportTitle" type="text" name="report_title" class="form-control" placeholder="Мысалы: 2026 жыл бойынша есеп">
+                            </div>
+
+                            <div class="col-md-3 d-grid">
+                                <button type="submit" class="btn btn-primary">Есепті генерациялау</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-light border mb-0">Есеп генерациялау үшін қолжетімді шаблон табылмады.</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
         {% if staff_user %}
             <div class="alert alert-primary py-2 px-3 d-flex justify-content-between align-items-center gap-2 staff-filter-alert">
                 <span>
@@ -300,6 +363,7 @@
             <div class="alert alert-light border">Таңдалған шарттар бойынша ештеңе табылмады.</div>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 

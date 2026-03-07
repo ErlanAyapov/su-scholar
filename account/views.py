@@ -1,8 +1,10 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login, logout
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
+
+from .forms import LoginForm, RegisterForm
 
 
 User = get_user_model()
@@ -48,3 +50,39 @@ def employees_list_chunk(request):
             'next_page': page_obj.next_page_number() if page_obj.has_next() else None,
         }
     )
+
+
+def account_page(request):
+    if request.user.is_authenticated:
+        return render(request, "account/account_page.html")
+
+    register_form = RegisterForm(prefix="register")
+    login_form = LoginForm(request=request, prefix="login")
+
+    if request.method == "POST":
+        if "register_submit" in request.POST:
+            register_form = RegisterForm(request.POST, prefix="register")
+            if register_form.is_valid():
+                user = register_form.save()
+                login(request, user)
+                return redirect("account_page")
+        elif "login_submit" in request.POST:
+            login_form = LoginForm(request=request, data=request.POST, prefix="login")
+            if login_form.is_valid():
+                login(request, login_form.get_user())
+                return redirect("account_page")
+
+    return render(
+        request,
+        "account/account_page.html",
+        {
+            "register_form": register_form,
+            "login_form": login_form,
+        },
+    )
+
+
+def account_logout(request):
+    if request.method == "POST" and request.user.is_authenticated:
+        logout(request)
+    return redirect("account_page")

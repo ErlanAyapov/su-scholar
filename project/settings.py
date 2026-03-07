@@ -127,6 +127,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+DOCK_EDITOR_URL = os.getenv('DOCK_EDITOR_URL', '')
+APP_PUBLIC_URL = os.getenv('APP_PUBLIC_URL', '')
+ONLYOFFICE_JWT_SECRET = os.getenv('ONLYOFFICE_JWT_SECRET', '')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

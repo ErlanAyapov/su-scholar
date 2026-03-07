@@ -1,0 +1,104 @@
+{% extends "main/base.html" %}
+
+{% block title %}SU Science - Аккаунт{% endblock %}
+
+{% block content %}
+<section class="mx-auto" style="max-width: 980px;">
+    {% if request.user.is_authenticated %}
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                    <h1 class="h4 m-0">Жеке кабинет</h1>
+                    <form method="post" action="{% url 'account_logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Шығу</button>
+                    </form>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="text-muted small">Пайдаланушы аты</div>
+                        <div>{{ request.user.username }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Email</div>
+                        <div>{{ request.user.email|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Аты</div>
+                        <div>{{ request.user.first_name|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Тегі</div>
+                        <div>{{ request.user.last_name|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Тіркелген күні</div>
+                        <div>{{ request.user.date_joined|date:"d.m.Y H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h1 class="h5 mb-3">Кіру</h1>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% if login_form.non_field_errors %}
+                                <div class="alert alert-danger py-2">
+                                    {{ login_form.non_field_errors }}
+                                </div>
+                            {% endif %}
+                            <div class="row g-3">
+                                {% for field in login_form %}
+                                    <div class="col-12">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.errors %}
+                                            <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" name="login_submit" class="btn btn-primary mt-3">Кіру</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 mb-3">Тіркелу</h2>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% if register_form.non_field_errors %}
+                                <div class="alert alert-danger py-2">
+                                    {{ register_form.non_field_errors }}
+                                </div>
+                            {% endif %}
+                            <div class="row g-3">
+                                {% for field in register_form %}
+                                    <div class="col-12">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}
+                                            <div class="form-text">{{ field.help_text|safe }}</div>
+                                        {% endif %}
+                                        {% if field.errors %}
+                                            <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" name="register_submit" class="btn btn-outline-primary mt-3">Тіркелу</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

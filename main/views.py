@@ -1,12 +1,27 @@
+import os
+import tempfile
+from datetime import date
+import logging
+
+from django.contrib.auth import get_user_model
+from django.core.files import File
+from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.db.models import Count, Max, Min, Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
-from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.text import slugify
 
+from document.models import Document, DocumentGenerator
 from main.models import DepartmentArea, IndexingDatabase, Language, Publication, PublicationType, Tag, Venue
+from utils.document_generator import generate_document, generate_docx
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+FILTER_PARAM_KEYS = ("type", "lang", "status", "oa", "y_min", "y_max", "db", "quartile", "area", "venue", "staff_user")
+REPORT_FORM_KEYS = ("csrfmiddlewaretoken", "action", "template_id", "report_title")
 
 
 def _parse_int(value, default=None):
@@ -40,19 +55,36 @@ def _apply_staff_user_filter(queryset, staff_user_id):
     return queryset.filter(user_filter), staff_user
 
 
-def main_page(request):
-    qs = (
+def _has_active_search(params):
+    if (params.get("show") or "").strip().lower() == "all":
+        return True
+
+    if (params.get("search") or "").strip():
+        return True
+
+    for key in FILTER_PARAM_KEYS:
+        if (params.get(key) or "").strip():
+            return True
+
+    return any(tag_id for tag_id in params.getlist("tags"))
+
+
+def _extract_selected_tags(params):
+    return [str(tag_id) for tag_id in params.getlist("tags") if tag_id]
+
+
+def _build_filtered_publications(params, selected_tags):
+    queryset = (
         Publication.objects.select_related("pub_type", "language", "venue", "area")
         .prefetch_related("tags", "indexing", "authors")
         .all()
     )
+    staff_user_id = _parse_int(params.get("staff_user"))
+    queryset, staff_user = _apply_staff_user_filter(queryset, staff_user_id)
 
-    staff_user_id = _parse_int(request.GET.get("staff_user"))
-    qs, staff_user = _apply_staff_user_filter(qs, staff_user_id)
-
-    search_text = (request.GET.get("search") or "").strip()
+    search_text = (params.get("search") or "").strip()
     if search_text:
-        qs = qs.filter(
+        queryset = queryset.filter(
             Q(title_original__icontains=search_text)
             | Q(doi__icontains=search_text)
             | Q(keywords__icontains=search_text)
@@ -61,64 +93,198 @@ def main_page(request):
             | Q(record_id__icontains=search_text)
         )
 
-    type_id = _parse_int(request.GET.get("type"))
+    type_id = _parse_int(params.get("type"))
     if type_id:
-        qs = qs.filter(pub_type_id=type_id)
+        queryset = queryset.filter(pub_type_id=type_id)
 
-    lang_id = _parse_int(request.GET.get("lang"))
+    lang_id = _parse_int(params.get("lang"))
     if lang_id:
-        qs = qs.filter(language_id=lang_id)
+        queryset = queryset.filter(language_id=lang_id)
 
-    status = request.GET.get("status")
+    status = params.get("status")
     if status in {"submitted", "accepted", "published"}:
-        qs = qs.filter(status=status)
+        queryset = queryset.filter(status=status)
 
-    oa = request.GET.get("oa")
+    oa = params.get("oa")
     if oa in {"0", "1"}:
-        qs = qs.filter(open_access=(oa == "1"))
+        queryset = queryset.filter(open_access=(oa == "1"))
 
-    y_min = _parse_int(request.GET.get("y_min"))
+    y_min = _parse_int(params.get("y_min"))
     if y_min:
-        qs = qs.filter(year__gte=y_min)
+        queryset = queryset.filter(year__gte=y_min)
 
-    y_max = _parse_int(request.GET.get("y_max"))
+    y_max = _parse_int(params.get("y_max"))
     if y_max:
-        qs = qs.filter(year__lte=y_max)
+        queryset = queryset.filter(year__lte=y_max)
 
-    db_id = _parse_int(request.GET.get("db"))
+    db_id = _parse_int(params.get("db"))
     if db_id:
-        qs = qs.filter(indexing__id=db_id)
+        queryset = queryset.filter(indexing__id=db_id)
 
-    quartile = (request.GET.get("quartile") or "").strip().upper()
+    quartile = (params.get("quartile") or "").strip().upper()
     if quartile in {"Q1", "Q2", "Q3", "Q4"}:
-        qs = qs.filter(quartile=quartile)
+        queryset = queryset.filter(quartile=quartile)
 
-    area_id = _parse_int(request.GET.get("area"))
+    area_id = _parse_int(params.get("area"))
     if area_id:
-        qs = qs.filter(area_id=area_id)
+        queryset = queryset.filter(area_id=area_id)
 
-    venue_id = _parse_int(request.GET.get("venue"))
+    venue_id = _parse_int(params.get("venue"))
     if venue_id:
-        qs = qs.filter(venue_id=venue_id)
+        queryset = queryset.filter(venue_id=venue_id)
 
-    selected_tags = [str(tag_id) for tag_id in request.GET.getlist("tags") if tag_id]
     if selected_tags:
         tag_ids = [_parse_int(tag_id) for tag_id in selected_tags]
         tag_ids = [tag_id for tag_id in tag_ids if tag_id]
         if tag_ids:
-            qs = qs.filter(tags__id__in=tag_ids)
+            queryset = queryset.filter(tags__id__in=tag_ids)
 
-    qs = qs.distinct().order_by("-year", "-id")
-    total_count = qs.count()
+    return queryset.distinct().order_by("-year", "-id"), staff_user
 
-    paginator = Paginator(qs, 20)
-    page_obj = paginator.get_page(request.GET.get("page"))
 
-    query_params = request.GET.copy()
+def _available_generators_for_user(user):
+    queryset = DocumentGenerator.objects.select_related("user").order_by("title")
+    if user.is_authenticated:
+        return queryset.filter(Q(access_to_all=True) | Q(user=user)).distinct()
+    return queryset.filter(access_to_all=True)
+
+
+def _build_report_filename(base_title: str, extension: str) -> str:
+    slug = slugify(base_title) or "report"
+    timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
+    return f"{slug}-{timestamp}.{extension}"
+
+
+def _make_generated_document(
+    generator_template: DocumentGenerator,
+    publications_queryset,
+    user,
+    requested_title: str = "",
+) -> Document:
+    context = {
+        "publications": publications_queryset,
+        "user": user,
+    }
+    rendered_text = generate_document(generator_template, context)
+    title = (requested_title or "").strip() or generator_template.title
+    title = title[:255]
+
+    document = Document(
+        title=title,
+        content=rendered_text,
+        user=user,
+        generated_by=generator_template,
+    )
+
+    docx_generated = False
+    if generator_template.file and generator_template.file.name.lower().endswith(".docx"):
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_output:
+            output_path = temp_output.name
+        try:
+            try:
+                generate_docx(generator_template, context, output_path)
+                with open(output_path, "rb") as generated_file:
+                    document.file.save(
+                        _build_report_filename(title, "docx"),
+                        File(generated_file),
+                        save=False,
+                    )
+                document.file_type = "docx"
+                docx_generated = True
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "DOCX generation failed for template_id=%s. Falling back to TXT. error=%s",
+                    generator_template.id,
+                    exc,
+                )
+                docx_generated = False
+        finally:
+            try:
+                os.remove(output_path)
+            except OSError:
+                pass
+
+    if not docx_generated:
+        text_bytes = (rendered_text or "").encode("utf-8")
+        document.file.save(
+            _build_report_filename(title, "txt"),
+            ContentFile(text_bytes),
+            save=False,
+        )
+        document.file_type = "txt"
+
+    document.save()
+    return document
+
+
+def _main_query_from_params(params):
+    query_params = params.copy()
     query_params.pop("page", None)
-    base_query = query_params.urlencode()
+    for key in REPORT_FORM_KEYS:
+        query_params.pop(key, None)
+    return query_params.urlencode()
+
+
+def _redirect_main_with_filters(params):
+    query = _main_query_from_params(params)
+    target = reverse("main")
+    if query:
+        target = f"{target}?{query}"
+    return redirect(target)
+
+
+def _handle_report_generation(request):
+    if not request.user.is_authenticated:
+        return redirect("account_page")
+
+    template_id = _parse_int(request.POST.get("template_id"))
+    if not template_id:
+        return _redirect_main_with_filters(request.POST)
+
+    generator_template = _available_generators_for_user(request.user).filter(pk=template_id).first()
+    if not generator_template:
+        return _redirect_main_with_filters(request.POST)
+
+    selected_tags = _extract_selected_tags(request.POST)
+    publications_queryset, _ = _build_filtered_publications(request.POST, selected_tags)
+    requested_title = (request.POST.get("report_title") or "").strip()
+
+    document = _make_generated_document(
+        generator_template=generator_template,
+        publications_queryset=publications_queryset,
+        user=request.user,
+        requested_title=requested_title,
+    )
+    if document.file_type == "docx":
+        return redirect("document_edit", pk=document.pk)
+    return redirect("document_detail", pk=document.pk)
+
+
+def main_page(request):
+    if request.method == "POST" and request.POST.get("action") == "generate_report":
+        return _handle_report_generation(request)
+
+    params = request.GET
+    show_results = _has_active_search(params)
+    staff_user = None
+    selected_tags = _extract_selected_tags(params)
+
+    if show_results:
+        qs, staff_user = _build_filtered_publications(params, selected_tags)
+        total_count = qs.count()
+        paginator = Paginator(qs, 20)
+        page_obj = paginator.get_page(params.get("page"))
+    else:
+        qs = Publication.objects.none()
+        total_count = 0
+        paginator = Paginator(qs, 20)
+        page_obj = paginator.get_page(1)
+
+    base_query = _main_query_from_params(params)
 
     years = Publication.objects.aggregate(min=Min("year"), max=Max("year"))
+    current_year = date.today().year
+    quick_year_from = current_year - 5
     ctx = {
         "pub_types": PublicationType.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
         "languages": Language.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
@@ -134,6 +300,9 @@ def main_page(request):
         "total_count": total_count,
         "base_query": base_query,
         "staff_user": staff_user,
+        "show_results": show_results,
+        "quick_year_from": quick_year_from,
+        "report_templates": _available_generators_for_user(request.user),
     }
     return render(request, "main/main.html", ctx)
 

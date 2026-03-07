@@ -1,0 +1,148 @@
+{% extends "document/base.html" %}
+
+{% block document_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h4 m-0">{{ document_obj.title }}</h1>
+        <p class="text-muted small mb-0">ID: {{ document_obj.id }} • v{{ document_obj.version }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'document_main' %}" class="btn btn-outline-secondary">Тізімге оралу</a>
+        {% if can_delete %}
+            <button type="button" id="deleteDocumentButton" class="btn btn-outline-danger">Жою</button>
+        {% endif %}
+    </div>
+</div>
+
+{% if not onlyoffice_api_js %}
+    <div class="alert alert-warning">
+        `.env` файлында `DOCK_EDITOR_URL` орнатылмаған. ONLYOFFICE редакторын жүктеу мүмкін емес.
+    </div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="onlyoffice-wrap">
+                    <div id="onlyofficeEditor" class="onlyoffice-frame"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6 mb-2">Синонимдер</h2>
+                <p class="text-muted small mb-2">
+                    Элементті бассаңыз, мәтін көшіру буферіне көшіріледі. Ctrl+V арқылы редакторға қоя аласыз.
+                </p>
+                {% if synonyms %}
+                    <div class="synonym-list">
+                        {% for synonym in synonyms %}
+                            <button
+                                type="button"
+                                class="synonym-item"
+                                draggable="true"
+                                data-text="{% templatetag openvariable %}{{ synonym.value }}{% templatetag closevariable %}"
+                            >
+                                <span class="synonym-value">{{ synonym.value }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-light border py-2 mb-0">Синонимдер тізімі бос.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% if onlyoffice_api_js %}
+    <script src="{{ onlyoffice_api_js }}"></script>
+{% endif %}
+<script>
+    (function () {
+        const configUrl = "{{ onlyoffice_config_url }}";
+        const deleteButton = document.getElementById("deleteDocumentButton");
+        const deleteUrl = "{% url 'document_detail' document_obj.id %}";
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) {
+                return parts.pop().split(";").shift();
+            }
+            return "";
+        }
+
+        async function loadEditor() {
+            if (!window.DocsAPI) {
+                return;
+            }
+            try {
+                const response = await fetch(configUrl, {
+                    headers: { "Accept": "application/json" },
+                    credentials: "same-origin",
+                });
+                if (!response.ok) {
+                    throw new Error("Config request failed");
+                }
+                const config = await response.json();
+                new window.DocsAPI.DocEditor("onlyofficeEditor", config);
+            } catch (error) {
+                console.error(error);
+                const container = document.getElementById("onlyofficeEditor");
+                if (container) {
+                    container.innerHTML = "<div class='alert alert-danger m-3'>Редактор конфигурациясын жүктеу мүмкін болмады.</div>";
+                }
+            }
+        }
+
+        if (deleteButton) {
+            deleteButton.addEventListener("click", async () => {
+                const confirmed = window.confirm("Құжатты жою керек пе?");
+                if (!confirmed) return;
+                try {
+                    const response = await fetch(deleteUrl, {
+                        method: "DELETE",
+                        headers: {
+                            "X-CSRFToken": getCookie("csrftoken"),
+                            "Accept": "application/json",
+                        },
+                    });
+                    if (!response.ok) {
+                        throw new Error("Delete failed");
+                    }
+                    window.location.href = "{% url 'document_main' %}";
+                } catch (error) {
+                    window.alert("Жою кезінде қате шықты.");
+                }
+            });
+        }
+
+        const synonymItems = document.querySelectorAll(".synonym-item");
+        synonymItems.forEach((item) => {
+            item.addEventListener("dragstart", (event) => {
+                event.dataTransfer.setData("text/plain", item.dataset.text || "");
+                event.dataTransfer.effectAllowed = "copy";
+            });
+            item.addEventListener("click", async () => {
+                const text = item.dataset.text || "";
+                if (!text) return;
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        });
+
+        loadEditor();
+    })();
+</script>
+{% endblock %}
