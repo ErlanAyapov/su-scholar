@@ -2,39 +2,95 @@
 
 {% block document_content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="h4 m-0">Құжаттар</h1>
+    <h1 class="h4 m-0">Құжат шаблондары</h1>
     {% if request.user.is_authenticated %}
-        <form method="post" action="{% url 'document_main' %}" class="d-flex gap-2">
+        <form method="post" action="{% url 'generator_create' %}">
             {% csrf_token %}
-            <input type="text" name="title" class="form-control form-control-sm" placeholder="Жаңа құжат атауы" style="min-width: 220px;">
-            <button class="btn btn-primary btn-sm" type="submit">Құру</button>
+            <button class="btn btn-sm btn-primary icon-action-btn" type="submit" aria-label="Шаблон қосу" title="Шаблон қосу">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 1a.5.5 0 0 1 .5.5V7.5h6a.5.5 0 0 1 0 1h-6v6a.5.5 0 0 1-1 0v-6h-6a.5.5 0 0 1 0-1h6v-6A.5.5 0 0 1 8 1"/>
+                </svg>
+            </button>
         </form>
     {% endif %}
 </div>
 
-{% if documents %}
-    <div class="document-list-grid">
-        {% for document in documents %}
-            <article class="card border-0 shadow-sm generator-card" data-doc-id="{{ document.id }}">
+{% if generators %}
+    <div class="">
+        {% for generator in generators %}
+            <article class="card border-0 shadow-sm generator-card" data-generator-id="{{ generator.id }}">
                 <div class="card-body">
-                    <h2 class="h6 mb-1">{{ document.title }}</h2>
-                    <p class="generator-meta mb-2">
-                        {{ document.updated_at|date:"d.m.Y H:i" }} • v{{ document.version }}
-                    </p>
-                    <p class="mb-2 text-muted small">
-                        Иесі: {{ document.user.get_full_name|default:document.user.username }}
-                    </p>
-                    <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-sm btn-outline-primary" href="{% url 'document_edit' document.id %}">
-                            Ашу
-                        </a>
-                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'document_detail' document.id %}" target="_blank" rel="noopener noreferrer">
-                            JSON
-                        </a>
-                        {% if request.user.id == document.user_id %}
-                            <button class="btn btn-sm btn-outline-danger js-delete-doc" type="button" data-delete-url="{% url 'document_detail' document.id %}">
-                                Жою
-                            </button>
+                    <div class="generator-head mb-3">
+                        <div class="generator-main">
+                            <h2 class="h6 mb-1">{{ generator.title }}</h2>
+                            <p class="generator-meta mb-2">
+                                {{ generator.created_at|date:"d.m.Y H:i" }} | {{ generator.file_type|upper }}
+                            </p>
+                            <p class="mb-0 text-muted small">
+                                Иесі: {{ generator.user.get_full_name|default:generator.user.username }}
+                            </p>
+                        </div>
+                        {% if request.user.id == generator.user_id %}
+                            <div class="generator-actions">
+                                <a class="btn btn-sm btn-outline-primary icon-action-btn" href="{% url 'generator_edit' generator.id %}" aria-label="Өңдеу" title="Өңдеу">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708L5.207 13.793 2 14l.207-3.207z"/>
+                                        <path fill-rule="evenodd" d="M1 13.5V16h2.5l8.379-8.379-2.5-2.5z"/>
+                                    </svg>
+                                </a>
+                                <button
+                                    class="btn btn-sm btn-outline-danger js-delete-generator icon-action-btn"
+                                    type="button"
+                                    data-delete-url="{% url 'generator_detail' generator.id %}"
+                                    aria-label="Жою"
+                                    title="Жою"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0A.5.5 0 0 1 8.5 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h2.5a1 1 0 0 1 1 1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <h3 class="h6 mb-2">Осы шаблонмен жасалған құжаттар</h3>
+                        {% if generator.last_ten_documents %}
+                            <div class="d-flex flex-column gap-2">
+                                {% for doc in generator.last_ten_documents %}
+                                    <div class="generated-doc-item border rounded p-2 w-100">
+                                        <div class="generated-doc-meta">
+                                            <div class="small fw-semibold">{{ doc.title }}</div>
+                                            <div class="small text-muted mb-2">{{ doc.updated_at|date:"d.m.Y H:i" }}</div>
+                                        </div>
+                                        <div class="generated-doc-actions">
+                                            {% if doc.file_type == "docx" %}
+                                                <a class="btn btn-sm btn-outline-primary icon-action-btn" href="{% url 'document_edit' doc.id %}" aria-label="Ашу" title="Ашу">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path fill-rule="evenodd" d="M6.364 13.657a.5.5 0 0 1 0-.707L10.314 9H1.5a.5.5 0 0 1 0-1h8.814L6.364 4.05a.5.5 0 1 1 .707-.707l4.8 4.8a.5.5 0 0 1 0 .707l-4.8 4.8a.5.5 0 0 1-.707 0"/>
+                                                    </svg>
+                                                </a>
+                                            {% else %}
+                                                <a class="btn btn-sm btn-outline-primary icon-action-btn" href="{% url 'document_detail' doc.id %}" target="_blank" rel="noopener noreferrer" aria-label="Ашу" title="Ашу">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path fill-rule="evenodd" d="M6.364 13.657a.5.5 0 0 1 0-.707L10.314 9H1.5a.5.5 0 0 1 0-1h8.814L6.364 4.05a.5.5 0 1 1 .707-.707l4.8 4.8a.5.5 0 0 1 0 .707l-4.8 4.8a.5.5 0 0 1-.707 0"/>
+                                                    </svg>
+                                                </a>
+                                            {% endif %}
+                                            <a class="btn btn-sm btn-outline-success icon-action-btn" href="{% url 'document_file' doc.id %}?download=1" aria-label="Жүктеу" title="Жүктеу">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M12 4v11"/>
+                                                    <path d="m7 10 5 5 5-5"/>
+                                                    <path d="M5 20h14"/>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-light border py-2 mb-0">Әзірге жасалған құжаттар жоқ.</div>
                         {% endif %}
                     </div>
                 </div>
@@ -42,7 +98,7 @@
         {% endfor %}
     </div>
 {% else %}
-    <div class="alert alert-light border mb-0">Құжаттар табылмады.</div>
+    <div class="alert alert-light border mb-0">Қолжетімді шаблондар табылмады.</div>
 {% endif %}
 {% endblock %}
 
@@ -50,33 +106,41 @@
 {{ block.super }}
 <script>
     (function () {
-        const buttons = document.querySelectorAll(".js-delete-doc");
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) {
+                return parts.pop().split(";").shift();
+            }
+            return "";
+        }
+
+        const buttons = document.querySelectorAll(".js-delete-generator");
         buttons.forEach((button) => {
             button.addEventListener("click", async () => {
-                const confirmed = window.confirm("Құжатты жою керек пе?");
+                const confirmed = window.confirm("Осы шаблонды жойғыңыз келе ме?");
                 if (!confirmed) return;
 
                 const url = button.getAttribute("data-delete-url");
                 if (!url) return;
 
-                const csrfToken = document.querySelector("input[name='csrfmiddlewaretoken']")?.value || "";
                 try {
                     const response = await fetch(url, {
                         method: "DELETE",
                         headers: {
-                            "X-CSRFToken": csrfToken,
+                            "X-CSRFToken": getCookie("csrftoken"),
                             "Accept": "application/json",
                         },
                     });
                     if (!response.ok) {
-                        throw new Error("Delete failed");
+                        throw new Error("Жою қатесі");
                     }
-                    const card = button.closest("[data-doc-id]");
+                    const card = button.closest("[data-generator-id]");
                     if (card) {
                         card.remove();
                     }
                 } catch (error) {
-                    window.alert("Жою кезінде қате шықты.");
+                    window.alert("Шаблонды жою сәтсіз аяқталды.");
                 }
             });
         });

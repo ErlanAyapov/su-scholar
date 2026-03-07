@@ -1,0 +1,547 @@
+{% extends "document/base.html" %}
+
+{% block document_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h4 m-0">{{ object_title }}</h1>
+        {% if object_subtitle %}
+            <p class="text-muted small mb-0">{{ object_subtitle }}</p>
+        {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ back_url }}" class="btn btn-outline-secondary icon-action-btn" aria-label="Артқа" title="Артқа">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M9.636 2.343a.5.5 0 0 1 0 .707L5.686 7H14.5a.5.5 0 0 1 0 1H5.686l3.95 3.95a.5.5 0 0 1-.707.707l-4.8-4.8a.5.5 0 0 1 0-.707l4.8-4.8a.5.5 0 0 1 .707 0"/>
+            </svg>
+        </a>
+        {% if can_delete and delete_url %}
+            <button type="button" id="deleteObjectButton" class="btn btn-outline-danger icon-action-btn" aria-label="Жою" title="Жою">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0A.5.5 0 0 1 8.5 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h2.5a1 1 0 0 1 1 1"/>
+                </svg>
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+{% if not onlyoffice_api_js %}
+    <div class="alert alert-warning">
+        ONLYOFFICE бапталмаған. `.env` файлына `DOCK_EDITOR_URL` мәнін енгізіңіз.
+    </div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="{% if synonyms %}col-lg-8{% else %}col-12{% endif %}">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="onlyoffice-wrap">
+                    <div id="onlyofficeEditor" class="onlyoffice-frame"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if synonyms %}
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6 mb-2">Синонимдер</h2>
+
+                {% if synonym_import_notice_text %}
+                    <div class="alert alert-{{ synonym_import_notice_level|default:'info' }} py-2 small">
+                        {{ synonym_import_notice_text }}
+                    </div>
+                {% endif %}
+
+                {% if synonym_import_enabled %}
+                    <div class="synonym-toolbar mb-2">
+                        <a class="btn btn-sm btn-outline-success icon-action-btn" href="{{ synonyms_export_url }}" aria-label="Экспорт" title="Экспорт">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M5 20h14"/>
+                                <path d="M12 20V9"/>
+                                <path d="m7 14 5-5 5 5"/>
+                            </svg>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-primary js-synonym-toggle icon-action-btn" data-target="synonymImportPanel" aria-label="Импорт" title="Импорт">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 4v11"/>
+                                <path d="m7 10 5 5 5-5"/>
+                                <path d="M5 20h14"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary js-synonym-toggle icon-action-btn" data-target="synonymAddPanel" aria-label="Қосу" title="Қосу">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 1a.5.5 0 0 1 .5.5V7.5h6a.5.5 0 0 1 0 1h-6v6a.5.5 0 0 1-1 0v-6h-6a.5.5 0 0 1 0-1h6v-6A.5.5 0 0 1 8 1"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div id="synonymImportPanel" class="synonym-dropdown d-none mb-2">
+                        <form method="post" action="{{ synonyms_import_url }}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <label class="form-label small mb-1" for="synonymsImportFile">JSON файл</label>
+                            <input
+                                type="file"
+                                class="form-control form-control-sm mb-2"
+                                id="synonymsImportFile"
+                                name="synonyms_file"
+                                accept=".json,application/json"
+                                required
+                            >
+                            <button class="btn btn-sm btn-primary icon-action-btn" type="submit" aria-label="Импорттау" title="Импорттау">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 4v11"/>
+                                    <path d="m7 10 5 5 5-5"/>
+                                    <path d="M5 20h14"/>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="synonymAddPanel" class="synonym-dropdown d-none mb-2">
+                        <form id="synonymAddForm" class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="synonymAddValue">Мән плейсхолдері</label>
+                                <input id="synonymAddValue" type="text" name="value" class="form-control form-control-sm" placeholder="жұмыс_атауы" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="synonymAddCode">Код өрнегі</label>
+                                <input id="synonymAddCode" type="text" name="code" class="form-control form-control-sm" placeholder="{% templatetag openvariable %} object.title {% templatetag closevariable %}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="synonymAddExample">Мысал</label>
+                                <textarea id="synonymAddExample" name="example" class="form-control form-control-sm" rows="2"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-sm btn-primary icon-action-btn" type="submit" aria-label="Сақтау" title="Сақтау">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M2 2v12h12V5.5L10.5 2H2zm-1 0a1 1 0 0 1 1-1h8.793a1 1 0 0 1 .707.293l3.207 3.207a1 1 0 0 1 .293.707V14a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2z"/>
+                                        <path d="M5 1.5A.5.5 0 0 1 5.5 1h5a.5.5 0 0 1 .5.5V4h-6zM4.5 8A1.5 1.5 0 0 0 3 9.5v3A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5v-3A1.5 1.5 0 0 0 11.5 8h-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <p class="text-muted small mb-2">
+                    Плейсхолдерді көшіру үшін карточканы басыңыз: `{% templatetag openvariable %} value {% templatetag closevariable %}`
+                </p>
+
+                <div class="synonym-list" id="synonymList">
+                    {% for synonym in synonyms %}
+                        <article
+                            class="synonym-card js-synonym-card"
+                            data-synonym-id="{{ synonym.id }}"
+                        >
+                            <div class="synonym-card-main js-synonym-copy" draggable="true">
+                                <span class="synonym-value">{{ synonym.value }}</span>
+                                <span class="synonym-code">{{ synonym.code }}</span>
+                                {% if synonym_import_enabled %}
+                                    <div class="synonym-actions">
+                                        <button type="button" class="synonym-icon-btn js-synonym-edit" title="Өңдеу">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708L5.207 13.793 2 14l.207-3.207z"/>
+                                                <path fill-rule="evenodd" d="M1 13.5V16h2.5l8.379-8.379-2.5-2.5z"/>
+                                            </svg>
+                                        </button>
+                                        <button type="button" class="synonym-icon-btn js-synonym-delete" title="Жою">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0A.5.5 0 0 1 8.5 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h2.5a1 1 0 0 1 1 1"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% if synonym_import_enabled %}
+                                <form class="synonym-edit-form d-none">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">Мән</label>
+                                            <input type="text" name="value" class="form-control form-control-sm" value="{{ synonym.value }}" required>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">Код</label>
+                                            <input type="text" name="code" class="form-control form-control-sm" value="{{ synonym.code }}" required>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">Мысал</label>
+                                            <textarea name="example" rows="2" class="form-control form-control-sm">{{ synonym.example|default_if_none:'' }}</textarea>
+                                        </div>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </article>
+                    {% empty %}
+                        <div class="alert alert-light border py-2 mb-0">Синонимдер тізімі бос.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if generator_form %}
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-body">
+            <h2 class="h6 mb-3">Шаблон баптаулары</h2>
+            <form method="post" action="{{ generator_update_url }}" enctype="multipart/form-data" class="row g-3">
+                {% csrf_token %}
+                {% if generator_form.non_field_errors %}
+                    <div class="col-12">
+                        <div class="alert alert-danger py-2 mb-0">{{ generator_form.non_field_errors }}</div>
+                    </div>
+                {% endif %}
+                <div class="col-md-4">
+                    <label class="form-label" for="{{ generator_form.title.id_for_label }}">{{ generator_form.title.label }}</label>
+                    {{ generator_form.title }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="{{ generator_form.file_type.id_for_label }}">{{ generator_form.file_type.label }}</label>
+                    {{ generator_form.file_type }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="{{ generator_form.file.id_for_label }}">{{ generator_form.file.label }}</label>
+                    {{ generator_form.file }}
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ generator_form.access_to_all }}
+                        <label class="form-check-label" for="{{ generator_form.access_to_all.id_for_label }}">
+                            {{ generator_form.access_to_all.label }}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="{{ generator_form.content.id_for_label }}">{{ generator_form.content.label }}</label>
+                    {{ generator_form.content }}
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button class="btn btn-primary icon-action-btn" type="submit" aria-label="Шаблонды сақтау" title="Шаблонды сақтау">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M2 2v12h12V5.5L10.5 2H2zm-1 0a1 1 0 0 1 1-1h8.793a1 1 0 0 1 .707.293l3.207 3.207a1 1 0 0 1 .293.707V14a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2z"/>
+                            <path d="M5 1.5A.5.5 0 0 1 5.5 1h5a.5.5 0 0 1 .5.5V4h-6zM4.5 8A1.5 1.5 0 0 0 3 9.5v3A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5v-3A1.5 1.5 0 0 0 11.5 8h-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% if onlyoffice_api_js %}
+    <script src="{{ onlyoffice_api_js }}"></script>
+{% endif %}
+<script>
+    (function () {
+        const configUrl = "{{ onlyoffice_config_url }}";
+        const deleteButton = document.getElementById("deleteObjectButton");
+        const deleteUrl = "{{ delete_url|default:'' }}";
+        const backUrl = "{{ back_url }}";
+        const synonymCreateUrl = "{{ synonym_create_url|default:'' }}";
+        const synonymUpdateUrlTemplate = "{{ synonyms_update_url_template|default:'' }}";
+        const synonymList = document.getElementById("synonymList");
+        const addForm = document.getElementById("synonymAddForm");
+        const openVariable = "{% templatetag openvariable %}";
+        const closeVariable = "{% templatetag closevariable %}";
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) {
+                return parts.pop().split(";").shift();
+            }
+            return "";
+        }
+
+        function showToast(message, type = "success", duration = 2000) {
+            if (window.AppFeedback && typeof window.AppFeedback.showToast === "function") {
+                window.AppFeedback.showToast(message, { type, duration });
+                return;
+            }
+            window.alert(message);
+        }
+
+        function escapeHtml(raw) {
+            const div = document.createElement("div");
+            div.textContent = raw || "";
+            return div.innerHTML;
+        }
+
+        function buildPlaceholder(rawValue) {
+            const value = (rawValue || "").trim();
+            if (!value) return "";
+            if (value.startsWith("{{") && value.endsWith("}}")) {
+                return value;
+            }
+            return `${openVariable} ${value} ${closeVariable}`;
+        }
+
+        function synonymUrl(id) {
+            if (!synonymUpdateUrlTemplate) return "";
+            return synonymUpdateUrlTemplate.replace("__ID__", String(id));
+        }
+
+        async function loadEditor() {
+            if (!window.DocsAPI) return;
+            try {
+                const response = await fetch(configUrl, {
+                    headers: { "Accept": "application/json" },
+                    credentials: "same-origin",
+                });
+                if (!response.ok) {
+                    throw new Error("Конфигурация сұранысы сәтсіз аяқталды");
+                }
+                const config = await response.json();
+                new window.DocsAPI.DocEditor("onlyofficeEditor", config);
+            } catch (error) {
+                console.error(error);
+                const container = document.getElementById("onlyofficeEditor");
+                if (container) {
+                    container.innerHTML = "<div class='alert alert-danger m-3'>Редактор конфигурациясын жүктеу сәтсіз аяқталды.</div>";
+                }
+            }
+        }
+
+        function bindSynonymCard(card) {
+            if (!card) return;
+            const id = card.dataset.synonymId;
+            const copyArea = card.querySelector(".js-synonym-copy");
+            const editButton = card.querySelector(".js-synonym-edit");
+            const deleteButtonCard = card.querySelector(".js-synonym-delete");
+            const editForm = card.querySelector(".synonym-edit-form");
+            const valueElement = card.querySelector(".synonym-value");
+            const codeElement = card.querySelector(".synonym-code");
+
+            if (copyArea) {
+                copyArea.addEventListener("dragstart", (event) => {
+                    const text = buildPlaceholder(valueElement ? valueElement.textContent : "");
+                    event.dataTransfer.setData("text/plain", text);
+                    event.dataTransfer.effectAllowed = "copy";
+                });
+
+                copyArea.addEventListener("click", async (event) => {
+                    if (event.target.closest(".synonym-actions")) return;
+                    if (event.target.closest(".synonym-edit-form")) return;
+                    const text = buildPlaceholder(valueElement ? valueElement.textContent : "");
+                    if (!text) return;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        showToast("Көшірілді", "success", 2000);
+                    } catch (error) {
+                        showToast("Көшіру мүмкін болмады", "danger", 2000);
+                    }
+                });
+            }
+
+            if (editButton && editForm) {
+                editButton.addEventListener("click", () => {
+                    editForm.classList.toggle("d-none");
+                    if (!editForm.classList.contains("d-none")) {
+                        const firstInput = editForm.querySelector("input, textarea");
+                        if (firstInput) firstInput.focus();
+                    }
+                });
+            }
+
+            if (deleteButtonCard && id) {
+                deleteButtonCard.addEventListener("click", async () => {
+                    if (!window.confirm("Осы синонимді жойғыңыз келе ме?")) return;
+                    try {
+                        const response = await fetch(synonymUrl(id), {
+                            method: "DELETE",
+                            headers: {
+                                "X-CSRFToken": getCookie("csrftoken"),
+                                "Accept": "application/json",
+                            },
+                            credentials: "same-origin",
+                        });
+                        if (!response.ok) {
+                            throw new Error("Жою сәтсіз аяқталды");
+                        }
+                        card.remove();
+                        showToast("Синоним жойылды", "success", 2000);
+                    } catch (error) {
+                        showToast("Жою қатесі", "danger", 2000);
+                    }
+                });
+            }
+
+            if (editForm && id) {
+                const saveChange = async () => {
+                    const formData = new FormData(editForm);
+                    const payload = {
+                        value: (formData.get("value") || "").toString().trim(),
+                        code: (formData.get("code") || "").toString().trim(),
+                        example: (formData.get("example") || "").toString(),
+                    };
+                    if (!payload.value || !payload.code) {
+                        showToast("Мән мен код міндетті", "danger", 2000);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(synonymUrl(id), {
+                            method: "PATCH",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": getCookie("csrftoken"),
+                                "Accept": "application/json",
+                            },
+                            credentials: "same-origin",
+                            body: JSON.stringify(payload),
+                        });
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.detail || "Сақтау сәтсіз аяқталды");
+                        }
+                        const updated = await response.json();
+                        if (valueElement) valueElement.textContent = updated.value || "";
+                        if (codeElement) codeElement.textContent = updated.code || "";
+                        showToast("Сақталды", "success", 1200);
+                    } catch (error) {
+                        showToast(error.message || "Сақтау қатесі", "danger", 2000);
+                    }
+                };
+
+                editForm.querySelectorAll("input, textarea").forEach((field) => {
+                    field.addEventListener("change", saveChange);
+                });
+            }
+        }
+
+        function createSynonymCardElement(data) {
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = `
+                <article class="synonym-card js-synonym-card" data-synonym-id="${escapeHtml(String(data.id || ""))}">
+                    <div class="synonym-card-main js-synonym-copy" draggable="true">
+                        <span class="synonym-value">${escapeHtml(data.value || "")}</span>
+                        <span class="synonym-code">${escapeHtml(data.code || "")}</span>
+                        <div class="synonym-actions">
+                            <button type="button" class="synonym-icon-btn js-synonym-edit" title="Өңдеу">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708L5.207 13.793 2 14l.207-3.207z"></path>
+                                    <path fill-rule="evenodd" d="M1 13.5V16h2.5l8.379-8.379-2.5-2.5z"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="synonym-icon-btn js-synonym-delete" title="Жою">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0A.5.5 0 0 1 8.5 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"></path>
+                                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h2.5a1 1 0 0 1 1 1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <form class="synonym-edit-form d-none">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label small mb-1">Мән</label>
+                                <input type="text" name="value" class="form-control form-control-sm" value="${escapeHtml(data.value || "")}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1">Код</label>
+                                <input type="text" name="code" class="form-control form-control-sm" value="${escapeHtml(data.code || "")}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1">Мысал</label>
+                                <textarea name="example" rows="2" class="form-control form-control-sm">${escapeHtml(data.example || "")}</textarea>
+                            </div>
+                        </div>
+                    </form>
+                </article>
+            `.trim();
+            const card = wrapper.firstChild;
+            bindSynonymCard(card);
+            return card;
+        }
+
+        document.querySelectorAll(".js-synonym-card").forEach(bindSynonymCard);
+
+        document.querySelectorAll(".js-synonym-toggle").forEach((button) => {
+            button.addEventListener("click", () => {
+                const panelId = button.dataset.target;
+                if (!panelId) return;
+                document.querySelectorAll(".synonym-dropdown").forEach((panel) => {
+                    if (panel.id === panelId) {
+                        panel.classList.toggle("d-none");
+                    } else {
+                        panel.classList.add("d-none");
+                    }
+                });
+            });
+        });
+
+        if (addForm && synonymCreateUrl) {
+            addForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const formData = new FormData(addForm);
+                const payload = {
+                    value: (formData.get("value") || "").toString().trim(),
+                    code: (formData.get("code") || "").toString().trim(),
+                    example: (formData.get("example") || "").toString(),
+                };
+                if (!payload.value || !payload.code) {
+                    showToast("Мән мен код міндетті", "danger", 2000);
+                    return;
+                }
+                try {
+                    const response = await fetch(synonymCreateUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                            "Accept": "application/json",
+                        },
+                        credentials: "same-origin",
+                        body: JSON.stringify(payload),
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || "Қосу сәтсіз аяқталды");
+                    }
+                    const created = await response.json();
+                    const card = createSynonymCardElement(created);
+                    if (synonymList) {
+                        synonymList.prepend(card);
+                    }
+                    addForm.reset();
+                    showToast("Синоним қосылды", "success", 2000);
+                } catch (error) {
+                    showToast(error.message || "Қосу қатесі", "danger", 2000);
+                }
+            });
+        }
+
+        if (deleteButton && deleteUrl) {
+            deleteButton.addEventListener("click", async () => {
+                const confirmed = window.confirm("Осы нысанды жойғыңыз келе ме?");
+                if (!confirmed) return;
+                try {
+                    const response = await fetch(deleteUrl, {
+                        method: "DELETE",
+                        headers: {
+                            "X-CSRFToken": getCookie("csrftoken"),
+                            "Accept": "application/json",
+                        },
+                    });
+                    if (!response.ok) {
+                        throw new Error("Жою сәтсіз аяқталды");
+                    }
+                    window.location.href = backUrl;
+                } catch (error) {
+                    showToast("Жою сәтсіз аяқталды", "danger", 2000);
+                }
+            });
+        }
+
+        loadEditor();
+    })();
+</script>
+{% endblock %}

@@ -17,6 +17,59 @@
     color: #5f6974;
 }
 
+.generator-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.generator-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.generator-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.generated-doc-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.generated-doc-meta {
+    min-width: 0;
+    flex: 1;
+}
+
+.generated-doc-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-2px);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.generated-doc-item:hover,
+.generated-doc-item:focus-within {
+    border-color: rgba(26, 129, 247, 0.45) !important;
+    background: #fcfdff;
+}
+
+.generated-doc-item:hover .generated-doc-actions,
+.generated-doc-item:focus-within .generated-doc-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
 .onlyoffice-wrap {
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 12px;
@@ -45,21 +98,38 @@
     padding-right: 2px;
 }
 
-.synonym-item {
-    width: 100%;
+.synonym-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.synonym-dropdown {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 10px;
+}
+
+.synonym-card {
     border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: 10px;
     background: #fff;
-    text-align: left;
-    padding: 8px 10px;
-    cursor: grab;
+    position: relative;
 }
 
-.synonym-item:active {
+.synonym-card-main {
+    text-align: left;
+    padding: 10px;
+    cursor: grab;
+    border-radius: 10px;
+}
+
+.synonym-card-main:active {
     cursor: grabbing;
 }
 
-.synonym-item:hover {
+.synonym-card:hover {
     border-color: #1a81f7;
     box-shadow: 0 0 0 3px rgba(26, 129, 247, 0.12);
 }
@@ -68,10 +138,64 @@
     display: block;
     font-size: 0.78rem;
     color: #697586;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .synonym-value {
     display: block;
     font-size: 0.95rem;
     color: #1f2937;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.synonym-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.synonym-card:hover .synonym-actions {
+    opacity: 1;
+}
+
+.synonym-icon-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 999px;
+    background: #ffffff;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.synonym-icon-btn:hover {
+    color: #1e40af;
+    border-color: #1e40af;
+}
+
+.synonym-edit-form {
+    border-top: 1px dashed rgba(0, 0, 0, 0.1);
+    padding: 10px;
+}
+
+@media (max-width: 767.98px) {
+    .generated-doc-item {
+        align-items: flex-start;
+    }
+
+    .generated-doc-actions {
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+    }
 }

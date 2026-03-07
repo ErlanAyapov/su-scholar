@@ -4,6 +4,8 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 
+from document.models import Document
+
 from .forms import LoginForm, RegisterForm
 
 
@@ -54,7 +56,22 @@ def employees_list_chunk(request):
 
 def account_page(request):
     if request.user.is_authenticated:
-        return render(request, "account/account_page.html")
+        generated_documents = (
+            Document.objects.filter(
+                user=request.user,
+                is_deleted=False,
+                generated_by__isnull=False,
+            )
+            .select_related("generated_by")
+            .order_by("-updated_at", "-id")
+        )
+        return render(
+            request,
+            "account/account_page.html",
+            {
+                "generated_documents": generated_documents,
+            },
+        )
 
     register_form = RegisterForm(prefix="register")
     login_form = LoginForm(request=request, prefix="login")

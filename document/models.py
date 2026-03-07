@@ -43,6 +43,7 @@ class DocumentPermission(models.Model):
     class Meta:
         unique_together = ('document', 'user')
 
+
     def __str__(self):
         return f'{self.document_id} - {self.user_id}'
 
@@ -55,6 +56,9 @@ class DocumentGenerator(models.Model):
     file_type = models.CharField(max_length=50)
     user = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='synthetic_documents')
     access_to_all = models.BooleanField(default=False)
+
+    def last_ten_documents(self):
+        return self.generated_documents.order_by('-created_at')[:10]
 
     def __str__(self):
         return self.title

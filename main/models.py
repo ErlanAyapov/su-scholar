@@ -163,6 +163,21 @@ class Publication(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_collaborators_str(self):
+        # Получаем всех авторов публикации
+        authors = self.authors.all()
+
+        # Получаем всех соавторов для каждого автора
+        collaborators = set()
+        for author in authors:
+            coauthors = Author.objects.filter(publications__authors=author).exclude(id=author.id)
+            collaborators.update(coauthors)
+
+        full_authors = ", ".join([author.full_name for author in authors])
+        full_collaborators = ", ".join([collab.full_name for collab in collaborators])
+
+        return full_authors + (", " + full_collaborators if full_collaborators else "")
+
     def __str__(self):
         return self.title_original
 

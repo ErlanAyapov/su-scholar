@@ -60,6 +60,27 @@ main {
     cursor: pointer;
 }
 
+.icon-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+.btn-sm.icon-action-btn {
+    /* width: 31px;
+    height: 31px; */
+}
+
+.icon-action-btn svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    pointer-events: none;
+}
+
 .quick-search-panel {
     max-width: 700px;
     margin: 12px auto 0;
@@ -471,4 +492,46 @@ footer {
         height: 64px;
         border-radius: 12px;
     }
+}
+
+.app-toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.app-toast {
+    min-width: 160px;
+    max-width: 320px;
+    background: #1f2937;
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    transform: translateY(-8px);
+    opacity: 0;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    font-size: 0.92rem;
+}
+
+.app-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.app-toast-success {
+    background: #0f766e;
+}
+
+.app-toast-danger {
+    background: #b42318;
+}
+
+.app-toast-info {
+    background: #1d4ed8;
 }

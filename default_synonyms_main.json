@@ -1,0 +1,274 @@
+{
+  "synonyms": [
+    {
+      "code": "{%tr for object in publications %}",
+      "value": "жұмыстар_циклының_басы",
+      "example": ""
+    },
+    {
+      "code": "{%tr endfor %}",
+      "value": "жұмыстар_циклының_соңы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.record_id }}",
+      "value": "жұмыс_id",
+      "example": ""
+    },
+    {
+      "code": "{{ object.title_original }}",
+      "value": "жұмыс_атауы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.year }}",
+      "value": "жұмыс_жылы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.status }}",
+      "value": "жұмыс_мәртебесі",
+      "example": ""
+    },
+    {
+      "code": "{{ object.publication_date }}",
+      "value": "жарияланған_күні",
+      "example": ""
+    },
+    {
+      "code": "{{ object.accepted_date }}",
+      "value": "қабылданған_күні",
+      "example": ""
+    },
+    {
+      "code": "{{ object.doi }}",
+      "value": "doi",
+      "example": ""
+    },
+    {
+      "code": "{{ object.url_publisher }}",
+      "value": "publisher_url",
+      "example": ""
+    },
+    {
+      "code": "{{ object.url_open_access }}",
+      "value": "open_access_url",
+      "example": ""
+    },
+    {
+      "code": "{{ object.volume }}",
+      "value": "том",
+      "example": ""
+    },
+    {
+      "code": "{{ object.issue }}",
+      "value": "нөмір",
+      "example": ""
+    },
+    {
+      "code": "{{ object.pages }}",
+      "value": "беттер",
+      "example": ""
+    },
+    {
+      "code": "{{ object.article_number }}",
+      "value": "мақала_нөмірі",
+      "example": ""
+    },
+    {
+      "code": "{{ object.total_pages }}",
+      "value": "жалпы_бет",
+      "example": ""
+    },
+    {
+      "code": "{{ object.quartile }}",
+      "value": "квартиль",
+      "example": ""
+    },
+    {
+      "code": "{{ object.quartile_year }}",
+      "value": "квартиль_жылы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.citations_count }}",
+      "value": "дәйексөз_саны",
+      "example": ""
+    },
+    {
+      "code": "{{ object.citations_updated_at }}",
+      "value": "дәйексөз_жаңартылған",
+      "example": ""
+    },
+    {
+      "code": "{{ object.open_access }}",
+      "value": "ашық_қолжетімділік",
+      "example": ""
+    },
+    {
+      "code": "{{ object.oa_type }}",
+      "value": "oa_түрі",
+      "example": ""
+    },
+    {
+      "code": "{{ object.keywords }}",
+      "value": "кілтсөздер",
+      "example": ""
+    },
+    {
+      "code": "{{ object.report_period }}",
+      "value": "есеп_кезеңі",
+      "example": ""
+    },
+    {
+      "code": "{{ object.created_at }}",
+      "value": "жұмыс_құрылған_күні",
+      "example": ""
+    },
+    {
+      "code": "{{ object.updated_at }}",
+      "value": "жұмыс_жаңартылған_күні",
+      "example": ""
+    },
+    {
+      "code": "{{ object.pub_type.name }}",
+      "value": "жарияланым_түрі",
+      "example": ""
+    },
+    {
+      "code": "{{ object.language.code }}",
+      "value": "тіл_коды",
+      "example": ""
+    },
+    {
+      "code": "{{ object.language.name }}",
+      "value": "тіл_атауы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.name }}",
+      "value": "басылым_атауы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.kind }}",
+      "value": "басылым_түрі",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.character }}",
+      "value": "басылым_сипаты",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.publisher }}",
+      "value": "баспагер",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.issn }}",
+      "value": "issn",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.isbn }}",
+      "value": "isbn",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.conference_name }}",
+      "value": "конференция_атауы",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.conference_country }}",
+      "value": "конференция_ел",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.conference_city }}",
+      "value": "конференция_қала",
+      "example": ""
+    },
+    {
+      "code": "{{ object.venue.series }}",
+      "value": "серия",
+      "example": ""
+    },
+    {
+      "code": "{{ object.area.name }}",
+      "value": "кафедра_бағыты",
+      "example": ""
+    },
+    {
+      "code": "{%tr for author in object.authors.all %}",
+      "value": "авторлар_циклының_басы",
+      "example": ""
+    },
+    {
+      "code": "{%tr endfor %}",
+      "value": "авторлар_циклының_соңы",
+      "example": ""
+    },
+    {
+      "code": "{{ author.full_name }}",
+      "value": "автор_аты",
+      "example": ""
+    },
+    {
+      "code": "{{ author.orcid }}",
+      "value": "автор_orcid",
+      "example": ""
+    },
+    {
+      "code": "{%tr for db in object.indexing.all %}",
+      "value": "индекс_базалары_циклының_басы",
+      "example": ""
+    },
+    {
+      "code": "{%tr endfor %}",
+      "value": "индекс_базалары_циклының_соңы",
+      "example": ""
+    },
+    {
+      "code": "{{ db.name }}",
+      "value": "индекс_базасы",
+      "example": ""
+    },
+    {
+      "code": "{%tr for tag in object.tags.all %}",
+      "value": "тегтер_циклының_басы",
+      "example": ""
+    },
+    {
+      "code": "{%tr endfor %}",
+      "value": "тегтер_циклының_соңы",
+      "example": ""
+    },
+    {
+      "code": "{{ tag.name }}",
+      "value": "тег_атауы",
+      "example": ""
+    },
+    {
+      "code": "{{ user.username }}",
+      "value": "пайдаланушы_логині",
+      "example": ""
+    },
+    {
+      "code": "{{ user.first_name }}",
+      "value": "пайдаланушы_аты",
+      "example": ""
+    },
+    {
+      "code": "{{ user.last_name }}",
+      "value": "пайдаланушы_тегі",
+      "example": ""
+    },
+    {
+      "code": "{{ user.email }}",
+      "value": "пайдаланушы_email",
+      "example": ""
+    }
+  ]
+}

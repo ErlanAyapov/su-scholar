@@ -8,7 +8,7 @@ from django.core.files import File
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.db.models import Count, Max, Min, Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -21,7 +21,7 @@ from utils.document_generator import generate_document, generate_docx
 User = get_user_model()
 logger = logging.getLogger(__name__)
 FILTER_PARAM_KEYS = ("type", "lang", "status", "oa", "y_min", "y_max", "db", "quartile", "area", "venue", "staff_user")
-REPORT_FORM_KEYS = ("csrfmiddlewaretoken", "action", "template_id", "report_title")
+REPORT_FORM_KEYS = ("csrfmiddlewaretoken", "action", "template_id", "template_key", "report_title")
 
 
 def _parse_int(value, default=None):
@@ -29,6 +29,13 @@ def _parse_int(value, default=None):
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _safe_queryset_count(queryset) -> int:
+    try:
+        return int(queryset.count())
+    except Exception:  # noqa: BLE001
+        return -1
 
 
 def _apply_staff_user_filter(queryset, staff_user_id):
@@ -149,6 +156,33 @@ def _available_generators_for_user(user):
     return queryset.filter(access_to_all=True)
 
 
+def _available_report_templates_for_user(user):
+    return [
+        {
+            "key": f"g:{template.id}",
+            "title": template.title,
+            "source": "generator",
+        }
+        for template in _available_generators_for_user(user)
+    ]
+
+
+def _resolve_generator_template_for_request(user, raw_template_value: str) -> DocumentGenerator | None:
+    value = (raw_template_value or "").strip()
+    if not value:
+        return None
+
+    if value.isdigit():
+        return _available_generators_for_user(user).filter(pk=int(value)).first()
+
+    if value.startswith("g:"):
+        template_id = _parse_int(value.split(":", 1)[1])
+        if not template_id:
+            return None
+        return _available_generators_for_user(user).filter(pk=template_id).first()
+    return None
+
+
 def _build_report_filename(base_title: str, extension: str) -> str:
     slug = slugify(base_title) or "report"
     timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
@@ -161,11 +195,26 @@ def _make_generated_document(
     user,
     requested_title: str = "",
 ) -> Document:
+    publications_count = _safe_queryset_count(publications_queryset)
+    logger.info(
+        "Generation start template_id=%s user=%s template_file_type=%s publications_count=%s requested_title=%s",
+        generator_template.id,
+        user.id if user else None,
+        generator_template.file_type,
+        publications_count,
+        (requested_title or "").strip()[:120],
+    )
     context = {
         "publications": publications_queryset,
         "user": user,
     }
     rendered_text = generate_document(generator_template, context)
+    logger.info(
+        "Text render result template_id=%s text_len=%s non_empty=%s",
+        generator_template.id,
+        len(rendered_text or ""),
+        bool((rendered_text or "").strip()),
+    )
     title = (requested_title or "").strip() or generator_template.title
     title = title[:255]
 
@@ -177,7 +226,9 @@ def _make_generated_document(
     )
 
     docx_generated = False
+    docx_error: Exception | None = None
     if generator_template.file and generator_template.file.name.lower().endswith(".docx"):
+        logger.info("DOCX render branch template_id=%s source_file=%s", generator_template.id, generator_template.file.name)
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_output:
             output_path = temp_output.name
         try:
@@ -192,7 +243,8 @@ def _make_generated_document(
                 document.file_type = "docx"
                 docx_generated = True
             except Exception as exc:  # noqa: BLE001
-                logger.warning(
+                docx_error = exc
+                logger.exception(
                     "DOCX generation failed for template_id=%s. Falling back to TXT. error=%s",
                     generator_template.id,
                     exc,
@@ -205,7 +257,29 @@ def _make_generated_document(
                 pass
 
     if not docx_generated:
-        text_bytes = (rendered_text or "").encode("utf-8")
+        fallback_text = rendered_text or ""
+        if not fallback_text.strip() and docx_error is not None:
+            fallback_text = (
+                "DOCX генерациясы сәтсіз аяқталды.\n"
+                f"Шаблон ID: {generator_template.id}\n"
+                f"Қате: {docx_error}\n"
+                "Синоним цикл тегтері мен шаблон құрылымын тексеріңіз.\n"
+            )
+            document.content = fallback_text
+            logger.warning(
+                "Generated diagnostic TXT fallback template_id=%s user=%s publications_count=%s",
+                generator_template.id,
+                user.id if user else None,
+                publications_count,
+            )
+        elif not fallback_text.strip():
+            logger.warning(
+                "Generated TXT content is empty template_id=%s user=%s publications_count=%s",
+                generator_template.id,
+                user.id if user else None,
+                publications_count,
+            )
+        text_bytes = fallback_text.encode("utf-8")
         document.file.save(
             _build_report_filename(title, "txt"),
             ContentFile(text_bytes),
@@ -214,7 +288,92 @@ def _make_generated_document(
         document.file_type = "txt"
 
     document.save()
+    logger.info(
+        "Generation finished document_id=%s generated_by=%s file_type=%s file_name=%s",
+        document.id,
+        generator_template.id,
+        document.file_type,
+        document.file.name if document.file else "",
+    )
     return document
+
+
+def _attachment_response(file_bytes: bytes, filename: str, content_type: str) -> HttpResponse:
+    response = HttpResponse(file_bytes, content_type=content_type)
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def _make_generated_response_for_anonymous(
+    generator_template: DocumentGenerator,
+    publications_queryset,
+    requested_title: str = "",
+) -> HttpResponse:
+    publications_count = _safe_queryset_count(publications_queryset)
+    logger.info(
+        "Anonymous generation start template_id=%s template_file_type=%s publications_count=%s requested_title=%s",
+        generator_template.id,
+        generator_template.file_type,
+        publications_count,
+        (requested_title or "").strip()[:120],
+    )
+    context = {
+        "publications": publications_queryset,
+        "user": None,
+    }
+    rendered_text = generate_document(generator_template, context)
+    title = (requested_title or "").strip() or generator_template.title
+    title = title[:255]
+
+    if generator_template.file and generator_template.file.name.lower().endswith(".docx"):
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_output:
+            output_path = temp_output.name
+        try:
+            try:
+                generate_docx(generator_template, context, output_path)
+                with open(output_path, "rb") as generated_file:
+                    payload = generated_file.read()
+                logger.info(
+                    "Anonymous generation finished template_id=%s file_type=docx size=%s",
+                    generator_template.id,
+                    len(payload),
+                )
+                return _attachment_response(
+                    payload,
+                    _build_report_filename(title, "docx"),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.exception(
+                    "Anonymous DOCX generation failed for template_id=%s. Falling back to TXT. error=%s",
+                    generator_template.id,
+                    exc,
+                )
+        finally:
+            try:
+                os.remove(output_path)
+            except OSError:
+                pass
+
+    fallback_text = rendered_text or ""
+    if not fallback_text.strip():
+        fallback_text = (
+            "Есеп генерациясы сәтсіз аяқталды.\n"
+            f"Шаблон ID: {generator_template.id}\n"
+            "Шаблон синтаксисі мен синонимдерді тексеріңіз.\n"
+        )
+        logger.warning(
+            "Anonymous TXT fallback produced diagnostic content template_id=%s publications_count=%s",
+            generator_template.id,
+            publications_count,
+        )
+    payload = fallback_text.encode("utf-8")
+    logger.info(
+        "Anonymous generation finished template_id=%s file_type=txt size=%s",
+        generator_template.id,
+        len(payload),
+    )
+    return _attachment_response(payload, _build_report_filename(title, "txt"), "text/plain; charset=utf-8")
 
 
 def _main_query_from_params(params):
@@ -234,20 +393,37 @@ def _redirect_main_with_filters(params):
 
 
 def _handle_report_generation(request):
-    if not request.user.is_authenticated:
-        return redirect("account_page")
-
-    template_id = _parse_int(request.POST.get("template_id"))
-    if not template_id:
+    user_id = request.user.id if request.user.is_authenticated else None
+    selected_template = (request.POST.get("template_key") or request.POST.get("template_id") or "").strip()
+    if not selected_template:
+        logger.warning("Generation cancelled: template key missing user=%s", user_id)
         return _redirect_main_with_filters(request.POST)
 
-    generator_template = _available_generators_for_user(request.user).filter(pk=template_id).first()
+    generator_template = _resolve_generator_template_for_request(request.user, selected_template)
     if not generator_template:
+        logger.warning(
+            "Generation cancelled: template not resolved user=%s selected_template=%s",
+            user_id,
+            selected_template,
+        )
         return _redirect_main_with_filters(request.POST)
 
     selected_tags = _extract_selected_tags(request.POST)
     publications_queryset, _ = _build_filtered_publications(request.POST, selected_tags)
     requested_title = (request.POST.get("report_title") or "").strip()
+    logger.info(
+        "Generation request accepted user=%s template_id=%s filters_tags=%s",
+        user_id,
+        generator_template.id,
+        len(selected_tags),
+    )
+
+    if not request.user.is_authenticated:
+        return _make_generated_response_for_anonymous(
+            generator_template=generator_template,
+            publications_queryset=publications_queryset,
+            requested_title=requested_title,
+        )
 
     document = _make_generated_document(
         generator_template=generator_template,
@@ -255,9 +431,9 @@ def _handle_report_generation(request):
         user=request.user,
         requested_title=requested_title,
     )
-    if document.file_type == "docx":
-        return redirect("document_edit", pk=document.pk)
-    return redirect("document_detail", pk=document.pk)
+    if not document.file:
+        return redirect("document_detail", pk=document.pk)
+    return redirect(f"{reverse('document_file', kwargs={'pk': document.pk})}?download=1")
 
 
 def main_page(request):
@@ -302,7 +478,7 @@ def main_page(request):
         "staff_user": staff_user,
         "show_results": show_results,
         "quick_year_from": quick_year_from,
-        "report_templates": _available_generators_for_user(request.user),
+        "report_templates": _available_report_templates_for_user(request.user),
     }
     return render(request, "main/main.html", ctx)
 
@@ -405,3 +581,4 @@ def publication_detail_page(request, pk: int):
         "project_links": publication.publicationproject_set.all(),
     }
     return render(request, "main/publication_detail.html", ctx)
+
