@@ -1,10 +1,11 @@
 from django.urls import path
 
-from .views import main_page, publication_detail_page, search_suggestions
+from .views import HomePageView, PublicationDetailView, SearchPageView, SearchSuggestionsView
 
 
 urlpatterns = [
-    path('', main_page, name='main'),
-    path('search/suggestions/', search_suggestions, name='search_suggestions'),
-    path('publications/<int:pk>/', publication_detail_page, name='publication_detail'),
+    path('', HomePageView.as_view(), name='main'),
+    path('search/', SearchPageView.as_view(), name='main_search'),
+    path('search/suggestions/', SearchSuggestionsView.as_view(), name='search_suggestions'),
+    path('publications/<int:pk>/', PublicationDetailView.as_view(), name='publication_detail'),
 ]

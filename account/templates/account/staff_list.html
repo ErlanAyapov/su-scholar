@@ -1,4 +1,4 @@
-{% extends 'main/base.html' %}
+{% extends "main/base.html" %}
 
 {% block title %}SU Science - Қызметкерлер{% endblock %}
 
@@ -6,7 +6,7 @@
 <section>
     <div id="employees-list" class="row">
         {% for user in page_obj.object_list %}
-            {% include 'account/user_card.html' with user=user %}
+            {% include "account/user_card.html" with user=user %}
         {% empty %}
             <div class="col-12">
                 <div class="alert alert-light border mb-0">Қызметкерлер табылмады.</div>
@@ -28,6 +28,34 @@
         let hasNext = {{ page_obj.has_next|yesno:'true,false' }};
         let isLoading = false;
         const endpoint = "{% url 'employees_load' %}";
+
+        function shouldIgnoreCardNavigation(target) {
+            return Boolean(target.closest("a,button,input,textarea,select,summary,label,[role='button']"));
+        }
+
+        $(document).on("click", ".employee-card-clickable", function (event) {
+            if (shouldIgnoreCardNavigation(event.target)) {
+                return;
+            }
+            const profileUrl = this.dataset.profileUrl;
+            if (profileUrl) {
+                window.location.href = profileUrl;
+            }
+        });
+
+        $(document).on("keydown", ".employee-card-clickable", function (event) {
+            if (event.key !== "Enter" && event.key !== " ") {
+                return;
+            }
+            if (shouldIgnoreCardNavigation(event.target)) {
+                return;
+            }
+            event.preventDefault();
+            const profileUrl = this.dataset.profileUrl;
+            if (profileUrl) {
+                window.location.href = profileUrl;
+            }
+        });
 
         function setLoaderVisible(visible) {
             const loader = $("#employees-loader");

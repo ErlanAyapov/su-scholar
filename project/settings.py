@@ -43,6 +43,8 @@ AUTH_USER_MODEL = 'account.User'
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,6 +56,13 @@ INSTALLED_APPS = [
     'account',
     'document',
 ]
+
+JAZZMIN_SETTINGS = {
+    "site_title": "SU Science Admin",
+    "site_header": "SU Science",
+    "site_brand": "SU Science",
+    "welcome_sign": "SU Science әкімшілік панелі",
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -73,6 +82,7 @@ if DISABLE_CSRF_CHECKS:
     MIDDLEWARE = [mw for mw in MIDDLEWARE if mw != 'django.middleware.csrf.CsrfViewMiddleware']
 
 ROOT_URLCONF = 'project.urls'
+ASGI_APPLICATION = 'project.asgi.application'
 
 TEMPLATES = [
     {
@@ -146,6 +156,18 @@ DOCK_EDITOR_URL = os.getenv('DOCK_EDITOR_URL', '')
 APP_PUBLIC_URL = os.getenv('APP_PUBLIC_URL', '')
 ONLYOFFICE_JWT_SECRET = os.getenv('ONLYOFFICE_JWT_SECRET', '')
 
+# Email (SMTP)
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.getenv('GOOLE_SMTP_HOST', os.getenv('GOOGLE_SMTP_HOST', 'smtp.gmail.com'))
+EMAIL_PORT = int(os.getenv('GOOGLE_SMTP_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('GOOGLE_SMTP_EMAIL', '')
+EMAIL_HOST_PASSWORD = os.getenv('GOOGOLE_STMP_PASSWORD', os.getenv('GOOGLE_SMTP_PASSWORD', ''))
+EMAIL_USE_TLS = _as_bool(os.getenv('GOOGLE_SMTP_USE_TLS'), default=True)
+EMAIL_USE_SSL = _as_bool(os.getenv('GOOGLE_SMTP_USE_SSL'), default=False)
+EMAIL_TIMEOUT = int(os.getenv('GOOGLE_SMTP_TIMEOUT', '30'))
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@su-science.local')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGGING = {
@@ -207,3 +229,23 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# WebSockets (Django Channels)
+CHANNELS_USE_REDIS = _as_bool(os.getenv('CHANNELS_USE_REDIS'), default=False)
+CHANNELS_REDIS_URL = os.getenv('CHANNELS_REDIS_URL', CELERY_BROKER_URL)
+
+if CHANNELS_USE_REDIS:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [CHANNELS_REDIS_URL],
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }

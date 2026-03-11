@@ -1,0 +1,17 @@
+<article class="researcher-card">
+    <div class="researcher-main">
+        <h3 class="researcher-name">
+            <a href="{% url 'employee_profile' user.id %}">
+                {{ user.last_name }} {{ user.first_name }}{% if user.father_name %} {{ user.father_name }}{% endif %}
+            </a>
+        </h3>
+        <p class="researcher-meta">@{{ user.username }}</p>
+        <p class="researcher-meta">{{ user.email|default:"-" }}</p>
+    </div>
+    <div class="researcher-extra">
+        <span><strong>Кафедра:</strong> {{ user.department.name|default:"-" }}</span>
+        <span><strong>Жарияланым:</strong> {{ user.publication_total }}</span>
+        <span><strong>ORCID:</strong> {{ user.orc_id|default:"-" }}</span>
+        <span><strong>Scopus:</strong> {{ user.scopus_id|default:"-" }}</span>
+    </div>
+</article>

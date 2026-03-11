@@ -269,6 +269,7 @@
       const search = form.querySelector('input[name="search"]')?.value || "";
       const show = form.querySelector('input[name="show"]')?.value || "";
       const staffUser = form.querySelector('input[name="staff_user"]')?.value || "";
+      const tab = form.querySelector('input[name="tab"]')?.value || "";
       form.reset();
       const searchInput = form.querySelector('input[name="search"]');
       if (searchInput) searchInput.value = search;
@@ -276,12 +277,13 @@
       if (showInput) showInput.value = show;
       const staffUserInput = form.querySelector('input[name="staff_user"]');
       if (staffUserInput) staffUserInput.value = staffUser;
+      const tabInput = form.querySelector('input[name="tab"]');
+      if (tabInput) tabInput.value = tab;
       rebuildChips();
       const params = new URLSearchParams(new FormData(form));
       saveSearchState(params.toString() ? `?${params.toString()}` : "");
       hideSuggestions();
       form.submit();
-      window.open('/', '_self');
     });
   }
 })();

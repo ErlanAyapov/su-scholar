@@ -44,3 +44,49 @@ class LoginForm(AuthenticationForm):
         super().__init__(*args, **kwargs)
         self.fields["username"].widget.attrs.update({"class": "form-control", "placeholder": "Пайдаланушы аты"})
         self.fields["password"].widget.attrs.update({"class": "form-control", "placeholder": "Құпиясөз"})
+
+
+class ProfileEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = (
+            "first_name",
+            "last_name",
+            "father_name",
+            "email",
+            "phone_number",
+            "inn",
+            "gender",
+            "photo",
+            "orc_id",
+            "scopus_id",
+            "wos_id",
+            "google_scholar",
+            "researchgate",
+            "satbayev_profile_url",
+        )
+        labels = {
+            "first_name": "Аты",
+            "last_name": "Тегі",
+            "father_name": "Әкесінің аты",
+            "email": "Email",
+            "phone_number": "Телефон",
+            "inn": "ЖСН/БСН",
+            "gender": "Жынысы",
+            "photo": "Профиль суреті",
+            "orc_id": "ORCID",
+            "scopus_id": "Scopus ID",
+            "wos_id": "Web of Science ID",
+            "google_scholar": "Google Scholar",
+            "researchgate": "ResearchGate",
+            "satbayev_profile_url": "Satbayev profile URL",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            if name == "gender":
+                field.widget.attrs.update({"class": "form-select"})
+            else:
+                field.widget.attrs.update({"class": "form-control"})
+            field.widget.attrs.setdefault("placeholder", field.label)

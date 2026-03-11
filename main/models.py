@@ -164,19 +164,24 @@ class Publication(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def get_collaborators_str(self):
-        # Получаем всех авторов публикации
-        authors = self.authors.all()
+        links = list(self.publicationauthor_set.select_related("author").order_by("order", "id"))
+        if len(links) <= 1:
+            return ""
 
-        # Получаем всех соавторов для каждого автора
-        collaborators = set()
-        for author in authors:
-            coauthors = Author.objects.filter(publications__authors=author).exclude(id=author.id)
-            collaborators.update(coauthors)
+        # Соавторы текущей публикации: все авторы после первого по порядку.
+        seen = set()
+        collaborators = []
+        for link in links[1:]:
+            author = link.author
+            if not author or not author.full_name:
+                continue
+            name = author.full_name.strip()
+            if not name or name.lower() in seen:
+                continue
+            seen.add(name.lower())
+            collaborators.append(name)
 
-        full_authors = ", ".join([author.full_name for author in authors])
-        full_collaborators = ", ".join([collab.full_name for collab in collaborators])
-
-        return full_authors + (", " + full_collaborators if full_collaborators else "")
+        return ", ".join(collaborators)
 
     def __str__(self):
         return self.title_original

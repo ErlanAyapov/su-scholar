@@ -1,0 +1,12 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}SU Science - Құжат іздеу{% endblock %}
+
+{% block content %}
+{% include "main/partials/documents_search_full.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'main/scripts/main_filter.js' %}"></script>
+<script src="{% static 'main/scripts/result_view_toggle.js' %}"></script>
+{% endblock %}

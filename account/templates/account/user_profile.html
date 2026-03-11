@@ -1,0 +1,197 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}SU Science - {{ profile_user.get_full_name|default:profile_user.username }}{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-shell">
+        {% if profile_updated %}
+            <div class="alert alert-success rounded-0 border-0 mb-0">
+                Деректер сәтті жаңартылды.
+            </div>
+        {% endif %}
+
+        <div class="profile-cover"></div>
+
+        <div class="profile-head">
+            <div class="profile-avatar-wrap">
+                {% if profile_user.photo %}
+                    <img class="profile-avatar" src="{{ profile_user.photo.url }}" alt="{{ profile_user.get_full_name|default:profile_user.username }}">
+                {% else %}
+                    {% if profile_user.gender == "female" %}
+                        <img src="{% static 'main/images/woman-user-color-icon.svg' %}" alt="Әдепкі аватар" class="profile-avatar">
+                    {% else %}
+                        <img src="{% static 'main/images/man-user-color-icon.svg' %}" alt="Әдепкі аватар" class="profile-avatar">
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="profile-head-main">
+                <div class="profile-identity-row">
+                    <div>
+                        <h1 class="profile-name">
+                            {{ profile_user.last_name }} {{ profile_user.first_name }}{% if profile_user.father_name %} {{ profile_user.father_name }}{% endif %}
+                        </h1>
+                        <p class="profile-username">@{{ profile_user.username }}</p>
+                    </div>
+                    <div class="profile-actions">
+                        <a class="btn btn-primary btn-sm" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">Жарияланымдар</a>
+                        {% if profile_user.email %}
+                            <a class="btn btn-outline-secondary btn-sm" href="mailto:{{ profile_user.email }}">E-mail</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="profile-stats" aria-label="Профиль статистикасы">
+                    <div class="profile-stat">
+                        <strong>{{ publication_count }}</strong>
+                        <span>Жарияланым</span>
+                    </div>
+                    <div class="profile-stat">
+                        <strong>{{ citations_total }}</strong>
+                        <span>Дәйексөз</span>
+                    </div>
+                    <div class="profile-stat">
+                        <strong>{{ open_access_count }}</strong>
+                        <span>Open Access</span>
+                    </div>
+                    <div class="profile-stat">
+                        <strong>{{ template_count }}</strong>
+                        <span>Шаблон</span>
+                    </div>
+                    <div class="profile-stat">
+                        <strong>{{ generated_reports_count }}</strong>
+                        <span>Есеп</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 profile-content">
+            <div class="col-lg-8">
+                <div class="profile-block">
+                    <div class="profile-block-head">
+                        <h2 class="h5 mb-0">Соңғы жарияланымдар</h2>
+                        <a class="profile-mini-link" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">Барлығын көру</a>
+                    </div>
+                    {% if recent_publications %}
+                        <div class="profile-post-grid">
+                            {% for publication in recent_publications %}
+                                <article class="profile-post-card">
+                                    <h3 class="profile-post-title">
+                                        <a href="{% url 'publication_detail' publication.id %}">
+                                            {{ publication.title_original }}
+                                        </a>
+                                    </h3>
+                                    <p class="profile-post-meta">
+                                        {{ publication.year }}{% if publication.venue %} · {{ publication.venue.name }}{% endif %}
+                                    </p>
+                                    <p class="profile-post-extra">
+                                        {% if publication.doi %}DOI: {{ publication.doi }}{% elif publication.pub_type %}{{ publication.pub_type.name }}{% else %}Түрі көрсетілмеген{% endif %}
+                                    </p>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-light border mb-0">Қазіргі таңда жарияланым табылмады.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                {% if can_edit_profile and profile_form %}
+                    <div class="profile-block mb-3">
+                        <h2 class="h6 mb-3">Профильді өңдеу</h2>
+                        <form method="post" enctype="multipart/form-data" class="profile-edit-form">
+                            {% csrf_token %}
+                            <div class="profile-form-grid">
+                                {% for field in profile_form %}
+                                    <div class="profile-form-field">
+                                        <label class="form-label mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.errors %}
+                                            <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm mt-3">Сақтау</button>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <div class="profile-block mb-3">
+                    <h2 class="h6 mb-3">Байланыс</h2>
+                    <ul class="profile-list mb-0">
+                        <li>
+                            <span>E-mail</span>
+                            <strong>
+                                {% if profile_user.email %}
+                                    <a href="mailto:{{ profile_user.email }}">{{ profile_user.email }}</a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </strong>
+                        </li>
+                        <li>
+                            <span>Кафедра</span>
+                            <strong>{{ profile_user.department.name|default:"-" }}</strong>
+                        </li>
+                        <li>
+                            <span>Тіркелген күні</span>
+                            <strong>{{ profile_user.date_joined|date:"d.m.Y" }}</strong>
+                        </li>
+                    </ul>
+                </div>
+
+                {% if external_links %}
+                    <div class="profile-block mb-3">
+                        <h2 class="h6 mb-3">Ғылыми профильдер</h2>
+                        <div class="profile-links">
+                            {% for link in external_links %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.label }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if top_venues %}
+                    <div class="profile-block mb-3">
+                        <h2 class="h6 mb-3">Топ басылым алаңдары</h2>
+                        <ul class="profile-list mb-0">
+                            {% for venue in top_venues %}
+                                <li>
+                                    <span>{{ venue.venue__name }}</span>
+                                    <strong>{{ venue.total }}</strong>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if request.user.id == profile_user.id %}
+                    <div class="profile-block">
+                        <div class="profile-block-head">
+                            <h2 class="h6 mb-0">Құжаттар</h2>
+                            <span class="badge text-bg-light">{{ generated_documents_count }}</span>
+                        </div>
+                        {% if recent_generated_documents %}
+                            <ul class="profile-doc-list mb-0">
+                                {% for doc in recent_generated_documents %}
+                                    <li>
+                                        <span>{{ doc.title }}</span>
+                                        <a href="{% url 'document_file' doc.id %}?download=1" aria-label="Жүктеу">↓</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="text-body-secondary small">Әзірге құжат жоқ.</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

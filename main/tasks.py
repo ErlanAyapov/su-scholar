@@ -2,7 +2,11 @@ from celery import shared_task
 from django.contrib.auth import get_user_model
 from requests import RequestException
 
-from main.services.publication_importer import import_publications_for_user
+from main.services.publication_importer import (
+    import_publications_for_user,
+    import_scholar_works_for_all_users,
+    import_works_from_scholar,
+)
 
 User = get_user_model()
 
@@ -34,3 +38,23 @@ def import_publications_for_all_users_task(limit: int = 100, force: bool = False
     for user_id in user_ids:
         import_user_publications_task.delay(user_id=user_id, force=force)
     return {"status": "queued", "count": len(user_ids), "force": force}
+
+@shared_task
+def import_publications_from_google_scholar_task(user_id: int, force: bool = False) -> dict:
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return {"status": "not_found", "user_id": user_id}
+
+    query = (user.google_scholar or "").strip()
+    if not query:
+        query = " ".join(part for part in [user.last_name, user.first_name, user.father_name] if part).strip() or user.username
+
+    result = import_works_from_scholar(user=user, query=query)
+    return {"status": "ok", **result, "force": force}
+
+
+@shared_task
+def import_publications_from_google_scholar_for_all_users_task() -> dict:
+    summary = import_scholar_works_for_all_users()
+    return {"status": "ok", **summary}

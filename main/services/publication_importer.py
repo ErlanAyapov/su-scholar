@@ -1,8 +1,10 @@
 import hashlib
 import re
 from datetime import date
+from urllib.parse import parse_qs, urlparse
 
 import requests
+from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 
 from main.models import (
@@ -30,6 +32,7 @@ ORCID_HEADERS = {**REQUEST_HEADERS, "Accept": "application/json"}
 ORCID_WORKS_URL = "https://pub.orcid.org/v3.0/{orcid}/works"
 OPENALEX_AUTHORS_URL = "https://api.openalex.org/authors"
 OPENALEX_WORKS_URL = "https://api.openalex.org/works"
+GOOGLE_SCHOLAR_CITATIONS_URL = "https://scholar.google.com/citations"
 
 DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.IGNORECASE)
 
@@ -43,6 +46,16 @@ def _normalize_doi(raw_value: str) -> str:
     if not match:
         return value.upper()
     return match.group(0).upper()
+
+
+def _extract_doi_from_text(raw_value: str) -> str:
+    value = (raw_value or "").strip()
+    if not value:
+        return ""
+    match = DOI_RE.search(value)
+    if not match:
+        return ""
+    return _normalize_doi(match.group(0))
 
 
 def _safe_year(raw_value):
@@ -96,6 +109,148 @@ def _map_language_name(code: str) -> str:
     return mapping.get(code, code.upper() if code else "Unknown")
 
 
+def _extract_scholar_user_id(raw_value: str) -> str:
+    value = (raw_value or "").strip()
+    if not value:
+        return ""
+    parsed = urlparse(value)
+    if parsed.scheme and "scholar.google" not in parsed.netloc:
+        return ""
+    query = parse_qs(parsed.query)
+    return (query.get("user") or [""])[0].strip()
+
+
+def _split_scholar_authors(raw_value: str) -> list[str]:
+    source = (raw_value or "").strip()
+    if not source:
+        return []
+    tokens = re.split(r"\s+and\s+|,\s*|;\s*", source)
+    return _unique_keep_order([token.strip() for token in tokens if token.strip()])
+
+
+def _infer_scholar_pub_type(title: str, venue: str) -> str:
+    haystack = f"{title} {venue}".lower()
+    if any(token in haystack for token in ("conference", "proceedings", "symposium", "workshop")):
+        return "conference-paper"
+    if "book chapter" in haystack or "chapter" in haystack:
+        return "book-chapter"
+    if "book" in haystack and "chapter" not in haystack:
+        return "book"
+    return "journal-article"
+
+
+def _resolve_scholar_user_id(query: str, timeout: int = 30) -> str:
+    candidate = _extract_scholar_user_id(query)
+    if candidate:
+        return candidate
+
+    raw = (query or "").strip()
+    if raw and re.fullmatch(r"[A-Za-z0-9_-]{8,}", raw):
+        return raw
+
+    if not raw:
+        return ""
+
+    response = requests.get(
+        GOOGLE_SCHOLAR_CITATIONS_URL,
+        params={"view_op": "search_authors", "mauthors": raw, "hl": "en"},
+        headers=REQUEST_HEADERS,
+        timeout=timeout,
+    )
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    link = soup.select_one("h3.gs_ai_name a")
+    if not link:
+        return ""
+
+    href = link.get("href", "")
+    parsed = urlparse(href)
+    return (parse_qs(parsed.query).get("user") or [""])[0].strip()
+
+
+def _fetch_scholar_profile_works(query: str, timeout: int = 30) -> list[dict]:
+    scholar_user_id = _resolve_scholar_user_id(query=query, timeout=timeout)
+    if not scholar_user_id:
+        return []
+
+    works: list[dict] = []
+    start = 0
+    page_size = 100
+
+    while True:
+        response = requests.get(
+            GOOGLE_SCHOLAR_CITATIONS_URL,
+            params={"hl": "en", "user": scholar_user_id, "cstart": start, "pagesize": page_size},
+            headers=REQUEST_HEADERS,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        rows = soup.select("tr.gsc_a_tr")
+        if not rows:
+            break
+
+        for row in rows:
+            title_link = row.select_one("a.gsc_a_at")
+            title = (title_link.get_text(" ", strip=True) if title_link else "").strip()
+            if not title:
+                continue
+
+            gray_items = row.select("div.gs_gray")
+            authors_raw = gray_items[0].get_text(" ", strip=True) if gray_items else ""
+            venue = gray_items[1].get_text(" ", strip=True) if len(gray_items) > 1 else ""
+
+            year_text = ""
+            year_node = row.select_one("td.gsc_a_y span")
+            if year_node:
+                year_text = year_node.get_text(" ", strip=True)
+
+            href = title_link.get("href", "") if title_link else ""
+            scholar_public_url = ""
+            source_id = ""
+            if href:
+                scholar_public_url = f"https://scholar.google.com{href}"
+                parsed_href = urlparse(href)
+                source_id = (parse_qs(parsed_href.query).get("citation_for_view") or [""])[0].strip()
+
+            if not source_id:
+                source_id = hashlib.sha1(f"{scholar_user_id}:{title}:{year_text}".encode("utf-8")).hexdigest()[:24]
+
+            doi = _extract_doi_from_text(title)
+            author_names = _split_scholar_authors(authors_raw)
+
+            works.append(
+                {
+                    "source": "google_scholar",
+                    "source_id": source_id,
+                    "title": title,
+                    "venue": venue,
+                    "year": _safe_year(year_text),
+                    "pub_type": _infer_scholar_pub_type(title=title, venue=venue),
+                    "language": "und",
+                    "doi": doi,
+                    "url_publisher": scholar_public_url,
+                    "open_access": False,
+                    "external_ids": [
+                        {
+                            "type": "google-scholar",
+                            "value": source_id,
+                            "url": scholar_public_url,
+                        }
+                    ],
+                    "authors": [{"full_name": name, "orcid": ""} for name in author_names],
+                }
+            )
+
+        if len(rows) < page_size:
+            break
+        start += page_size
+
+    return works
+
+
 def _build_record_id(source: str, source_id: str, doi: str) -> str:
     payload = doi or source_id or "unknown"
     digest = hashlib.sha1(f"{source}:{payload}".encode("utf-8")).hexdigest()[:24]
@@ -119,12 +274,215 @@ def _get_or_create_venue(name: str) -> Venue:
     return Venue.objects.create(name=venue_name, kind="journal", character="scientific_journal")
 
 
-def _find_existing_publication(doi: str, record_id: str):
+def _normalize_title_for_match(raw_value: str) -> str:
+    value = (raw_value or "").strip().lower()
+    if not value:
+        return ""
+    value = re.sub(r"[^\w]+", " ", value, flags=re.UNICODE)
+    value = re.sub(r"\s+", " ", value, flags=re.UNICODE).strip()
+    return value
+
+
+def _find_existing_publication(
+    doi: str,
+    record_id: str,
+    title: str = "",
+    year: int | None = None,
+    created_by=None,
+):
     if doi:
         publication = Publication.objects.filter(doi__iexact=doi).first()
         if publication:
             return publication
-    return Publication.objects.filter(record_id=record_id).first()
+    publication = Publication.objects.filter(record_id=record_id).first()
+    if publication:
+        return publication
+
+    normalized_title = _normalize_title_for_match(title)
+    if not normalized_title:
+        return None
+
+    queryset = Publication.objects.all()
+    if year:
+        queryset = queryset.filter(year=_safe_year(year))
+    if created_by is not None:
+        queryset = queryset.filter(created_by=created_by)
+
+    exact = queryset.filter(title_original__iexact=title).first()
+    if exact:
+        return exact
+
+    for candidate in queryset.only("id", "title_original"):
+        if _normalize_title_for_match(candidate.title_original) == normalized_title:
+            return candidate
+    return None
+
+
+def _publication_quality_score(publication: Publication) -> int:
+    score = 0
+    if publication.doi:
+        score += 8
+    if publication.url_publisher:
+        score += 3
+    if publication.url_open_access:
+        score += 1
+    if publication.open_access:
+        score += 1
+    if publication.quartile:
+        score += 1
+    if publication.keywords:
+        score += 1
+    if publication.record_id:
+        score += 1
+    venue_name = (publication.venue.name if publication.venue_id else "").strip().lower()
+    if venue_name and venue_name != "unknown venue":
+        score += 2
+    return score
+
+
+def _merge_duplicate_publications(primary: Publication, duplicate: Publication) -> bool:
+    changed_fields = set()
+
+    def copy_if_empty(field_name: str):
+        primary_value = getattr(primary, field_name)
+        duplicate_value = getattr(duplicate, field_name)
+        if (not primary_value) and duplicate_value:
+            setattr(primary, field_name, duplicate_value)
+            changed_fields.add(field_name)
+
+    for field in (
+        "doi",
+        "url_publisher",
+        "url_open_access",
+        "publication_date",
+        "accepted_date",
+        "volume",
+        "issue",
+        "pages",
+        "article_number",
+        "keywords",
+        "quartile",
+        "oa_type",
+    ):
+        copy_if_empty(field)
+
+    if (not primary.venue_id or (primary.venue and primary.venue.name.strip().lower() == "unknown venue")) and duplicate.venue_id:
+        if duplicate.venue.name.strip().lower() != "unknown venue":
+            primary.venue = duplicate.venue
+            changed_fields.add("venue")
+
+    if (not primary.language_id or (primary.language and primary.language.code == "und")) and duplicate.language_id:
+        if duplicate.language.code != "und":
+            primary.language = duplicate.language
+            changed_fields.add("language")
+
+    if primary.year <= 0 and duplicate.year > 0:
+        primary.year = duplicate.year
+        changed_fields.add("year")
+
+    if primary.citations_count < duplicate.citations_count:
+        primary.citations_count = duplicate.citations_count
+        changed_fields.add("citations_count")
+
+    status_rank = {"submitted": 1, "accepted": 2, "published": 3}
+    if status_rank.get(duplicate.status, 0) > status_rank.get(primary.status, 0):
+        primary.status = duplicate.status
+        changed_fields.add("status")
+
+    if duplicate.open_access and not primary.open_access:
+        primary.open_access = True
+        changed_fields.add("open_access")
+
+    if changed_fields:
+        primary.save(update_fields=sorted(changed_fields))
+
+    primary.indexing.add(*duplicate.indexing.all())
+    primary.tags.add(*duplicate.tags.all())
+
+    role_rank = {"coauthor": 1, "corresponding": 2, "first": 3}
+    for link in duplicate.publicationauthor_set.all():
+        existing_link = PublicationAuthor.objects.filter(publication=primary, author=link.author).first()
+        if not existing_link:
+            PublicationAuthor.objects.create(
+                publication=primary,
+                author=link.author,
+                order=link.order,
+                role=link.role,
+            )
+            continue
+
+        author_changed = False
+        if link.order < existing_link.order:
+            existing_link.order = link.order
+            author_changed = True
+        if role_rank.get(link.role, 0) > role_rank.get(existing_link.role, 0):
+            existing_link.role = link.role
+            author_changed = True
+        if author_changed:
+            existing_link.save(update_fields=["order", "role"])
+
+    for identifier in duplicate.identifiers.all():
+        PublicationIdentifier.objects.get_or_create(
+            publication=primary,
+            id_type=identifier.id_type,
+            value=identifier.value,
+        )
+
+    for project_link in duplicate.publicationproject_set.all():
+        project_link.__class__.objects.get_or_create(
+            publication=primary,
+            project=project_link.project,
+        )
+
+    duplicate.files.update(publication=primary)
+    duplicate.repo_links.update(publication=primary)
+    duplicate.delete()
+    return True
+
+
+def deduplicate_publications_for_user(user) -> dict:
+    publications = list(
+        Publication.objects.filter(created_by=user)
+        .select_related("venue", "language")
+        .prefetch_related(
+            "indexing",
+            "tags",
+            "publicationauthor_set",
+            "identifiers",
+            "publicationproject_set",
+            "files",
+            "repo_links",
+        )
+        .order_by("id")
+    )
+
+    grouped: dict[tuple[int, str], list[Publication]] = {}
+    for publication in publications:
+        normalized_title = _normalize_title_for_match(publication.title_original)
+        if not normalized_title:
+            continue
+        key = (publication.year, normalized_title)
+        grouped.setdefault(key, []).append(publication)
+
+    groups = [group for group in grouped.values() if len(group) > 1]
+    merged_count = 0
+    for group in groups:
+        primary = sorted(
+            group,
+            key=lambda item: (_publication_quality_score(item), -item.id),
+            reverse=True,
+        )[0]
+
+        for candidate in group:
+            if candidate.id == primary.id:
+                continue
+            _merge_duplicate_publications(primary, candidate)
+            merged_count += 1
+
+    return {
+        "groups": len(groups),
+        "merged": merged_count,
+    }
 
 
 def _parse_orcid_external_ids(summary: dict) -> list[dict]:
@@ -357,7 +715,13 @@ def import_publications_for_user(user, force: bool = False, timeout: int = 30) -
     for work in unique_works:
         doi = _normalize_doi(work.get("doi", ""))
         record_id = _build_record_id(work.get("source", "ext"), work.get("source_id", ""), doi)
-        publication = _find_existing_publication(doi=doi, record_id=record_id)
+        publication = _find_existing_publication(
+            doi=doi,
+            record_id=record_id,
+            title=work.get("title", ""),
+            year=_safe_year(work.get("year")),
+            created_by=user,
+        )
 
         pub_type = _get_or_create_publication_type(work.get("pub_type", "other"))
         language = _get_or_create_language(work.get("language", "und"))
@@ -413,11 +777,165 @@ def import_publications_for_user(user, force: bool = False, timeout: int = 30) -
         _upsert_identifiers(publication, work.get("external_ids", []))
         _upsert_authors(publication, user=user, work_authors=work.get("authors", []))
 
+    dedup_result = deduplicate_publications_for_user(user)
+
     return {
         "user_id": user.id,
         "works_total": len(unique_works),
         "created": created,
         "updated": updated,
         "skipped": skipped,
+        "merged_duplicates": dedup_result["merged"],
+        "duplicate_groups": dedup_result["groups"],
         "errors": errors,
     }
+
+
+def import_works_from_scholar(user, query: str, timeout: int = 30) -> dict:
+    works = []
+    errors = []
+
+    scholar_source = (query or "").strip()
+    if not scholar_source:
+        scholar_source = (user.google_scholar or "").strip()
+    if not scholar_source:
+        full_name = " ".join(part for part in [user.last_name, user.first_name, user.father_name] if part).strip()
+        scholar_source = full_name or user.username
+
+    try:
+        scholar_user_id = _resolve_scholar_user_id(query=scholar_source, timeout=timeout)
+        if not scholar_user_id:
+            errors.append(f"scholar:not_found:{scholar_source}")
+        else:
+            works = _fetch_scholar_profile_works(query=scholar_user_id, timeout=timeout)
+    except requests.RequestException as exc:
+        errors.append(f"scholar_request:{exc}")
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"scholar:{exc}")
+
+    unique_works = []
+    seen = set()
+    for work in works:
+        key = work.get("doi") or f"{work.get('source')}:{work.get('source_id')}"
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique_works.append(work)
+
+    created = 0
+    updated = 0
+    skipped = 0
+    for work in unique_works:
+        doi = _normalize_doi(work.get("doi", ""))
+        record_id = _build_record_id(work.get("source", "ext"), work.get("source_id", ""), doi)
+        publication = _find_existing_publication(
+            doi=doi,
+            record_id=record_id,
+            title=work.get("title", ""),
+            year=_safe_year(work.get("year")),
+            created_by=user,
+        )
+
+        pub_type = _get_or_create_publication_type(work.get("pub_type", "other"))
+        language = _get_or_create_language(work.get("language", "und"))
+        venue = _get_or_create_venue(work.get("venue", ""))
+        title = (work.get("title") or "").strip()
+        if not title:
+            skipped += 1
+            continue
+
+        if publication is None:
+            publication = Publication.objects.create(
+                record_id=record_id,
+                pub_type=pub_type,
+                title_original=title[:500],
+                language=language,
+                year=_safe_year(work.get("year")),
+                venue=venue,
+                doi=doi[:120],
+                url_publisher=(work.get("url_publisher") or "")[:200],
+                open_access=bool(work.get("open_access")),
+                created_by=user,
+            )
+            created += 1
+        else:
+            changed_fields = []
+            if not publication.title_original:
+                publication.title_original = title[:500]
+                changed_fields.append("title_original")
+            if not publication.doi:
+                publication.doi = doi[:120]
+                changed_fields.append("doi")
+            if not publication.url_publisher:
+                publication.url_publisher = (work.get("url_publisher") or "")[:200]
+                changed_fields.append("url_publisher")
+            if publication.year == 0:
+                publication.year = _safe_year(work.get("year"))
+                changed_fields.append("year")
+            if publication.pub_type_id != pub_type.id:
+                publication.pub_type = pub_type
+                changed_fields.append("pub_type")
+            if publication.language_id != language.id:
+                publication.language = language
+                changed_fields.append("language")
+            if publication.venue_id != venue.id:
+                publication.venue = venue
+                changed_fields.append("venue")
+            publication.open_access = bool(work.get("open_access"))
+            changed_fields.append("open_access")
+            if changed_fields:
+                publication.save(update_fields=list(set(changed_fields)))
+                updated += 1
+
+        _upsert_identifiers(publication, work.get("external_ids", []))
+        _upsert_authors(publication, user=user, work_authors=work.get("authors", []))
+
+    dedup_result = deduplicate_publications_for_user(user)
+
+    return {
+        "user_id": user.id,
+        "works_total": len(unique_works),
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "merged_duplicates": dedup_result["merged"],
+        "duplicate_groups": dedup_result["groups"],
+        "errors": errors,
+    }
+
+
+def import_scholar_works_for_all_users(timeout: int = 30) -> dict:
+    users = list(User.objects.order_by("id"))
+    summary = {
+        "users_total": len(users),
+        "processed": 0,
+        "created": 0,
+        "updated": 0,
+        "skipped": 0,
+        "with_errors": 0,
+        "results": [],
+    }
+
+    for user in users:
+        query = (user.google_scholar or "").strip()
+        if not query:
+            result = {
+                "user_id": user.id,
+                "works_total": 0,
+                "created": 0,
+                "updated": 0,
+                "skipped": 0,
+                "errors": ["scholar_url_missing"],
+            }
+        else:
+            result = import_works_from_scholar(user=user, query=query, timeout=timeout)
+
+        summary["processed"] += 1
+        summary["created"] += int(result.get("created") or 0)
+        summary["updated"] += int(result.get("updated") or 0)
+        summary["skipped"] += int(result.get("skipped") or 0)
+        if result.get("errors"):
+            summary["with_errors"] += 1
+        summary["results"].append(result)
+
+    return summary

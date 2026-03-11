@@ -1,6 +1,6 @@
 {% load static %}
 <article class="col-12 col-md-6 col-lg-4 mb-3">
-    <div class="card h-100 shadow-sm employee-card">
+    <div class="card h-100 shadow-sm employee-card employee-card-clickable" data-profile-url="{% url 'employee_profile' user.id %}" role="link" tabindex="0">
         <div class="card-body d-flex flex-column">
             <div class="employee-top">
                 <div class="employee-avatar-wrap">
@@ -17,15 +17,13 @@
 
                 <div class="employee-meta">
                     <h2 class="h6 mb-1">
-                        {{ user.last_name }} {{ user.first_name }}{% if user.father_name %} {{ user.father_name }}{% endif %}
+                        <a class="employee-name-link" href="{% url 'employee_profile' user.id %}">
+                            {{ user.last_name }} {{ user.first_name }}{% if user.father_name %} {{ user.father_name }}{% endif %}
+                        </a>
                     </h2>
-
-                    {% if not user.photo %}
-                        <p class="mb-1 text-body-secondary employee-username">
-                            Пайдаланушы аты: <code>{{ user.username }}</code>
-                        </p>
-                    {% endif %}
-
+                    <p class="mb-1 text-body-secondary employee-username">
+                        @{{ user.username }}
+                    </p>
                     <p class="mb-0 employee-gender-row">
                         {% if user.gender == 'female' %}
                             <span class="gender-icon female" title="Әйел" aria-label="Әйел">
@@ -59,39 +57,11 @@
                     <a href="mailto:{{ user.email }}">{{ user.email }}</a>
                 </p>
             {% endif %}
-            {% if user.journal_links %}
-                <details class="mt-3">
-                    <summary>Журнал сілтемелері ({{ user.journal_links|length }})</summary>
-                    <div class="mt-2 d-flex flex-column gap-1">
-                        {% for link in user.journal_links %}
-                            <a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ link }}</a>
-                        {% endfor %}
-                    </div>
-                </details>
-            {% endif %}
-            <div class="d-flex flex-wrap gap-2 mt-2 mb-3">
-                {% if user.satbayev_profile_url %}
-                    <a class="btn btn-sm btn-outline-primary" href="{{ user.satbayev_profile_url }}" target="_blank" rel="noopener noreferrer">Satbayev</a>
-                {% endif %}
-                {% if user.scopus_id %}
-                    <a class="btn btn-sm btn-outline-secondary" href="https://www.scopus.com/authid/detail.uri?authorId={{ user.scopus_id }}" target="_blank" rel="noopener noreferrer">Scopus</a>
-                {% endif %}
-                {% if user.orc_id %}
-                    <a class="btn btn-sm btn-outline-success" href="https://orcid.org/{{ user.orc_id }}" target="_blank" rel="noopener noreferrer">ORCID</a>
-                {% endif %}
-                {% if user.google_scholar %}
-                    <a class="btn btn-sm btn-outline-dark" href="{{ user.google_scholar }}" target="_blank" rel="noopener noreferrer">Scholar</a>
-                {% endif %}
-                {% if user.researchgate %}
-                    <a class="btn btn-sm btn-outline-info" href="{{ user.researchgate }}" target="_blank" rel="noopener noreferrer">ResearchGate</a>
-                {% endif %}
-                {% if user.wos_id %}
-                    <a class="btn btn-sm btn-outline-secondary" href="{{ user.wos_id }}" target="_blank" rel="noopener noreferrer">WoS</a>
-                {% endif %}
+
+            <div class="d-flex flex-wrap gap-2 mt-auto pt-2">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'employee_profile' user.id %}">Профиль</a>
+                <a class="btn btn-sm btn-primary" href="{% url 'main' %}?staff_user={{ user.id }}&status=published">Жарияланымдары</a>
             </div>
-            <a class="btn btn-sm btn-primary mt-auto" href="{% url 'main' %}?staff_user={{ user.id }}&status=published">
-                Жұмыстарын көрсету
-            </a>
         </div>
     </div>
 </article>
