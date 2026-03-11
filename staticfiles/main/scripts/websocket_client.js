@@ -47,6 +47,10 @@
         return;
       }
 
+      if (payload && typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("app:websocket-message", { detail: payload }));
+      }
+
       if (payload.type === "notification" && payload.message) {
         showToast(payload.message, payload.level || "info");
       }
@@ -64,4 +68,3 @@
 
   connect();
 })();
-

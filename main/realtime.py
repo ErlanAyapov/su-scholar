@@ -30,9 +30,15 @@ def _push_group_payload(group_name: str, payload: dict) -> bool:
         return False
 
 
-def notify_user(user_id: int, message: str, level: str = "info", **extra) -> bool:
+def notify_user(
+    user_id: int,
+    message: str,
+    level: str = "info",
+    event_type: str = "notification",
+    **extra,
+) -> bool:
     payload = {
-        "type": "notification",
+        "type": event_type,
         "level": level,
         "message": message,
         **extra,
@@ -40,9 +46,14 @@ def notify_user(user_id: int, message: str, level: str = "info", **extra) -> boo
     return _push_group_payload(f"user_{user_id}", payload)
 
 
-def notify_public(message: str, level: str = "info", **extra) -> bool:
+def notify_public(
+    message: str,
+    level: str = "info",
+    event_type: str = "notification",
+    **extra,
+) -> bool:
     payload = {
-        "type": "notification",
+        "type": event_type,
         "level": level,
         "message": message,
         **extra,
