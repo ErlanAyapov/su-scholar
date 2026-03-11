@@ -1,8 +1,11 @@
 .env
 db.sqlite3
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.log
 axial-copilot-476813-n0-d144325c7f35.json
-media/*
-logs/*
+media/
+logs/

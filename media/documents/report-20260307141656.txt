@@ -1,4 +1,0 @@
-DOCX generation failed.
-Template ID: 13
-Error: 'method' object is not iterable
-Check synonym loop tags and template structure.

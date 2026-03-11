@@ -1,4 +1,0 @@
-DOCX generation failed.
-Template ID: 13
-Error: Encountered unknown tag 'tr'.
-Check synonym loop tags and template structure.
