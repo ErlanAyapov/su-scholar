@@ -7974,3 +7974,349 @@ django.template.exceptions.TemplateDoesNotExist: main/main.html
 2026-03-11 14:32:57,909 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
 2026-03-11 14:33:01,910 [WARNING] django.request: Not Found: /ws/updates/
 2026-03-11 14:33:01,910 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:05,910 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:05,911 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:09,909 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:09,910 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:13,910 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:13,911 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:17,912 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:17,912 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:21,912 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:21,912 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:25,920 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:25,920 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:29,925 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:29,926 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:33,934 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:33,935 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:37,962 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:37,964 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:41,945 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:41,946 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:45,989 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:45,990 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:50,368 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:50,370 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:54,291 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:54,292 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:33:58,434 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:33:58,436 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:03,268 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:03,269 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:11,700 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:11,700 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:18,738 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:18,739 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:24,641 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:24,641 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:33,153 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:33,153 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:39,435 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:39,435 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:46,741 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:46,742 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:34:53,917 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:34:53,918 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:00,665 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:00,666 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:08,572 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:08,572 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:14,070 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:14,071 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:20,200 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:20,200 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:26,471 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:26,472 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:32,687 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:32,688 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:40,403 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:40,404 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:45,777 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:45,778 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:45,779 [INFO] django.server: - Broken pipe from ('127.0.0.1', 57931)
+2026-03-11 14:35:51,774 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:51,774 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:35:58,108 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:35:58,109 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:06,303 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:06,304 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:12,521 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:12,522 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:19,566 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:19,567 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:27,541 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:27,542 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:35,110 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:35,111 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:42,317 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:42,319 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:49,560 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:49,561 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:36:57,095 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:36:57,096 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:00,911 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:00,912 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:04,915 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:04,916 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:08,911 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:08,911 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:12,918 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:12,919 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:16,910 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:16,911 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:20,918 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:20,918 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:24,920 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:24,921 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:28,918 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:28,919 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:32,917 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:32,919 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:36,937 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:36,937 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:40,940 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:40,941 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:44,957 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:44,958 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:49,081 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:49,082 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:53,075 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:53,076 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:37:58,004 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:37:58,004 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:03,190 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:03,191 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:09,774 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:09,775 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:18,578 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:18,579 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:25,191 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:25,192 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:30,535 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:30,536 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:37,856 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:37,857 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:45,224 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:45,225 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:49,970 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:49,971 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:38:56,570 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:38:56,571 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:04,383 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:04,383 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:10,260 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:10,261 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:18,276 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:18,277 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:25,041 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:25,042 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:32,180 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:32,181 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:40,635 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:40,637 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:48,913 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:48,914 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:39:57,867 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:39:57,868 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:03,527 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:03,527 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:09,528 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:09,528 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:15,202 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:15,203 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:22,271 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:22,272 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:29,625 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:29,626 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:35,187 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:35,188 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:41,911 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:41,912 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:47,207 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:47,209 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:40:53,933 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:40:53,933 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:01,941 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:01,942 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:09,604 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:09,604 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:15,147 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:15,148 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:23,479 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:23,479 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:28,153 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:28,154 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:34,164 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:34,165 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:41,520 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:41,521 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:47,987 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:47,988 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:53,823 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:53,824 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:41:59,408 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:41:59,409 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:07,481 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:07,481 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:15,586 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:15,587 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:20,207 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:20,208 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:26,320 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:26,322 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:34,169 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:34,170 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:41,248 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:41,249 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:48,790 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:48,791 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:42:55,307 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:42:55,308 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:00,291 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:00,291 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:02,546 [INFO] django.utils.autoreload: D:\PROJECTs\su_science\project\project\settings.py changed, reloading.
+2026-03-11 14:43:03,187 [INFO] django.utils.autoreload: Watching for file changes with StatReloader
+2026-03-11 14:43:03,985 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:03,986 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:07,983 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:07,983 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:11,984 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:11,984 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:15,984 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:15,985 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:19,984 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:19,985 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:21,311 [INFO] django.server: "GET /admin/account/user/bulk-operations/ HTTP/1.1" 200 17551
+2026-03-11 14:43:21,456 [INFO] django.server: "GET /static/jazzmin/css/main.css HTTP/1.1" 200 14372
+2026-03-11 14:43:21,457 [INFO] django.server: "GET /static/vendor/fontawesome-free/css/all.min.css HTTP/1.1" 200 103010
+2026-03-11 14:43:21,460 [INFO] django.server: "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 200 285314
+2026-03-11 14:43:21,460 [INFO] django.server: "GET /static/vendor/adminlte/css/adminlte.min.css HTTP/1.1" 200 298755
+2026-03-11 14:43:21,469 [INFO] django.server: "GET /static/vendor/adminlte/img/AdminLTELogo.png HTTP/1.1" 200 2637
+2026-03-11 14:43:21,470 [INFO] django.server: "GET /static/jazzmin/js/main.js HTTP/1.1" 200 4542
+2026-03-11 14:43:21,470 [INFO] django.server: "GET /static/vendor/adminlte/js/adminlte.min.js HTTP/1.1" 200 18270
+2026-03-11 14:43:21,470 [INFO] django.server: "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 80721
+2026-03-11 14:43:22,088 [INFO] django.server: "GET /static/vendor/fontawesome-free/webfonts/fa-regular-400.woff2 HTTP/1.1" 200 25392
+2026-03-11 14:43:22,088 [INFO] django.server: "GET /static/vendor/fontawesome-free/webfonts/fa-solid-900.woff2 HTTP/1.1" 200 156400
+2026-03-11 14:43:22,098 [INFO] django.server: "GET /static/vendor/adminlte/img/AdminLTELogo.png HTTP/1.1" 200 2637
+2026-03-11 14:43:23,752 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:23,753 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:24,252 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:24,280 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:24,281 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:24,298 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:24,298 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:24,303 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:24,316 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:24,321 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:25,552 [INFO] django.server: "GET /static/main/images/favicon.ico HTTP/1.1" 200 15406
+2026-03-11 14:43:25,853 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:25,854 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:27,527 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:27,580 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:27,582 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:27,582 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:27,582 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:27,590 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:27,601 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:27,602 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:28,114 [INFO] django.server: "GET /static/main/images/favicon.ico HTTP/1.1" 200 15406
+2026-03-11 14:43:28,414 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:28,415 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:28,517 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:28,549 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:28,550 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:28,562 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:28,562 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:28,568 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:28,568 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:28,570 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:28,969 [INFO] django.server: "GET /static/main/images/favicon.ico HTTP/1.1" 200 15406
+2026-03-11 14:43:29,166 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:29,198 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:29,199 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:29,213 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:29,213 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:29,221 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:29,221 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:29,221 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:29,416 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:29,447 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:29,448 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:29,459 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:29,459 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:29,463 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:29,463 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:29,463 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:30,105 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:30,138 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:30,139 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:30,146 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:30,148 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:30,153 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:30,153 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:30,153 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:30,348 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:30,380 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:30,382 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:30,390 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:30,390 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:30,398 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:30,398 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:30,398 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:30,575 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:30,607 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:30,609 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:30,613 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:30,613 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:30,625 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:30,625 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:30,625 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:30,786 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:30,816 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:30,818 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:30,824 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:30,825 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:30,838 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:30,838 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:30,838 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:32,567 [INFO] django.server: "GET / HTTP/1.1" 200 15151
+2026-03-11 14:43:32,600 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:32,601 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:32,613 [INFO] django.server: "GET /static/main/css/style.css HTTP/1.1" 200 20689
+2026-03-11 14:43:32,613 [INFO] django.server: "GET /static/main/images/icon.png HTTP/1.1" 200 49378
+2026-03-11 14:43:32,627 [INFO] django.server: "GET /static/main/scripts/result_view_toggle.js HTTP/1.1" 200 1763
+2026-03-11 14:43:32,627 [INFO] django.server: "GET /static/main/scripts/app_feedback.js HTTP/1.1" 200 1259
+2026-03-11 14:43:32,627 [INFO] django.server: "GET /static/main/scripts/websocket_client.js HTTP/1.1" 200 1572
+2026-03-11 14:43:33,287 [INFO] django.server: "GET /static/main/images/favicon.ico HTTP/1.1" 200 15406
+2026-03-11 14:43:33,594 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:33,595 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:33,897 [INFO] django.server: "GET /?tab=researchers HTTP/1.1" 200 9078
+2026-03-11 14:43:33,931 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:33,932 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:34,343 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:34,344 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:34,482 [INFO] django.server: "GET /?tab=documents HTTP/1.1" 200 15151
+2026-03-11 14:43:34,516 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:34,517 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:34,932 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:34,933 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:35,834 [INFO] django.server: "GET /documents HTTP/1.1" 200 31642
+2026-03-11 14:43:35,871 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:35,872 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:36,287 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:36,288 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:36,508 [INFO] django.server: "GET /account/ HTTP/1.1" 302 0
+2026-03-11 14:43:36,529 [INFO] django.server: "GET /employees/74/ HTTP/1.1" 200 18910
+2026-03-11 14:43:37,245 [WARNING] django.request: Not Found: /.well-known/appspecific/com.chrome.devtools.json
+2026-03-11 14:43:37,246 [WARNING] django.server: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 13603
+2026-03-11 14:43:37,996 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:37,996 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:42,111 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:42,112 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:46,949 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:46,950 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:53,190 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:53,190 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492
+2026-03-11 14:43:58,601 [WARNING] django.request: Not Found: /ws/updates/
+2026-03-11 14:43:58,602 [WARNING] django.server: "GET /ws/updates/ HTTP/1.1" 404 13492

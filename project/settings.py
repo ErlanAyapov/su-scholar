@@ -72,8 +72,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # DEV convenience:
 # - by default with DEBUG=True, CSRF checks are disabled (allow all origins, including ngrok)
 # - override via .env: DISABLE_CSRF_CHECKS=0 to re-enable checks
