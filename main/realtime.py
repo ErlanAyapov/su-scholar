@@ -16,14 +16,18 @@ def _push_group_payload(group_name: str, payload: dict) -> bool:
         logger.warning("Channels layer is not configured; payload skipped group=%s", group_name)
         return False
 
-    async_to_sync(layer.group_send)(
-        group_name,
-        {
-            "type": "ws.message",
-            "payload": payload,
-        },
-    )
-    return True
+    try:
+        async_to_sync(layer.group_send)(
+            group_name,
+            {
+                "type": "ws.message",
+                "payload": payload,
+            },
+        )
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to push websocket payload group=%s error=%s", group_name, exc)
+        return False
 
 
 def notify_user(user_id: int, message: str, level: str = "info", **extra) -> bool:
@@ -44,4 +48,3 @@ def notify_public(message: str, level: str = "info", **extra) -> bool:
         **extra,
     }
     return _push_group_payload("public_updates", payload)
-

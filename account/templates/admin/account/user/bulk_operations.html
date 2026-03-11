@@ -1,0 +1,60 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; <a href="{{ changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; Массовые операции
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>Массовые операции</h1>
+    <p>Здесь можно запускать создание пользователей и массовый импорт публикаций.</p>
+
+    <form method="post" style="margin-bottom: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="seed_inactive_users">
+        <button type="submit" class="default">Создать/обновить неактивных пользователей</button>
+    </form>
+
+    <form method="post" style="margin-bottom: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="enqueue_satbayev_enrichment">
+        <div>
+            <label>Лимит:</label>
+            <input type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
+            <label style="margin-left: 12px;">
+                <input type="checkbox" name="force" value="1"> force
+            </label>
+            <button type="submit" class="default">Обогатить профили (Satbayev)</button>
+        </div>
+    </form>
+
+    <form method="post" style="margin-bottom: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="import_publications_all">
+        <div>
+            <label>Лимит:</label>
+            <input type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
+            <label style="margin-left: 12px;">
+                <input type="checkbox" name="force" value="1"> force
+            </label>
+            <button type="submit" class="default">Импорт работ (ORCID/OpenAlex)</button>
+        </div>
+    </form>
+
+    <form method="post" style="margin-bottom: 18px;">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="import_scholar_all">
+        <button type="submit" class="default">Импорт работ (Google Scholar)</button>
+    </form>
+
+    <p style="margin-top: 20px;">
+        <a href="{{ changelist_url }}">Назад к списку пользователей</a>
+    </p>
+</div>
+{% endblock %}
+

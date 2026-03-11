@@ -4,5 +4,5 @@ __pycache__/
 *.pyc
 *.pyo
 axial-copilot-476813-n0-d144325c7f35.json
-media/
-logs/
+media/*
+logs/*
