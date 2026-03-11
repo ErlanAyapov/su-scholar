@@ -863,7 +863,69 @@ main {
     border-color: #1a81f7;
     background: #f2f7ff;
 }
+ 
+.profile-sync-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 
+.profile-sync-actions .btn {
+    border-radius: 999px;
+}
+
+.profile-sync-log-wrap {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    background: #f8fbff;
+}
+
+.profile-sync-log {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.profile-sync-log-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    align-items: start;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #fff;
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+}
+
+.profile-sync-log-time {
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+.profile-sync-log-text {
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.profile-sync-log-row.level-success {
+    border-color: rgba(22, 163, 74, 0.35);
+    background: #f0fdf4;
+}
+
+.profile-sync-log-row.level-warning {
+    border-color: rgba(234, 179, 8, 0.38);
+    background: #fefce8;
+}
+
+.profile-sync-log-row.level-danger {
+    border-color: rgba(239, 68, 68, 0.32);
+    background: #fef2f2;
+}
+ 
 .staff-filter-alert {
     margin-bottom: 12px;
 }

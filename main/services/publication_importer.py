@@ -684,21 +684,43 @@ def _upsert_authors(publication: Publication, user, work_authors: list[dict]):
         order += 1
 
 
-def import_publications_for_user(user, force: bool = False, timeout: int = 30) -> dict:
+def import_publications_for_user(
+    user,
+    force: bool = False,
+    timeout: int = 30,
+    sources: tuple[str, ...] | None = None,
+    prefer_scopus: bool = False,
+) -> dict:
     works = []
     errors = []
+    explicit_sources = sources is not None
+    source_set = {str(item).strip().lower() for item in (sources or ("orcid", "openalex")) if str(item).strip()}
 
-    if user.orc_id:
-        try:
-            works.extend(fetch_orcid_works(user.orc_id, timeout=timeout))
-        except requests.RequestException as exc:
-            errors.append(f"orcid:{exc}")
+    if "orcid" in source_set:
+        if user.orc_id:
+            try:
+                works.extend(fetch_orcid_works(user.orc_id, timeout=timeout))
+            except requests.RequestException as exc:
+                errors.append(f"orcid:{exc}")
+        elif explicit_sources:
+            errors.append("orcid:missing_orcid_id")
 
-    try:
-        openalex_author_id = fetch_openalex_author_id(orcid_id=user.orc_id, scopus_id=user.scopus_id, timeout=timeout)
-        works.extend(fetch_openalex_works(openalex_author_id, timeout=timeout))
-    except requests.RequestException as exc:
-        errors.append(f"openalex:{exc}")
+    if "openalex" in source_set:
+        orcid_for_openalex = "" if prefer_scopus else user.orc_id
+        scopus_for_openalex = user.scopus_id
+        if not orcid_for_openalex and not scopus_for_openalex:
+            if explicit_sources:
+                errors.append("openalex:missing_orcid_or_scopus_id")
+        else:
+            try:
+                openalex_author_id = fetch_openalex_author_id(
+                    orcid_id=orcid_for_openalex,
+                    scopus_id=scopus_for_openalex,
+                    timeout=timeout,
+                )
+                works.extend(fetch_openalex_works(openalex_author_id, timeout=timeout))
+            except requests.RequestException as exc:
+                errors.append(f"openalex:{exc}")
 
     unique_works = []
     seen = set()
