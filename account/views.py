@@ -1,13 +1,17 @@
+import json
+
 from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.template.loader import render_to_string
 
 from document.models import Document
 from main.models import Publication
+from main.tasks import sync_user_publications_task
 
 from .forms import LoginForm, ProfileEditForm, RegisterForm
 
@@ -44,6 +48,14 @@ def _employee_publications_queryset(profile_user):
         .prefetch_related("authors", "indexing", "tags")
         .distinct()
         .order_by("-year", "-id")
+    )
+
+
+def _can_manage_profile_sync(request_user, profile_user) -> bool:
+    return bool(
+        request_user
+        and request_user.is_authenticated
+        and (request_user.id == profile_user.id or request_user.is_staff)
     )
 
 
@@ -85,6 +97,7 @@ def employee_profile(request, user_id: int):
         pk=user_id,
     )
     can_edit_profile = bool(request.user.is_authenticated and request.user.id == profile_user.id)
+    can_manage_sync = _can_manage_profile_sync(request.user, profile_user)
     profile_form = None
     profile_updated = request.GET.get("updated") == "1"
 
@@ -151,10 +164,60 @@ def employee_profile(request, user_id: int):
         "top_venues": list(top_venues),
         "external_links": external_links,
         "can_edit_profile": can_edit_profile,
+        "can_manage_sync": can_manage_sync,
         "profile_form": profile_form,
         "profile_updated": profile_updated,
+        "profile_sync_url": reverse("employee_profile_sync", kwargs={"user_id": profile_user.id}),
+        "sync_sources": [
+            {"key": "all", "label": "Барлығы"},
+            {"key": "orcid", "label": "ORCID"},
+            {"key": "scopus", "label": "Scopus"},
+            {"key": "scholar", "label": "Scholar"},
+            {"key": "wos", "label": "WoS"},
+        ],
     }
     return render(request, "account/user_profile.html", context)
+
+
+@login_required(login_url="account_page")
+def employee_profile_sync(request, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    profile_user = get_object_or_404(User, pk=user_id)
+    if not _can_manage_profile_sync(request.user, profile_user):
+        return JsonResponse({"detail": "Forbidden"}, status=403)
+
+    payload = {}
+    content_type = (request.content_type or "").split(";")[0].strip().lower()
+    if content_type == "application/json":
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+
+    source = str(payload.get("source") or request.POST.get("source") or "all").strip().lower()
+    allowed_sources = {"all", "orcid", "scopus", "scholar", "wos"}
+    if source not in allowed_sources:
+        return JsonResponse({"detail": "Invalid source"}, status=400)
+
+    force_raw = payload.get("force", request.POST.get("force", "0"))
+    force = str(force_raw).strip().lower() in {"1", "true", "yes", "on"}
+    task = sync_user_publications_task.delay(
+        user_id=profile_user.id,
+        source=source,
+        initiated_by_id=request.user.id,
+        force=force,
+    )
+    return JsonResponse(
+        {
+            "status": "queued",
+            "task_id": task.id,
+            "source": source,
+            "target_user_id": profile_user.id,
+        },
+        status=202,
+    )
 
 
 def account_page(request):
