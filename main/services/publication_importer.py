@@ -968,7 +968,7 @@ def import_works_from_scholar(user, query: str, timeout: int = 30, force: bool =
     }
 
 
-def import_scholar_works_for_all_users(timeout: int = 30) -> dict:
+def import_scholar_works_for_all_users(timeout: int = 30, force: bool = False) -> dict:
     users = list(User.objects.order_by("id"))
     summary = {
         "users_total": len(users),
@@ -992,7 +992,7 @@ def import_scholar_works_for_all_users(timeout: int = 30) -> dict:
                 "errors": ["scholar_url_missing"],
             }
         else:
-            result = import_works_from_scholar(user=user, query=query, timeout=timeout)
+            result = import_works_from_scholar(user=user, query=query, timeout=timeout, force=force)
 
         summary["processed"] += 1
         summary["created"] += int(result.get("created") or 0)

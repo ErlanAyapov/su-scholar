@@ -1,9 +1,44 @@
 {% extends "admin/change_list.html" %}
 
-{% block object-tools-items %}
+{% block extrahead %}
 {{ block.super }}
-<li>
-    <a href="{% url 'admin:account_user_bulk_operations' %}" class="addlink">Массовые операции</a>
-</li>
+<style>
+    .bulk-ops-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0 0 16px;
+    }
+
+    .bulk-ops-toolbar__button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0f6cbd, #1f8ef1);
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 10px 24px rgba(15, 108, 189, 0.18);
+    }
+
+    .bulk-ops-toolbar__button:hover,
+    .bulk-ops-toolbar__button:focus {
+        color: #fff;
+        background: linear-gradient(135deg, #0d5ea6, #1877ca);
+    }
+    
+    .bulk-ops-toolbar__button::before {
+        content: "+";
+        font-size: 18px;
+        line-height: 1;
+    }
+</style>
 {% endblock %}
 
+{% block object-tools %}
+<div class="bulk-ops-toolbar">
+    <a href="{% url 'admin:account_user_bulk_operations' %}" class="bulk-ops-toolbar__button">Массовые операции</a>
+</div>
+{{ block.super }}
+{% endblock %}
