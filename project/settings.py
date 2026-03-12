@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import importlib.util
 import os
 from pathlib import Path
 
@@ -57,6 +58,9 @@ INSTALLED_APPS = [
     'account',
     'document',
 ]
+
+if importlib.util.find_spec('daphne') is not None:
+    INSTALLED_APPS.insert(0, 'daphne')
 
 JAZZMIN_SETTINGS = {
     "site_title": "SU Science Admin",

@@ -1,9 +1,7 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
 {% block extrahead %}
 {{ block.super }}
-<script src="{% static 'main/scripts/websocket_client.js' %}"></script>
 <style>
     .bulk-layout {
         display: grid;
@@ -206,7 +204,7 @@
 
     .bulk-log-item {
         display: grid;
-        grid-template-columns: 88px 120px minmax(0, 1fr);
+        grid-template-columns: 88px 180px minmax(0, 1fr);
         gap: 12px;
         padding: 12px 14px;
         border-bottom: 1px solid rgba(148, 163, 184, 0.16);
@@ -240,6 +238,7 @@
         color: #7dd3fc;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        overflow-wrap: anywhere;
     }
 
     .bulk-log-message {
@@ -281,7 +280,10 @@
     <section class="bulk-hero">
         <div>
             <h1>Массовые операции</h1>
-            <p>Страница запускает пакетные действия для пользователей и показывает live-логи. Форма отправляется без перезагрузки, а фоновые статусы приходят через WebSocket.</p>
+            <p>
+                Запускайте пакетные операции по пользователям и отслеживайте статусы Celery-задач в реальном времени.
+                Для live-обновления используется WebSocket, при недоступности автоматически включается HTTP fallback.
+            </p>
         </div>
         <a href="{{ changelist_url }}" class="bulk-back-link">К списку пользователей</a>
     </section>
@@ -289,7 +291,7 @@
     <section class="bulk-grid">
         <article class="bulk-card">
             <h2>Неактивные пользователи</h2>
-            <p>Запускает management command `seed_inactive_users` и сразу возвращает результат в лог.</p>
+            <p>Запускает management command <code>seed_inactive_users</code> и пишет результат в live-лог.</p>
             <form method="post" data-bulk-operation-form>
                 {% csrf_token %}
                 <input type="hidden" name="operation" value="seed_inactive_users">
@@ -299,7 +301,7 @@
 
         <article class="bulk-card">
             <h2>Satbayev Enrichment</h2>
-            <p>Ставит в очередь обновление профилей сотрудников и подтягивает внешние идентификаторы.</p>
+            <p>Ставит в очередь обогащение профилей сотрудников из Satbayev и обновляет внешние идентификаторы.</p>
             <form method="post" data-bulk-operation-form>
                 {% csrf_token %}
                 <input type="hidden" name="operation" value="enqueue_satbayev_enrichment">
@@ -312,7 +314,7 @@
                         Force
                         <span class="bulk-checkbox-row">
                             <input type="checkbox" name="force" value="1">
-                            <span>Перезаписать уже заполненные данные</span>
+                            <span>Перезаписать уже заполненные поля</span>
                         </span>
                     </label>
                 </div>
@@ -322,7 +324,7 @@
 
         <article class="bulk-card">
             <h2>Импорт ORCID / OpenAlex</h2>
-            <p>Ставит массовый импорт публикаций в очередь. Подходит для пакетной синхронизации перед отчётами.</p>
+            <p>Запускает массовый импорт публикаций в очередь задач Celery.</p>
             <form method="post" data-bulk-operation-form>
                 {% csrf_token %}
                 <input type="hidden" name="operation" value="import_publications_all">
@@ -345,7 +347,7 @@
 
         <article class="bulk-card">
             <h2>Импорт Google Scholar</h2>
-            <p>Запускает массовый импорт профилей Google Scholar для всех пользователей и поддерживает `force`.</p>
+            <p>Запускает массовый импорт публикаций Google Scholar для всех пользователей.</p>
             <form method="post" data-bulk-operation-form>
                 {% csrf_token %}
                 <input type="hidden" name="operation" value="import_scholar_all">
@@ -377,12 +379,23 @@
     </section>
 </div>
 
+{{ recent_task_logs|json_script:"bulk-initial-task-logs" }}
 <script>
     (function () {
         const forms = Array.from(document.querySelectorAll("[data-bulk-operation-form]"));
         const logStream = document.getElementById("bulk-log-stream");
         const clearButton = document.getElementById("bulk-log-clear");
         const statusBadge = document.getElementById("bulk-ws-status");
+        const initialLogsNode = document.getElementById("bulk-initial-task-logs");
+        const logsApiUrl = "{{ bulk_logs_url|escapejs }}";
+        const maxRows = 220;
+        const taskRevisions = new Map();
+        let maxSeenLogId = 0;
+        let reconnectAttempts = 0;
+        let reconnectTimer = null;
+        let pollingTimer = null;
+        let lastSocketNoticeTs = 0;
+        let reconnectDisabled = false;
 
         function escapeHtml(value) {
             return String(value || "")
@@ -414,6 +427,7 @@
         function appendLog(message, level, source, timestamp) {
             if (!message) return;
             removeEmptyState();
+
             const item = document.createElement("li");
             item.className = "bulk-log-item";
             item.dataset.level = level || "info";
@@ -424,6 +438,197 @@
             ].join("");
             logStream.appendChild(item);
             logStream.scrollTop = logStream.scrollHeight;
+
+            while (logStream.children.length > maxRows) {
+                logStream.removeChild(logStream.firstElementChild);
+            }
+        }
+
+        function appendSocketNotice(message, level) {
+            const now = Date.now();
+            if (now - lastSocketNoticeTs < 12000) return;
+            lastSocketNoticeTs = now;
+            appendLog(message, level || "warning", "socket", new Date().toISOString());
+        }
+
+        function levelFromTaskLog(taskLog) {
+            const level = String(taskLog.level || "").toUpperCase();
+            if (level === "ERROR") return "error";
+            if (level === "WARNING") return "warning";
+            if (level === "INFO") return "info";
+
+            const status = String(taskLog.status || "").toUpperCase();
+            if (status === "SUCCESS") return "success";
+            if (["FAILURE", "REVOKED"].includes(status)) return "error";
+            if (["RETRY", "SKIPPED"].includes(status)) return "warning";
+            return "info";
+        }
+
+        function taskLogSource(taskLog) {
+            if (taskLog.object_type && taskLog.object_id) {
+                return `${taskLog.object_type}:${taskLog.object_id}`;
+            }
+            return taskLog.task_name || "celery";
+        }
+
+        function taskLogMessage(taskLog) {
+            const status = String(taskLog.status || "").toUpperCase();
+            const message = taskLog.message || "Task updated";
+            const hasProgress = taskLog.progress_current !== null
+                && taskLog.progress_current !== undefined
+                && taskLog.progress_total !== null
+                && taskLog.progress_total !== undefined;
+
+            if (!hasProgress) {
+                return `[${status || "UPDATE"}] ${message}`;
+            }
+            return `[${status || "PROGRESS"}] ${message} (${taskLog.progress_current}/${taskLog.progress_total})`;
+        }
+
+        function registerTaskRevision(taskLog) {
+            const key = String(taskLog.id || "");
+            if (!key) return true;
+
+            const revision = String(taskLog.updated_at || "");
+            const previous = taskRevisions.get(key);
+            if (previous && previous === revision) return false;
+
+            taskRevisions.set(key, revision);
+            const numericId = Number(taskLog.id || 0);
+            if (Number.isFinite(numericId) && numericId > 0) {
+                maxSeenLogId = Math.max(maxSeenLogId, numericId);
+            }
+            return true;
+        }
+
+        function appendTaskLog(taskLog) {
+            if (!taskLog || !registerTaskRevision(taskLog)) return;
+            appendLog(
+                taskLogMessage(taskLog),
+                levelFromTaskLog(taskLog),
+                taskLogSource(taskLog),
+                taskLog.updated_at || taskLog.created_at || new Date().toISOString()
+            );
+        }
+
+        function hydrateInitialLogs() {
+            if (!initialLogsNode) return;
+            try {
+                const payload = JSON.parse(initialLogsNode.textContent || "[]");
+                if (!Array.isArray(payload)) return;
+                payload.slice().reverse().forEach((taskLog) => appendTaskLog(taskLog));
+            } catch (error) {
+                appendLog("Не удалось прочитать начальные task-логи.", "warning", "init", new Date().toISOString());
+            }
+        }
+
+        async function pollTaskLogs() {
+            if (!logsApiUrl) return;
+            try {
+                const url = `${logsApiUrl}?since_id=${encodeURIComponent(String(maxSeenLogId || 0))}`;
+                const response = await fetch(url, {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                const logs = Array.isArray(payload.logs) ? payload.logs : [];
+                logs.forEach((taskLog) => appendTaskLog(taskLog));
+            } catch (error) {
+                appendSocketNotice("HTTP fallback не смог получить task-логи.", "warning");
+            }
+        }
+
+        function startPollingFallback() {
+            if (pollingTimer) return;
+            appendSocketNotice("WebSocket недоступен, включен HTTP fallback.", "warning");
+            pollTaskLogs();
+            pollingTimer = window.setInterval(pollTaskLogs, 5000);
+        }
+
+        function stopPollingFallback() {
+            if (!pollingTimer) return;
+            window.clearInterval(pollingTimer);
+            pollingTimer = null;
+        }
+
+        function scheduleReconnect() {
+            if (reconnectDisabled) return;
+            if (reconnectAttempts >= 12) {
+                reconnectDisabled = true;
+                setStatus("error", "WebSocket: unavailable");
+                appendLog("WebSocket недоступен. Используется HTTP fallback.", "warning", "socket", new Date().toISOString());
+                startPollingFallback();
+                return;
+            }
+
+            const delayMs = Math.min(30000, 1000 * Math.pow(2, Math.min(reconnectAttempts, 5)));
+            reconnectAttempts += 1;
+            if (reconnectTimer) {
+                window.clearTimeout(reconnectTimer);
+            }
+            reconnectTimer = window.setTimeout(connectWebSocket, delayMs);
+        }
+
+        function connectWebSocket() {
+            if (reconnectDisabled) return;
+            if (!("WebSocket" in window)) {
+                setStatus("error", "WebSocket: not supported");
+                startPollingFallback();
+                return;
+            }
+
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const wsUrl = `${protocol}://${window.location.host}/ws/celery-task-logs/`;
+            const socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                reconnectAttempts = 0;
+                setStatus("online", "WebSocket: online");
+                appendLog("WebSocket подключен.", "success", "socket", new Date().toISOString());
+                stopPollingFallback();
+            };
+
+            socket.onmessage = (event) => {
+                let payload = null;
+                try {
+                    payload = JSON.parse(event.data || "{}");
+                } catch (error) {
+                    return;
+                }
+                if (!payload) return;
+
+                if (payload.type === "welcome") {
+                    setStatus("online", "WebSocket: online");
+                    return;
+                }
+
+                if (payload.type === "task_log.updated" && payload.data) {
+                    appendTaskLog(payload.data);
+                }
+            };
+
+            socket.onerror = () => {
+                setStatus("error", "WebSocket: error");
+            };
+
+            socket.onclose = (event) => {
+                if (event && event.code === 4403) {
+                    reconnectDisabled = true;
+                    setStatus("error", "WebSocket: forbidden");
+                    appendLog("Нет прав на просмотр websocket task-логов.", "error", "socket", new Date().toISOString());
+                    startPollingFallback();
+                    return;
+                }
+
+                setStatus("offline", "WebSocket: reconnecting");
+                appendSocketNotice("WebSocket отключен. Идет переподключение.", "warning");
+                startPollingFallback();
+                scheduleReconnect();
+            };
         }
 
         async function submitForm(form) {
@@ -440,7 +645,12 @@
                     credentials: "same-origin",
                 });
                 const payload = await response.json();
-                appendLog(payload.message || "Операция завершилась без сообщения.", payload.level || "info", payload.operation || "admin", new Date().toISOString());
+                appendLog(
+                    payload.message || "Операция завершилась без сообщения.",
+                    payload.level || "info",
+                    payload.operation || "admin",
+                    new Date().toISOString()
+                );
             } catch (error) {
                 appendLog("Не удалось выполнить запрос к bulk-operations.", "error", "network", new Date().toISOString());
             } finally {
@@ -459,34 +669,8 @@
             logStream.innerHTML = '<li class="bulk-log-empty">Логи очищены.</li>';
         });
 
-        window.addEventListener("app:websocket-open", () => {
-            setStatus("online", "WebSocket: online");
-            appendLog("WebSocket подключен.", "success", "socket", new Date().toISOString());
-        });
-
-        window.addEventListener("app:websocket-close", () => {
-            setStatus("offline", "WebSocket: reconnecting");
-            appendLog("WebSocket отключен. Идёт переподключение.", "warning", "socket", new Date().toISOString());
-        });
-
-        window.addEventListener("app:websocket-error", () => {
-            setStatus("error", "WebSocket: error");
-        });
-
-        window.addEventListener("app:websocket-message", (event) => {
-            const payload = event.detail || {};
-            if (payload.type === "welcome") {
-                setStatus("online", "WebSocket: online");
-                return;
-            }
-            if (!["notification", "sync_log"].includes(payload.type)) return;
-            appendLog(
-                payload.message || "",
-                payload.level || "info",
-                payload.source || payload.type || "system",
-                payload.timestamp || new Date().toISOString()
-            );
-        });
+        hydrateInitialLogs();
+        connectWebSocket();
     })();
 </script>
 {% endblock %}

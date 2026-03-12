@@ -3,9 +3,12 @@
 
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   const wsUrl = `${protocol}://${window.location.host}/ws/updates/`;
-  const reconnectDelayMs = 3000;
+  const maxReconnectAttempts = 12;
   let socket = null;
   let heartbeatTimer = null;
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
+  let disabled = false;
 
   function showToast(message, type = "info") {
     if (!message) return;
@@ -33,11 +36,17 @@
   }
 
   function connect() {
+    if (disabled) return;
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
+      reconnectAttempts = 0;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       if (typeof window.CustomEvent === "function") {
-        window.dispatchEvent(new CustomEvent("app:websocket-open"));
+        window.dispatchEvent(new CustomEvent("app:websocket-open", { detail: { url: wsUrl } }));
       }
       startHeartbeat();
     };
@@ -59,17 +68,41 @@
       }
     };
 
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       if (typeof window.CustomEvent === "function") {
-        window.dispatchEvent(new CustomEvent("app:websocket-close"));
+        window.dispatchEvent(
+          new CustomEvent("app:websocket-close", {
+            detail: {
+              code: event ? event.code : null,
+              reason: event ? event.reason : "",
+              attempts: reconnectAttempts,
+            },
+          })
+        );
       }
       stopHeartbeat();
-      setTimeout(connect, reconnectDelayMs);
+
+      if (disabled) return;
+      if (reconnectAttempts >= maxReconnectAttempts) {
+        disabled = true;
+        if (typeof window.CustomEvent === "function") {
+          window.dispatchEvent(
+            new CustomEvent("app:websocket-giveup", {
+              detail: { attempts: reconnectAttempts, url: wsUrl },
+            })
+          );
+        }
+        return;
+      }
+
+      const delayMs = Math.min(30000, 1000 * Math.pow(2, Math.min(reconnectAttempts, 5)));
+      reconnectAttempts += 1;
+      reconnectTimer = setTimeout(connect, delayMs);
     };
 
-    socket.onerror = () => {
+    socket.onerror = (event) => {
       if (typeof window.CustomEvent === "function") {
-        window.dispatchEvent(new CustomEvent("app:websocket-error"));
+        window.dispatchEvent(new CustomEvent("app:websocket-error", { detail: { event } }));
       }
       if (socket) socket.close();
     };

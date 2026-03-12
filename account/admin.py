@@ -1,12 +1,15 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.core.management import call_command
+from django.db import DatabaseError
 from django.http import HttpResponseRedirect, JsonResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
 from account.models import Department, Role, University, User
 from account.tasks import enqueue_satbayev_enrichment, enrich_user_profile_from_satbayev
+from core.models import CeleryTaskLog
+from core.services.celery_task_channels import serialize_task_log
 from main.tasks import (
     import_publications_for_all_users_task,
     import_publications_from_google_scholar_for_all_users_task,
@@ -96,6 +99,11 @@ class UserAdmin(BaseUserAdmin):
                 self.admin_site.admin_view(self.bulk_operations_view),
                 name="%s_%s_bulk_operations" % info,
             ),
+            path(
+                "bulk-operations/logs/",
+                self.admin_site.admin_view(self.bulk_operations_logs_view),
+                name="%s_%s_bulk_operations_logs" % info,
+            ),
         ]
         return custom_urls + urls
 
@@ -172,6 +180,7 @@ class UserAdmin(BaseUserAdmin):
     def bulk_operations_view(self, request):
         info = self.model._meta.app_label, self.model._meta.model_name
         changelist_url = reverse("admin:%s_%s_changelist" % info)
+        bulk_logs_url = reverse("admin:%s_%s_bulk_operations_logs" % info)
 
         if request.method == "POST":
             operation = (request.POST.get("operation") or "").strip()
@@ -194,14 +203,45 @@ class UserAdmin(BaseUserAdmin):
 
             return HttpResponseRedirect(request.path)
 
+        try:
+            recent_logs = list(CeleryTaskLog.objects.order_by("-updated_at", "-id")[:60])
+        except DatabaseError:
+            recent_logs = []
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
             "title": "Массовые операции пользователей",
             "changelist_url": changelist_url,
             "default_limit": 200,
+            "bulk_logs_url": bulk_logs_url,
+            "recent_task_logs": [serialize_task_log(item) for item in recent_logs],
         }
         return TemplateResponse(request, "admin/account/user/bulk_operations.html", context)
+
+    def bulk_operations_logs_view(self, request):
+        if request.method != "GET":
+            return JsonResponse({"detail": "Method not allowed"}, status=405)
+
+        raw_since_id = request.GET.get("since_id")
+        try:
+            since_id = max(int(raw_since_id or 0), 0)
+        except (TypeError, ValueError):
+            since_id = 0
+
+        try:
+            queryset = CeleryTaskLog.objects.order_by("id")
+            if since_id:
+                queryset = queryset.filter(id__gt=since_id)
+            logs = list(queryset[:120])
+        except DatabaseError:
+            logs = []
+        return JsonResponse(
+            {
+                "ok": True,
+                "logs": [serialize_task_log(item) for item in logs],
+                "last_id": logs[-1].id if logs else since_id,
+            }
+        )
 
 
 @admin.register(University)

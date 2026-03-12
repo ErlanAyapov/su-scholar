@@ -37,8 +37,6 @@
 {% endblock %}
 
 {% block object-tools %}
-<div class="bulk-ops-toolbar">
-    <a href="{% url 'admin:account_user_bulk_operations' %}" class="bulk-ops-toolbar__button">Массовые операции</a>
-</div>
+    <a href="{% url 'admin:account_user_bulk_operations' %}" class="btn btn-primary">Массовые операции</a>
 {{ block.super }}
 {% endblock %}
