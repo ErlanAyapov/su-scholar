@@ -331,8 +331,8 @@ def import_publications_from_google_scholar_task(user_id: int, force: bool = Fal
 
 
 @shared_task
-def import_publications_from_google_scholar_for_all_users_task() -> dict:
-    summary = import_scholar_works_for_all_users()
+def import_publications_from_google_scholar_for_all_users_task(force: bool = False) -> dict:
+    summary = import_scholar_works_for_all_users(force=force)
     notify_public(
         "Google Scholar бойынша жаппай импорт аяқталды",
         source="google_scholar",
@@ -340,5 +340,6 @@ def import_publications_from_google_scholar_for_all_users_task() -> dict:
         created=summary.get("created", 0),
         updated=summary.get("updated", 0),
         with_errors=summary.get("with_errors", 0),
+        force=force,
     )
-    return {"status": "ok", **summary}
+    return {"status": "ok", **summary, "force": force}

@@ -4,6 +4,7 @@ from django.db import models
 from requests import RequestException
 
 from account.services.satbayev_scraper import build_user_full_name, load_teacher_profile_data
+from main.realtime import notify_public
 
 User = get_user_model()
 
@@ -77,5 +78,12 @@ def enqueue_satbayev_enrichment(limit: int = 50, force: bool = False) -> dict:
     user_ids = list(queryset.values_list("id", flat=True)[:limit])
     for user_id in user_ids:
         enrich_user_profile_from_satbayev.delay(user_id=user_id, force=force)
+
+    notify_public(
+        "Satbayev enrichment поставлен в очередь",
+        source="satbayev",
+        queued=len(user_ids),
+        force=force,
+    )
 
     return {"status": "queued", "count": len(user_ids), "force": force}

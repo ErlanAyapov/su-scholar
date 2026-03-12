@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.core.management import call_command
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
@@ -23,6 +23,17 @@ def _parse_positive_int(raw_value, default: int) -> int:
     if value < 1:
         return default
     return value
+
+
+def _message_level_name(level: int) -> str:
+    mapping = {
+        messages.DEBUG: "info",
+        messages.INFO: "info",
+        messages.SUCCESS: "success",
+        messages.WARNING: "warning",
+        messages.ERROR: "error",
+    }
+    return mapping.get(level, "info")
 
 
 @admin.register(User)
@@ -121,6 +132,43 @@ class UserAdmin(BaseUserAdmin):
             level=messages.SUCCESS,
         )
 
+    def _run_bulk_operation(self, operation: str, limit: int, force: bool) -> dict:
+        if operation == "seed_inactive_users":
+            call_command("seed_inactive_users")
+            return {
+                "level": messages.SUCCESS,
+                "message": "Команда seed_inactive_users выполнена успешно.",
+            }
+
+        if operation == "enqueue_satbayev_enrichment":
+            task = enqueue_satbayev_enrichment.delay(limit=limit, force=force)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Satbayev enrichment поставлен в очередь. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "import_publications_all":
+            task = import_publications_for_all_users_task.delay(limit=limit, force=force)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Импорт ORCID/OpenAlex поставлен в очередь. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "import_scholar_all":
+            task = import_publications_from_google_scholar_for_all_users_task.delay(force=force)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Импорт Google Scholar поставлен в очередь. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        return {
+            "level": messages.ERROR,
+            "message": "Неизвестная операция.",
+        }
+
     def bulk_operations_view(self, request):
         info = self.model._meta.app_label, self.model._meta.model_name
         changelist_url = reverse("admin:%s_%s_changelist" % info)
@@ -130,36 +178,19 @@ class UserAdmin(BaseUserAdmin):
             limit = _parse_positive_int(request.POST.get("limit"), default=200)
             force = request.POST.get("force") == "1"
 
-            if operation == "seed_inactive_users":
-                call_command("seed_inactive_users")
-                self.message_user(
-                    request,
-                    "Команда seed_inactive_users выполнена успешно.",
-                    level=messages.SUCCESS,
-                )
-            elif operation == "enqueue_satbayev_enrichment":
-                task = enqueue_satbayev_enrichment.delay(limit=limit, force=force)
-                self.message_user(
-                    request,
-                    f"Satbayev enrichment поставлен в очередь. Task ID: {task.id}",
-                    level=messages.SUCCESS,
-                )
-            elif operation == "import_publications_all":
-                task = import_publications_for_all_users_task.delay(limit=limit, force=force)
-                self.message_user(
-                    request,
-                    f"Импорт ORCID/OpenAlex поставлен в очередь. Task ID: {task.id}",
-                    level=messages.SUCCESS,
-                )
-            elif operation == "import_scholar_all":
-                task = import_publications_from_google_scholar_for_all_users_task.delay()
-                self.message_user(
-                    request,
-                    f"Импорт Google Scholar поставлен в очередь. Task ID: {task.id}",
-                    level=messages.SUCCESS,
-                )
-            else:
-                self.message_user(request, "Неизвестная операция.", level=messages.ERROR)
+            result = self._run_bulk_operation(operation=operation, limit=limit, force=force)
+            self.message_user(request, result["message"], level=result["level"])
+
+            is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+            if is_ajax:
+                payload = {
+                    "ok": result["level"] != messages.ERROR,
+                    "message": result["message"],
+                    "level": _message_level_name(result["level"]),
+                    "operation": operation,
+                    "task_id": result.get("task_id", ""),
+                }
+                return JsonResponse(payload, status=200 if payload["ok"] else 400)
 
             return HttpResponseRedirect(request.path)
 

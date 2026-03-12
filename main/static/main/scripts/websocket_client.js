@@ -36,6 +36,9 @@
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
+      if (typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("app:websocket-open"));
+      }
       startHeartbeat();
     };
 
@@ -57,11 +60,17 @@
     };
 
     socket.onclose = () => {
+      if (typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("app:websocket-close"));
+      }
       stopHeartbeat();
       setTimeout(connect, reconnectDelayMs);
     };
 
     socket.onerror = () => {
+      if (typeof window.CustomEvent === "function") {
+        window.dispatchEvent(new CustomEvent("app:websocket-error"));
+      }
       if (socket) socket.close();
     };
   }

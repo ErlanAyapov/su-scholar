@@ -1,4 +1,271 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'main/scripts/websocket_client.js' %}"></script>
+<style>
+    .bulk-layout {
+        display: grid;
+        gap: 20px;
+    }
+
+    .bulk-hero,
+    .bulk-card,
+    .bulk-log-card {
+        border: 1px solid #d7e1ea;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #ffffff, #f7fafc);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .bulk-hero {
+        padding: 24px 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+    }
+
+    .bulk-hero h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+    }
+
+    .bulk-hero p {
+        margin: 0;
+        max-width: 760px;
+        color: #496275;
+        line-height: 1.6;
+    }
+
+    .bulk-back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        color: #0f172a;
+        background: #eef4f8;
+        white-space: nowrap;
+    }
+
+    .bulk-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+    }
+
+    .bulk-card {
+        padding: 20px;
+    }
+
+    .bulk-card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+    }
+
+    .bulk-card p {
+        margin: 0 0 18px;
+        color: #526579;
+        line-height: 1.55;
+        min-height: 72px;
+    }
+
+    .bulk-field-grid {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .bulk-field label,
+    .bulk-checkbox {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #243341;
+    }
+
+    .bulk-input,
+    .bulk-checkbox-row {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .bulk-input {
+        padding: 10px 12px;
+        border: 1px solid #bfcedb;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .bulk-checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border: 1px solid #bfcedb;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .bulk-submit {
+        width: 100%;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        color: #fff;
+        background: linear-gradient(135deg, #0f6cbd, #1f8ef1);
+    }
+
+    .bulk-submit:hover,
+    .bulk-submit:focus {
+        background: linear-gradient(135deg, #0d5ea6, #1877ca);
+    }
+
+    .bulk-submit[disabled] {
+        opacity: 0.7;
+        cursor: wait;
+    }
+
+    .bulk-log-card {
+        padding: 20px;
+    }
+
+    .bulk-log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .bulk-log-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .bulk-log-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .bulk-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-weight: 700;
+        background: #edf2f7;
+        color: #334155;
+    }
+
+    .bulk-status-badge[data-state="online"] {
+        background: #e8faf0;
+        color: #166534;
+    }
+
+    .bulk-status-badge[data-state="offline"] {
+        background: #fff4e5;
+        color: #9a3412;
+    }
+
+    .bulk-status-badge[data-state="error"] {
+        background: #fdecec;
+        color: #b91c1c;
+    }
+
+    .bulk-clear-button {
+        border: 1px solid #bfcedb;
+        border-radius: 999px;
+        background: #fff;
+        color: #243341;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 700;
+    }
+
+    .bulk-log-stream {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        max-height: 420px;
+        overflow: auto;
+        border-radius: 16px;
+        background: #0f172a;
+        color: #dbe7f2;
+    }
+
+    .bulk-log-item {
+        display: grid;
+        grid-template-columns: 88px 120px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .bulk-log-item:last-child {
+        border-bottom: 0;
+    }
+
+    .bulk-log-item[data-level="success"] {
+        background: rgba(22, 101, 52, 0.12);
+    }
+
+    .bulk-log-item[data-level="warning"] {
+        background: rgba(245, 158, 11, 0.12);
+    }
+
+    .bulk-log-item[data-level="error"],
+    .bulk-log-item[data-level="danger"] {
+        background: rgba(185, 28, 28, 0.12);
+    }
+
+    .bulk-log-time {
+        color: #93abc0;
+    }
+
+    .bulk-log-source {
+        color: #7dd3fc;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .bulk-log-message {
+        overflow-wrap: anywhere;
+    }
+
+    .bulk-log-empty {
+        padding: 20px 14px;
+        color: #93abc0;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+    }
+
+    @media (max-width: 767px) {
+        .bulk-hero {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .bulk-log-item {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -10,51 +277,216 @@
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
-    <h1>Массовые операции</h1>
-    <p>Здесь можно запускать создание пользователей и массовый импорт публикаций.</p>
-
-    <form method="post" style="margin-bottom: 18px;">
-        {% csrf_token %}
-        <input type="hidden" name="operation" value="seed_inactive_users">
-        <button type="submit" class="default">Создать/обновить неактивных пользователей</button>
-    </form>
-
-    <form method="post" style="margin-bottom: 18px;">
-        {% csrf_token %}
-        <input type="hidden" name="operation" value="enqueue_satbayev_enrichment">
+<div id="content-main" class="bulk-layout">
+    <section class="bulk-hero">
         <div>
-            <label>Лимит:</label>
-            <input type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
-            <label style="margin-left: 12px;">
-                <input type="checkbox" name="force" value="1"> force
-            </label>
-            <button type="submit" class="default">Обогатить профили (Satbayev)</button>
+            <h1>Массовые операции</h1>
+            <p>Страница запускает пакетные действия для пользователей и показывает live-логи. Форма отправляется без перезагрузки, а фоновые статусы приходят через WebSocket.</p>
         </div>
-    </form>
+        <a href="{{ changelist_url }}" class="bulk-back-link">К списку пользователей</a>
+    </section>
 
-    <form method="post" style="margin-bottom: 18px;">
-        {% csrf_token %}
-        <input type="hidden" name="operation" value="import_publications_all">
-        <div>
-            <label>Лимит:</label>
-            <input type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
-            <label style="margin-left: 12px;">
-                <input type="checkbox" name="force" value="1"> force
-            </label>
-            <button type="submit" class="default">Импорт работ (ORCID/OpenAlex)</button>
+    <section class="bulk-grid">
+        <article class="bulk-card">
+            <h2>Неактивные пользователи</h2>
+            <p>Запускает management command `seed_inactive_users` и сразу возвращает результат в лог.</p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="seed_inactive_users">
+                <button type="submit" class="bulk-submit">Создать или обновить</button>
+            </form>
+        </article>
+
+        <article class="bulk-card">
+            <h2>Satbayev Enrichment</h2>
+            <p>Ставит в очередь обновление профилей сотрудников и подтягивает внешние идентификаторы.</p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="enqueue_satbayev_enrichment">
+                <div class="bulk-field-grid">
+                    <div class="bulk-field">
+                        <label for="satbayev-limit">Лимит</label>
+                        <input id="satbayev-limit" class="bulk-input" type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
+                    </div>
+                    <label class="bulk-checkbox">
+                        Force
+                        <span class="bulk-checkbox-row">
+                            <input type="checkbox" name="force" value="1">
+                            <span>Перезаписать уже заполненные данные</span>
+                        </span>
+                    </label>
+                </div>
+                <button type="submit" class="bulk-submit">Поставить в очередь</button>
+            </form>
+        </article>
+
+        <article class="bulk-card">
+            <h2>Импорт ORCID / OpenAlex</h2>
+            <p>Ставит массовый импорт публикаций в очередь. Подходит для пакетной синхронизации перед отчётами.</p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="import_publications_all">
+                <div class="bulk-field-grid">
+                    <div class="bulk-field">
+                        <label for="publications-limit">Лимит</label>
+                        <input id="publications-limit" class="bulk-input" type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
+                    </div>
+                    <label class="bulk-checkbox">
+                        Force
+                        <span class="bulk-checkbox-row">
+                            <input type="checkbox" name="force" value="1">
+                            <span>Перезаписать импортируемые поля</span>
+                        </span>
+                    </label>
+                </div>
+                <button type="submit" class="bulk-submit">Запустить импорт</button>
+            </form>
+        </article>
+
+        <article class="bulk-card">
+            <h2>Импорт Google Scholar</h2>
+            <p>Запускает массовый импорт профилей Google Scholar для всех пользователей и поддерживает `force`.</p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="import_scholar_all">
+                <div class="bulk-field-grid">
+                    <label class="bulk-checkbox">
+                        Force
+                        <span class="bulk-checkbox-row">
+                            <input type="checkbox" name="force" value="1">
+                            <span>Обновить существующие Scholar-записи</span>
+                        </span>
+                    </label>
+                </div>
+                <button type="submit" class="bulk-submit">Запустить импорт</button>
+            </form>
+        </article>
+    </section>
+
+    <section class="bulk-log-card">
+        <div class="bulk-log-header">
+            <h2>Live-логи</h2>
+            <div class="bulk-log-meta">
+                <span id="bulk-ws-status" class="bulk-status-badge" data-state="offline">WebSocket: offline</span>
+                <button type="button" id="bulk-log-clear" class="bulk-clear-button">Очистить</button>
+            </div>
         </div>
-    </form>
-
-    <form method="post" style="margin-bottom: 18px;">
-        {% csrf_token %}
-        <input type="hidden" name="operation" value="import_scholar_all">
-        <button type="submit" class="default">Импорт работ (Google Scholar)</button>
-    </form>
-
-    <p style="margin-top: 20px;">
-        <a href="{{ changelist_url }}">Назад к списку пользователей</a>
-    </p>
+        <ul id="bulk-log-stream" class="bulk-log-stream">
+            <li class="bulk-log-empty">Логи появятся здесь после запуска операций.</li>
+        </ul>
+    </section>
 </div>
-{% endblock %}
 
+<script>
+    (function () {
+        const forms = Array.from(document.querySelectorAll("[data-bulk-operation-form]"));
+        const logStream = document.getElementById("bulk-log-stream");
+        const clearButton = document.getElementById("bulk-log-clear");
+        const statusBadge = document.getElementById("bulk-ws-status");
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function setStatus(state, label) {
+            statusBadge.dataset.state = state;
+            statusBadge.textContent = label;
+        }
+
+        function formatTime(rawValue) {
+            const date = rawValue ? new Date(rawValue) : new Date();
+            if (Number.isNaN(date.getTime())) return "--:--:--";
+            return date.toLocaleTimeString();
+        }
+
+        function removeEmptyState() {
+            const emptyNode = logStream.querySelector(".bulk-log-empty");
+            if (emptyNode) {
+                emptyNode.remove();
+            }
+        }
+
+        function appendLog(message, level, source, timestamp) {
+            if (!message) return;
+            removeEmptyState();
+            const item = document.createElement("li");
+            item.className = "bulk-log-item";
+            item.dataset.level = level || "info";
+            item.innerHTML = [
+                `<span class="bulk-log-time">${escapeHtml(formatTime(timestamp))}</span>`,
+                `<span class="bulk-log-source">${escapeHtml(source || "system")}</span>`,
+                `<span class="bulk-log-message">${escapeHtml(message)}</span>`,
+            ].join("");
+            logStream.appendChild(item);
+            logStream.scrollTop = logStream.scrollHeight;
+        }
+
+        async function submitForm(form) {
+            const submitButton = form.querySelector("button[type='submit']");
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch(window.location.href, {
+                    method: "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: new FormData(form),
+                    credentials: "same-origin",
+                });
+                const payload = await response.json();
+                appendLog(payload.message || "Операция завершилась без сообщения.", payload.level || "info", payload.operation || "admin", new Date().toISOString());
+            } catch (error) {
+                appendLog("Не удалось выполнить запрос к bulk-operations.", "error", "network", new Date().toISOString());
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
+        forms.forEach((form) => {
+            form.addEventListener("submit", (event) => {
+                event.preventDefault();
+                submitForm(form);
+            });
+        });
+
+        clearButton.addEventListener("click", () => {
+            logStream.innerHTML = '<li class="bulk-log-empty">Логи очищены.</li>';
+        });
+
+        window.addEventListener("app:websocket-open", () => {
+            setStatus("online", "WebSocket: online");
+            appendLog("WebSocket подключен.", "success", "socket", new Date().toISOString());
+        });
+
+        window.addEventListener("app:websocket-close", () => {
+            setStatus("offline", "WebSocket: reconnecting");
+            appendLog("WebSocket отключен. Идёт переподключение.", "warning", "socket", new Date().toISOString());
+        });
+
+        window.addEventListener("app:websocket-error", () => {
+            setStatus("error", "WebSocket: error");
+        });
+
+        window.addEventListener("app:websocket-message", (event) => {
+            const payload = event.detail || {};
+            if (payload.type === "welcome") {
+                setStatus("online", "WebSocket: online");
+                return;
+            }
+            if (!["notification", "sync_log"].includes(payload.type)) return;
+            appendLog(
+                payload.message || "",
+                payload.level || "info",
+                payload.source || payload.type || "system",
+                payload.timestamp || new Date().toISOString()
+            );
+        });
+    })();
+</script>
+{% endblock %}
