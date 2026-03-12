@@ -1,3 +1,4 @@
+import json
 import re
 from difflib import SequenceMatcher
 from urllib.parse import parse_qs, urljoin, urlparse
@@ -27,6 +28,7 @@ DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
 ISSN_RE = re.compile(r"\b\d{4}-?\d{3}[\dX]\b", re.IGNORECASE)
 SCOPUS_EID_RE = re.compile(r"\b2-s2\.0-\d+\b", re.IGNORECASE)
 SCOPUS_AUTHOR_RE = re.compile(r"authorId=(\d+)", re.IGNORECASE)
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", re.IGNORECASE)
 
 TRANSLIT_MAP = {
     "а": "a",
@@ -310,15 +312,111 @@ def _extract_journal_data(pub_block, base_url: str) -> tuple[list[str], list[dic
     return journal_links, journal_ids
 
 
+def _extract_email_encrypts(soup: BeautifulSoup) -> dict[str, str]:
+    for script in soup.select("script"):
+        script_text = script.get_text(" ", strip=True)
+        if "emailEncrypts" not in script_text:
+            continue
+
+        match = re.search(r"emailEncrypts\s*=\s*(\{.*?\})\s*;", script_text)
+        if not match:
+            continue
+
+        try:
+            parsed = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            continue
+
+        mapping: dict[str, str] = {}
+        for key, value in parsed.items():
+            raw_key = str(key).strip().lower()
+            raw_value = str(value).strip().lower()
+            if raw_key and raw_value:
+                mapping[raw_value] = raw_key
+        if mapping:
+            return mapping
+
+    return {}
+
+
+def _decode_email(email: str, reverse_encrypts: dict[str, str]) -> str:
+    value = (email or "").strip().lower()
+    if not value:
+        return ""
+    value = value.split("?", 1)[0].strip()
+
+    if "@" not in value:
+        return ""
+
+    local_part, domain = value.split("@", 1)
+    if not local_part or not domain:
+        return ""
+
+    decoded_labels = []
+    for label in domain.split("."):
+        clean_label = label.strip().lower()
+        decoded_labels.append(reverse_encrypts.get(clean_label, clean_label))
+    decoded = f"{local_part}@{'.'.join(decoded_labels)}"
+    return decoded
+
+
+def _extract_teacher_email(soup: BeautifulSoup, reverse_encrypts: dict[str, str]) -> str:
+    candidates: list[str] = []
+
+    for email_tag in soup.select("a[href^='mailto:']"):
+        href = (email_tag.get("href") or "").strip()
+        if href:
+            candidates.append(href.replace("mailto:", "", 1).strip())
+        text = email_tag.get_text(" ", strip=True)
+        if text:
+            candidates.append(text)
+
+    for node in soup.select(".teacher-header"):
+        text = node.get_text(" ", strip=True)
+        if not text:
+            continue
+        candidates.extend(match.group(0) for match in EMAIL_RE.finditer(text))
+
+    for raw in _unique_keep_order(candidates):
+        decoded = _decode_email(raw, reverse_encrypts)
+        if EMAIL_RE.fullmatch(decoded):
+            return decoded
+
+    return ""
+
+
+def _extract_teacher_photo_url(soup: BeautifulSoup, page_url: str) -> str:
+    selectors = (
+        ".teacher-header .header-left img[src]",
+        ".teacher-header img[src]",
+        "meta[property='og:image']",
+    )
+
+    for selector in selectors:
+        node = soup.select_one(selector)
+        if not node:
+            continue
+        attr_name = "content" if node.name == "meta" else "src"
+        raw_url = (node.get(attr_name) or "").strip()
+        if not raw_url:
+            continue
+        absolute_url = urljoin(page_url, raw_url)
+        lowered = absolute_url.lower()
+        if "/logo" in lowered and "/file/" not in lowered:
+            continue
+        return absolute_url
+
+    return ""
+
+
 def extract_teacher_profile(html: str, page_url: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
     header_name = soup.select_one(".teacher-header h1")
     profile_name = header_name.get_text(" ", strip=True) if header_name else ""
 
-    email_tag = soup.select_one("a[href^='mailto:']")
-    email = ""
-    if email_tag:
-        email = email_tag.get("href", "").replace("mailto:", "").strip()
+    reverse_encrypts = _extract_email_encrypts(soup)
+    email = _extract_teacher_email(soup, reverse_encrypts=reverse_encrypts)
+    photo_url = _extract_teacher_photo_url(soup, page_url=page_url)
 
     links_container = soup.select_one(".teacher-header .links") or soup.select_one(".links")
     external_links = []
@@ -336,6 +434,7 @@ def extract_teacher_profile(html: str, page_url: str) -> dict:
         "profile_name": profile_name,
         "satbayev_profile_url": page_url,
         "email": email,
+        "photo_url": photo_url,
         "journal_links": journal_links,
         "journal_ids": journal_ids,
         **parsed_links,
