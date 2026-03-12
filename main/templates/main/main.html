@@ -29,7 +29,7 @@
                 </div>
 
                 <div class="research-grid-2">
-                    <label class="field">
+                    <label class="field  d-none">
                         <span class="label">Мәртебе</span>
                         <select name="status" class="control">
                             <option value="">Барлығы</option>
@@ -47,6 +47,15 @@
                             {% endfor %}
                         </select>
                     </label>
+                    <label class="field">
+                            <span class="label">Журнал / конференция</span>
+                            <select name="venue" class="control">
+                                <option value="">Барлығы</option>
+                                {% for v in venues_top %}
+                                    <option value="{{ v.id }}" {% if request.GET.venue == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
                 </div>
 
                 <div class="research-grid-2">
@@ -75,7 +84,7 @@
 
                 <div
                     id="documentsExtraFilters"
-                    class="collapse documents-advanced {% if request.GET.lang or request.GET.oa or request.GET.db or request.GET.quartile or request.GET.area or request.GET.venue or selected_tags %}show{% endif %}"
+                    class="collapse documents-advanced  {% if request.GET.lang or request.GET.oa or request.GET.db or request.GET.quartile or request.GET.area or request.GET.venue or selected_tags %}show{% endif %}"
                 >
                     <div class="research-grid-2">
                         <label class="field">
@@ -87,7 +96,16 @@
                                 {% endfor %}
                             </select>
                         </label>
-                        <label class="field">
+                         <label class="field">
+                            <span class="label">Сала</span>
+                            <select name="area" class="control">
+                                <option value="">Барлығы</option>
+                                {% for a in areas %}
+                                    <option value="{{ a.id }}" {% if request.GET.area == a.id|stringformat:"s" %}selected{% endif %}>{{ a.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label class="field d-none">
                             <span class="label">Ашық қолжетімділік</span>
                             <select name="oa" class="control">
                                 <option value="">Барлығы</option>
@@ -122,7 +140,7 @@
                     </div>
 
                     <div class="research-grid-2">
-                        <label class="field">
+                        <label class="field d-none">
                             <span class="label">Сала</span>
                             <select name="area" class="control">
                                 <option value="">Барлығы</option>
@@ -131,7 +149,7 @@
                                 {% endfor %}
                             </select>
                         </label>
-                        <label class="field">
+                        <label class="field d-none">
                             <span class="label">Журнал / конференция</span>
                             <select name="venue" class="control">
                                 <option value="">Барлығы</option>

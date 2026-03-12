@@ -35,6 +35,7 @@ OPENALEX_WORKS_URL = "https://api.openalex.org/works"
 GOOGLE_SCHOLAR_CITATIONS_URL = "https://scholar.google.com/citations"
 
 DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.IGNORECASE)
+YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
 
 
 def _normalize_doi(raw_value: str) -> str:
@@ -59,11 +60,22 @@ def _extract_doi_from_text(raw_value: str) -> str:
 
 
 def _safe_year(raw_value):
+    if raw_value is None:
+        return 0
+
+    value = str(raw_value).strip()
+    if not value:
+        return 0
+
+    match = YEAR_RE.search(value)
+    if match:
+        value = match.group(0)
+
     try:
-        year = int(raw_value)
+        year = int(value)
     except (TypeError, ValueError):
-        return date.today().year
-    return year if 1900 <= year <= date.today().year + 1 else date.today().year
+        return 0
+    return year if 1900 <= year <= date.today().year + 1 else 0
 
 
 def _get_nested(data, *keys):
@@ -139,6 +151,36 @@ def _infer_scholar_pub_type(title: str, venue: str) -> str:
     return "journal-article"
 
 
+def _clean_scholar_venue(raw_value: str) -> str:
+    value = (raw_value or "").replace("\xa0", " ").strip()
+    if not value:
+        return ""
+
+    value = re.sub(r"\s+", " ", value, flags=re.UNICODE).strip(" ,")
+    value = re.sub(r"(?:,\s*|\s+)(?:19|20)\d{2}$", "", value, flags=re.UNICODE).strip(" ,")
+    value = re.sub(r",\s*0$", "", value, flags=re.UNICODE).strip(" ,")
+    return value
+
+
+def _extract_scholar_year(row, venue_text: str = "") -> int:
+    candidates = [
+        row.select_one("td.gsc_a_y"),
+        row.select_one("span.gsc_a_h"),
+    ]
+    for node in candidates:
+        if not node:
+            continue
+        year = _safe_year(node.get_text(" ", strip=True))
+        if year:
+            return year
+
+    year = _safe_year(venue_text)
+    if year:
+        return year
+
+    return _safe_year(row.get_text(" ", strip=True))
+
+
 def _resolve_scholar_user_id(query: str, timeout: int = 30) -> str:
     candidate = _extract_scholar_user_id(query)
     if candidate:
@@ -200,12 +242,9 @@ def _fetch_scholar_profile_works(query: str, timeout: int = 30) -> list[dict]:
 
             gray_items = row.select("div.gs_gray")
             authors_raw = gray_items[0].get_text(" ", strip=True) if gray_items else ""
-            venue = gray_items[1].get_text(" ", strip=True) if len(gray_items) > 1 else ""
-
-            year_text = ""
-            year_node = row.select_one("td.gsc_a_y span")
-            if year_node:
-                year_text = year_node.get_text(" ", strip=True)
+            venue_raw = gray_items[1].get_text(" ", strip=True) if len(gray_items) > 1 else ""
+            year = _extract_scholar_year(row=row, venue_text=venue_raw)
+            venue = _clean_scholar_venue(venue_raw)
 
             href = title_link.get("href", "") if title_link else ""
             scholar_public_url = ""
@@ -216,7 +255,7 @@ def _fetch_scholar_profile_works(query: str, timeout: int = 30) -> list[dict]:
                 source_id = (parse_qs(parsed_href.query).get("citation_for_view") or [""])[0].strip()
 
             if not source_id:
-                source_id = hashlib.sha1(f"{scholar_user_id}:{title}:{year_text}".encode("utf-8")).hexdigest()[:24]
+                source_id = hashlib.sha1(f"{scholar_user_id}:{title}:{year}".encode("utf-8")).hexdigest()[:24]
 
             doi = _extract_doi_from_text(title)
             author_names = _split_scholar_authors(authors_raw)
@@ -227,7 +266,7 @@ def _fetch_scholar_profile_works(query: str, timeout: int = 30) -> list[dict]:
                     "source_id": source_id,
                     "title": title,
                     "venue": venue,
-                    "year": _safe_year(year_text),
+                    "year": year,
                     "pub_type": _infer_scholar_pub_type(title=title, venue=venue),
                     "language": "und",
                     "doi": doi,
@@ -813,7 +852,7 @@ def import_publications_for_user(
     }
 
 
-def import_works_from_scholar(user, query: str, timeout: int = 30) -> dict:
+def import_works_from_scholar(user, query: str, timeout: int = 30, force: bool = False) -> dict:
     works = []
     errors = []
 
@@ -849,12 +888,13 @@ def import_works_from_scholar(user, query: str, timeout: int = 30) -> dict:
     skipped = 0
     for work in unique_works:
         doi = _normalize_doi(work.get("doi", ""))
+        work_year = _safe_year(work.get("year"))
         record_id = _build_record_id(work.get("source", "ext"), work.get("source_id", ""), doi)
         publication = _find_existing_publication(
             doi=doi,
             record_id=record_id,
             title=work.get("title", ""),
-            year=_safe_year(work.get("year")),
+            year=work_year,
             created_by=user,
         )
 
@@ -872,7 +912,7 @@ def import_works_from_scholar(user, query: str, timeout: int = 30) -> dict:
                 pub_type=pub_type,
                 title_original=title[:500],
                 language=language,
-                year=_safe_year(work.get("year")),
+                year=work_year,
                 venue=venue,
                 doi=doi[:120],
                 url_publisher=(work.get("url_publisher") or "")[:200],
@@ -882,29 +922,31 @@ def import_works_from_scholar(user, query: str, timeout: int = 30) -> dict:
             created += 1
         else:
             changed_fields = []
-            if not publication.title_original:
+            if force or not publication.title_original:
                 publication.title_original = title[:500]
                 changed_fields.append("title_original")
-            if not publication.doi:
+            if force or not publication.doi:
                 publication.doi = doi[:120]
                 changed_fields.append("doi")
-            if not publication.url_publisher:
+            if force or not publication.url_publisher:
                 publication.url_publisher = (work.get("url_publisher") or "")[:200]
                 changed_fields.append("url_publisher")
-            if publication.year == 0:
-                publication.year = _safe_year(work.get("year"))
-                changed_fields.append("year")
-            if publication.pub_type_id != pub_type.id:
+            if work_year and (force or publication.year == 0 or publication.record_id == record_id):
+                if publication.year != work_year:
+                    publication.year = work_year
+                    changed_fields.append("year")
+            if force or publication.pub_type_id != pub_type.id:
                 publication.pub_type = pub_type
                 changed_fields.append("pub_type")
-            if publication.language_id != language.id:
+            if force or publication.language_id != language.id:
                 publication.language = language
                 changed_fields.append("language")
-            if publication.venue_id != venue.id:
+            if force or publication.venue_id != venue.id:
                 publication.venue = venue
                 changed_fields.append("venue")
-            publication.open_access = bool(work.get("open_access"))
-            changed_fields.append("open_access")
+            if publication.open_access != bool(work.get("open_access")):
+                publication.open_access = bool(work.get("open_access"))
+                changed_fields.append("open_access")
             if changed_fields:
                 publication.save(update_fields=list(set(changed_fields)))
                 updated += 1
