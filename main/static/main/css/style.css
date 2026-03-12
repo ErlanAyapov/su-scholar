@@ -662,6 +662,8 @@ main {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
+    text-decoration: none;
+    outline: none; 
 }
 
 .profile-stat {
@@ -670,6 +672,7 @@ main {
     padding: 10px 10px;
     text-align: center;
     background: #fbfdff;
+    text-decoration: none;
 }
 
 .profile-stat strong {

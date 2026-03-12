@@ -35,19 +35,22 @@
                         </h1>
                         <p class="profile-username">@{{ profile_user.username }}</p>
                     </div>
-                    <div class="profile-actions">
-                        <a class="btn btn-primary btn-sm" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">Жарияланымдар</a>
-                        {% if profile_user.email %}
-                            <a class="btn btn-outline-secondary btn-sm" href="mailto:{{ profile_user.email }}">E-mail</a>
-                        {% endif %}
-                    </div>
+              
+                    {% if request.user == profile_user %}
+                        <a href="{% url 'account_logout' %}" class="btn btn-outline-danger p-1 m-0 btn-sm">
+                            Аккаунттан шығу
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-door-open-fill" viewBox="0 0 16 16">
+                            <path d="M1.5 15a.5.5 0 0 0 0 1h13a.5.5 0 0 0 0-1H13V2.5A1.5 1.5 0 0 0 11.5 1H11V.5a.5.5 0 0 0-.57-.495l-7 1A.5.5 0 0 0 3 1.5V15zM11 2h.5a.5.5 0 0 1 .5.5V15h-1zm-2.5 8c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1"/>
+                            </svg>
+                        </a>
+                    {% endif %}
                 </div>
 
                 <div class="profile-stats" aria-label="Профиль статистикасы">
-                    <div class="profile-stat">
+                    <a class="profile-stat" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published" data-open-onclick="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">
                         <strong>{{ publication_count }}</strong>
                         <span>Жарияланым</span>
-                    </div>
+                    </a>
                     <div class="profile-stat">
                         <strong>{{ citations_total }}</strong>
                         <span>Дәйексөз</span>
@@ -71,7 +74,7 @@
         <div class="row g-3 profile-content">
             <div class="col-lg-8">
                 <div class="profile-block">
-                    <div class="profile-block-head">
+                    <div class="profile-block-head" data-open-onclick="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">
                         <h2 class="h5 mb-0">Соңғы жарияланымдар</h2>
                         <a class="profile-mini-link" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">Барлығын көру</a>
                     </div>

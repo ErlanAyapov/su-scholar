@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_celery_beat',
+    'core',
     'main',
     'account',
     'document',
@@ -232,7 +233,7 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # WebSockets (Django Channels)
-CHANNELS_USE_REDIS = _as_bool(os.getenv('CHANNELS_USE_REDIS'), default=False)
+CHANNELS_USE_REDIS = _as_bool(os.getenv('CHANNELS_USE_REDIS'), default=True)
 CHANNELS_REDIS_URL = os.getenv('CHANNELS_REDIS_URL', CELERY_BROKER_URL)
 
 if CHANNELS_USE_REDIS:

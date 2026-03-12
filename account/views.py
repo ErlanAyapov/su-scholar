@@ -251,6 +251,5 @@ def account_page(request):
 
 
 def account_logout(request):
-    if request.method == "POST" and request.user.is_authenticated:
-        logout(request)
+    logout(request)
     return redirect("account_page")
