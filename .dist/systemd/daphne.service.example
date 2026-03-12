@@ -1,0 +1,19 @@
+[Unit]
+Description=Daphne ASGI Server (su_science)
+After=network.target
+
+[Service]
+Type=simple
+User=yerlan
+Group=www-data
+WorkingDirectory=/home/yerlan/project/su_science
+Environment=DJANGO_SETTINGS_MODULE=project.settings
+ExecStart=/home/yerlan/project/venv/bin/daphne -b 127.0.0.1 -p 8001 project.asgi:application
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+
