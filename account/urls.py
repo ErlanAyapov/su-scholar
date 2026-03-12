@@ -1,8 +1,10 @@
 from django.urls import path
 
 from .views import (
+    account_login,
     account_logout,
     account_page,
+    account_register,
     employee_profile,
     employee_profile_sync,
     employees_list,
@@ -12,6 +14,10 @@ from .views import (
 
 urlpatterns = [
     path('account/', account_page, name='account_page'),
+    path('account/login/', account_login, name='account_login'),
+    path('account/register/', account_register, name='account_register'),
+    path('login/', account_login, name='login'),
+    path('register/', account_register, name='register'),
     path('account/logout/', account_logout, name='account_logout'),
     path('employees/<int:user_id>/', employee_profile, name='employee_profile'),
     path('employees/<int:user_id>/sync/', employee_profile_sync, name='employee_profile_sync'),

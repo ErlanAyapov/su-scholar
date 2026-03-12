@@ -1,0 +1,43 @@
+{% extends "main/base.html" %}
+
+{% block title %}SU Science - Кіру{% endblock %}
+
+{% block content %}
+<section class="auth-shell auth-shell-narrow">
+    <div class="auth-card">
+        <div class="auth-card-head">
+            <h1>Аккаунтқа кіру</h1>
+            <p>Пайдаланушы аты мен құпиясөзді енгізіңіз.</p>
+        </div>
+
+        <form method="post" novalidate class="auth-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+
+            {% if login_form.non_field_errors %}
+                <div class="auth-alert auth-alert-danger">
+                    {{ login_form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in login_form %}
+                <div class="auth-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="auth-error">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="auth-btn auth-btn-primary auth-btn-wide">Кіру</button>
+        </form>
+
+        <div class="auth-links">
+            <span>Аккаунтыңыз жоқ па?</span>
+            <a href="{% url 'account_register' %}">Тіркелу</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

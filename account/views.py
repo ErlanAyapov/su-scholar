@@ -2,12 +2,13 @@ import json
 
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q, Sum
 from django.core.paginator import Paginator
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from document.models import Document
 from main.models import Publication
@@ -18,6 +19,15 @@ from .forms import LoginForm, ProfileEditForm, RegisterForm
 
 User = get_user_model()
 PAGE_SIZE = 20
+
+
+def _get_safe_next_url(request, default_url: str) -> str:
+    next_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
+    if not next_url:
+        return default_url
+    if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return next_url
+    return default_url
 
 
 def _employees_queryset():
@@ -179,7 +189,7 @@ def employee_profile(request, user_id: int):
     return render(request, "account/user_profile.html", context)
 
 
-@login_required(login_url="account_page")
+@login_required(login_url="account_login")
 def employee_profile_sync(request, user_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -223,33 +233,54 @@ def employee_profile_sync(request, user_id: int):
 def account_page(request):
     if request.user.is_authenticated:
         return redirect("employee_profile", user_id=request.user.id)
+    return render(request, "account/account_page.html")
 
-    register_form = RegisterForm(prefix="register")
-    login_form = LoginForm(request=request, prefix="login")
 
-    if request.method == "POST":
-        if "register_submit" in request.POST:
-            register_form = RegisterForm(request.POST, prefix="register")
-            if register_form.is_valid():
-                user = register_form.save()
-                login(request, user)
-                return redirect("account_page")
-        elif "login_submit" in request.POST:
-            login_form = LoginForm(request=request, data=request.POST, prefix="login")
-            if login_form.is_valid():
-                login(request, login_form.get_user())
-                return redirect("account_page")
+def account_login(request):
+    if request.user.is_authenticated:
+        return redirect("employee_profile", user_id=request.user.id)
+
+    form = LoginForm(request=request, data=request.POST or None)
+    default_redirect = reverse("account_page")
+    next_url = _get_safe_next_url(request, default_url=default_redirect)
+
+    if request.method == "POST" and form.is_valid():
+        login(request, form.get_user())
+        return redirect(next_url)
 
     return render(
         request,
-        "account/account_page.html",
+        "account/login.html",
         {
-            "register_form": register_form,
-            "login_form": login_form,
+            "login_form": form,
+            "next_url": next_url,
+        },
+    )
+
+
+def account_register(request):
+    if request.user.is_authenticated:
+        return redirect("employee_profile", user_id=request.user.id)
+
+    form = RegisterForm(request.POST or None)
+    default_redirect = reverse("account_page")
+    next_url = _get_safe_next_url(request, default_url=default_redirect)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        login(request, user)
+        return redirect(next_url)
+
+    return render(
+        request,
+        "account/register.html",
+        {
+            "register_form": form,
+            "next_url": next_url,
         },
     )
 
 
 def account_logout(request):
     logout(request)
-    return redirect("account_page")
+    return redirect("account_login")

@@ -90,3 +90,4 @@ class ProfileEditForm(forms.ModelForm):
             else:
                 field.widget.attrs.update({"class": "form-control"})
             field.widget.attrs.setdefault("placeholder", field.label)
+
