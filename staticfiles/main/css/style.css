@@ -863,7 +863,7 @@ main {
     border-color: #1a81f7;
     background: #f2f7ff;
 }
-
+ 
 .profile-sync-actions {
     display: flex;
     flex-wrap: wrap;
@@ -925,7 +925,7 @@ main {
     border-color: rgba(239, 68, 68, 0.32);
     background: #fef2f2;
 }
-
+ 
 .staff-filter-alert {
     margin-bottom: 12px;
 }
