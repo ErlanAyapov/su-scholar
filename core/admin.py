@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 
 from django.contrib import admin
+from django.db import DatabaseError
+from django.http import JsonResponse
+from django.urls import path
 from django.urls import reverse
 from django.utils.html import format_html
 
@@ -134,4 +137,42 @@ class CeleryTaskLogAdmin(admin.ModelAdmin):
         latest_logs = CeleryTaskLog.objects.order_by("-updated_at", "-id")[:50]
         extra_context["live_logs"] = [serialize_task_log(item) for item in latest_logs]
         extra_context["change_url_template"] = reverse("admin:core_celerytasklog_change", args=["__id__"])
+        extra_context["live_logs_url"] = reverse("admin:core_celerytasklog_live_feed")
         return super().changelist_view(request, extra_context=extra_context)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "live-feed/",
+                self.admin_site.admin_view(self.live_feed_view),
+                name="core_celerytasklog_live_feed",
+            ),
+        ]
+        return custom_urls + urls
+
+    def live_feed_view(self, request):
+        if request.method != "GET":
+            return JsonResponse({"detail": "Method not allowed"}, status=405)
+
+        raw_since_id = request.GET.get("since_id")
+        try:
+            since_id = max(int(raw_since_id or 0), 0)
+        except (TypeError, ValueError):
+            since_id = 0
+
+        try:
+            queryset = CeleryTaskLog.objects.order_by("id")
+            if since_id:
+                queryset = queryset.filter(id__gt=since_id)
+            logs = list(queryset[:120])
+        except DatabaseError:
+            logs = []
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "logs": [serialize_task_log(item) for item in logs],
+                "last_id": logs[-1].id if logs else since_id,
+            }
+        )
