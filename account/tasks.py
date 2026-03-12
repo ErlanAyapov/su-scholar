@@ -11,6 +11,7 @@ from django.db import models
 from requests import RequestException
 
 from account.services.satbayev_scraper import REQUEST_HEADERS, build_user_full_name, load_teacher_profile_data
+from core.tasks.logged_task import LoggedTask
 from main.realtime import notify_public
 
 User = get_user_model()
@@ -93,30 +94,61 @@ def _update_user_photo_from_satbayev(user, photo_url: str, force: bool = False, 
 
 @shared_task(
     bind=True,
+    base=LoggedTask,
     autoretry_for=(RequestException,),
     retry_backoff=True,
     retry_jitter=True,
     retry_kwargs={"max_retries": 3},
 )
 def enrich_user_profile_from_satbayev(self, user_id: int, force: bool = False) -> dict:
+    self.log_info(
+        "Satbayev enrichment task started",
+        object_type="user",
+        object_id=str(user_id),
+        meta={"force": force},
+    )
+
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return {"status": "not_found", "user_id": user_id}
+        result = {"status": "not_found", "reason": "user_not_found", "user_id": user_id}
+        self.log_warning("User does not exist", object_type="user", object_id=str(user_id), meta=result)
+        return result
 
     full_name = build_user_full_name(user)
     if not full_name:
-        return {"status": "skipped", "reason": "empty_name", "user_id": user_id}
+        result = {"status": "skipped", "reason": "empty_name", "user_id": user_id}
+        self.log_warning("User full name is empty", object_type="user", object_id=str(user_id), meta=result)
+        return result
 
+    self.log_progress(
+        message="Searching teacher profile on Satbayev",
+        current=1,
+        total=4,
+        object_type="user",
+        object_id=str(user_id),
+        meta={"full_name": full_name},
+    )
     profile_data = load_teacher_profile_data(full_name=full_name)
     if not profile_data:
-        return {"status": "not_found", "reason": "profile_not_found", "user_id": user_id}
+        result = {"status": "not_found", "reason": "profile_not_found", "user_id": user_id}
+        self.log_warning("Satbayev profile not found", object_type="user", object_id=str(user_id), meta=result)
+        return result
 
     payload = _build_update_payload(user=user, profile_data=profile_data, force=force)
     changed_fields = []
     for field_name, field_value in payload.items():
         setattr(user, field_name, field_value)
         changed_fields.append(field_name)
+
+    self.log_progress(
+        message="Profile loaded, applying updates",
+        current=2,
+        total=4,
+        object_type="user",
+        object_id=str(user_id),
+        meta={"payload_fields": sorted(payload.keys())},
+    )
 
     if _update_user_photo_from_satbayev(
         user=user,
@@ -126,10 +158,30 @@ def enrich_user_profile_from_satbayev(self, user_id: int, force: bool = False) -
         changed_fields.append("photo")
 
     if not changed_fields:
-        return {"status": "ok", "updated": False, "user_id": user_id}
+        result = {"status": "ok", "updated": False, "user_id": user_id, "fields": []}
+        self.log_info("No profile fields changed", object_type="user", object_id=str(user_id), meta=result)
+        return result
+
+    self.log_progress(
+        message="Saving updated profile fields",
+        current=3,
+        total=4,
+        object_type="user",
+        object_id=str(user_id),
+        meta={"changed_fields": sorted(set(changed_fields))},
+    )
 
     user.save(update_fields=sorted(set(changed_fields)))
-    return {"status": "ok", "updated": True, "user_id": user_id, "fields": sorted(set(changed_fields))}
+    result = {"status": "ok", "updated": True, "user_id": user_id, "fields": sorted(set(changed_fields))}
+    self.log_progress(
+        message="Satbayev enrichment completed",
+        current=4,
+        total=4,
+        object_type="user",
+        object_id=str(user_id),
+        meta=result,
+    )
+    return result
 
 
 @shared_task
