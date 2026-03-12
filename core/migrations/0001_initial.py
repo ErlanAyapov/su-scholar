@@ -72,10 +72,10 @@ class Migration(migrations.Migration):
             options={
                 "ordering": ("-updated_at", "-id"),
                 "indexes": [
-                    models.Index(fields=["task_name"]),
-                    models.Index(fields=["status"]),
-                    models.Index(fields=["created_at"]),
-                    models.Index(fields=["object_type", "object_id"]),
+                    models.Index(fields=["task_name"], name="core_ctl_task_name_idx"),
+                    models.Index(fields=["status"], name="core_ctl_status_idx"),
+                    models.Index(fields=["created_at"], name="core_ctl_created_at_idx"),
+                    models.Index(fields=["object_type", "object_id"], name="core_ctl_object_idx"),
                 ],
             },
         ),
