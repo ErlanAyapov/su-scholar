@@ -663,7 +663,7 @@ main {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
     text-decoration: none;
-    outline: none;
+    outline: none; 
 }
 
 .profile-stat {
@@ -672,6 +672,7 @@ main {
     padding: 10px 10px;
     text-align: center;
     background: #fbfdff;
+    text-decoration: none;
 }
 
 .profile-stat strong {
@@ -865,7 +866,7 @@ main {
     border-color: #1a81f7;
     background: #f2f7ff;
 }
- 
+
 .profile-sync-actions {
     display: flex;
     flex-wrap: wrap;
@@ -927,7 +928,7 @@ main {
     border-color: rgba(239, 68, 68, 0.32);
     background: #fef2f2;
 }
- 
+
 .staff-filter-alert {
     margin-bottom: 12px;
 }
