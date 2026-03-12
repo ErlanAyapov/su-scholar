@@ -138,7 +138,7 @@ def sync_user_publications_task(
                 part for part in [user.last_name, user.first_name, user.father_name] if part
             ).strip() or user.username
 
-        scholar_result = import_works_from_scholar(user=user, query=scholar_query)
+        scholar_result = import_works_from_scholar(user=user, query=scholar_query, force=force)
         _merge_sync_result(summary, scholar_result)
         _notify_sync_participants(
             target_user_id=user.id,
@@ -222,7 +222,7 @@ def sync_user_publications_task(
             scholar_query = " ".join(
                 part for part in [user.last_name, user.first_name, user.father_name] if part
             ).strip() or user.username
-        result = import_works_from_scholar(user=user, query=scholar_query)
+        result = import_works_from_scholar(user=user, query=scholar_query, force=force)
         _merge_sync_result(summary, result)
         _notify_sync_participants(
             target_user_id=user.id,
@@ -317,7 +317,7 @@ def import_publications_from_google_scholar_task(user_id: int, force: bool = Fal
     if not query:
         query = " ".join(part for part in [user.last_name, user.first_name, user.father_name] if part).strip() or user.username
 
-    result = import_works_from_scholar(user=user, query=query)
+    result = import_works_from_scholar(user=user, query=query, force=force)
     notify_user(
         user.id,
         "Google Scholar импорты аяқталды",
