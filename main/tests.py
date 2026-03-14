@@ -1,9 +1,12 @@
 from datetime import date
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
+from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase
 
+from main.context_processors import layout_navigation
 from main.models import Language, Publication, PublicationType, Venue
 from main.services.publication_importer import (
     _build_record_id,
@@ -13,6 +16,55 @@ from main.services.publication_importer import (
 )
 
 User = get_user_model()
+
+
+class LayoutNavigationTests(SimpleTestCase):
+    def _build_request(self, *, url_name: str, query: str = ""):
+        request = SimpleNamespace(
+            resolver_match=SimpleNamespace(url_name=url_name),
+            GET=QueryDict(query),
+        )
+        return request
+
+    def test_main_page_marks_home_as_active(self):
+        request = self._build_request(url_name="main")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertTrue(nav["home"])
+        self.assertFalse(nav["reports"])
+        self.assertFalse(nav["documents"])
+        self.assertFalse(nav["account"])
+
+    def test_documents_search_tab_marks_documents_as_active(self):
+        request = self._build_request(url_name="advanced_search", query="tab=documents")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["reports"])
+        self.assertTrue(nav["documents"])
+        self.assertFalse(nav["account"])
+
+    def test_researchers_search_tab_does_not_mark_documents_as_active(self):
+        request = self._build_request(url_name="advanced_search", query="tab=researchers")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["reports"])
+        self.assertFalse(nav["documents"])
+        self.assertFalse(nav["account"])
+
+    def test_employee_profile_marks_account_as_active(self):
+        request = self._build_request(url_name="employee_profile")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["reports"])
+        self.assertFalse(nav["documents"])
+        self.assertTrue(nav["account"])
 
 
 class ScholarParsingTests(SimpleTestCase):

@@ -2035,6 +2035,33 @@ footer {
     border: 1px solid rgba(15, 23, 42, 0.08);
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
     overflow: hidden;
+    min-height: 100vh;
+}
+
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.app-brand:hover {
+    color: inherit;
+}
+
+.app-brand img {
+    flex: 0 0 auto;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 4px;
+}
+
+.app-brand-title {
+    color: #f8fafc;
+    font-size: 1.08rem;
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 .profile-dashboard .profile-inline-alert {
@@ -2090,6 +2117,7 @@ footer {
 .profile-dashboard .profile-nav-item {
     display: flex;
     align-items: center;
+    gap: 10px;
     min-height: 44px;
     padding: 10px 14px;
     border-radius: 16px;
@@ -2097,7 +2125,12 @@ footer {
     text-decoration: none;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.04);
+    font-weight: 500;
     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.profile-dashboard .profile-nav-item i {
+    font-size: 1rem;
 }
 
 .profile-dashboard .profile-nav-item:hover,
@@ -2183,6 +2216,47 @@ footer {
 .profile-dashboard .profile-workspace {
     padding: 28px;
     background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.app-main {
+    flex: 1 0 auto;
+}
+
+.app-footer {
+    margin-top: 28px;
+    padding: 20px 22px;
+    border-radius: 24px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.app-footer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.app-footer h4 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    color: #0f172a;
+}
+
+.app-footer p {
+    margin: 0 0 8px;
+}
+
+.app-footer a {
+    color: #334155;
+    text-decoration: none;
+}
+
+.app-footer a:hover {
+    color: #1d4ed8;
 }
 
 .profile-dashboard .profile-stage {
@@ -2763,6 +2837,15 @@ footer {
     .profile-dashboard .profile-rail,
     .profile-dashboard .profile-workspace {
         padding: 18px;
+    }
+
+    .app-footer {
+        padding: 18px;
+    }
+
+    .app-footer-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
     }
 
     .profile-dashboard .profile-rail-actions {
