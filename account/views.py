@@ -165,7 +165,7 @@ def employee_profile(request, user_id: int):
         .order_by("-total", "venue__name")[:5]
     )
 
-    recent_publications = list(publications_qs[:12])
+    recent_publications = list(publications_qs[:5])
     generated_documents_qs = (
         Document.objects.filter(user=profile_user, is_deleted=False)
         .select_related("generated_by")

@@ -56,6 +56,7 @@ class DocumentGenerator(models.Model):
     file_type = models.CharField(max_length=50)
     user = models.ForeignKey('account.User', on_delete=models.CASCADE, related_name='synthetic_documents')
     access_to_all = models.BooleanField(default=False)
+    page = models.CharField(max_length=255, blank=True, null=True)
 
     def last_ten_documents(self):
         return self.generated_documents.order_by('-created_at')[:10]

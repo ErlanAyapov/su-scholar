@@ -133,6 +133,7 @@
                 {% if recent_publications %}
                     <div class="profile-publication-list">
                         {% for publication in recent_publications %}
+                            
                             <article class="profile-publication-item">
                                 <div class="profile-publication-text">
                                     <h4 class="profile-publication-title">
@@ -203,7 +204,7 @@
                     {% endif %}
                 </div>
 
-                <div class="profile-block" id="profileContacts">
+                <div class="profile-block d-none" id="profileContacts">
                     <h3 class="profile-block-title">Контакты и статус</h3>
                     <p class="profile-block-subtitle">Базовые данные профиля для административной работы.</p>
                     <ul class="profile-list mb-0">
@@ -237,7 +238,7 @@
                 </div>
 
                 {% if top_venues %}
-                    <div class="profile-block">
+                    <div class="profile-block d-none" id="profileTopVenues">
                         <h3 class="profile-block-title">Ключевые площадки</h3>
                         <p class="profile-block-subtitle">Журналы и конференции, где профиль публикуется чаще всего.</p>
                         <ul class="profile-list mb-0">

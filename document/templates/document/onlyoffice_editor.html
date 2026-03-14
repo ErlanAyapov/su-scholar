@@ -199,14 +199,31 @@
                 <div class="col-md-4">
                     <label class="form-label" for="{{ generator_form.title.id_for_label }}">{{ generator_form.title.label }}</label>
                     {{ generator_form.title }}
+                    {% if generator_form.title.errors %}
+                        <div class="text-danger small mt-1">{{ generator_form.title.errors }}</div>
+                    {% endif %}
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label" for="{{ generator_form.page.id_for_label }}">{{ generator_form.page.label }}</label>
+                    {{ generator_form.page }}
+                    <div class="form-text">Optional. Empty value means visible on all pages.</div>
+                    {% if generator_form.page.errors %}
+                        <div class="text-danger small mt-1">{{ generator_form.page.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-2">
                     <label class="form-label" for="{{ generator_form.file_type.id_for_label }}">{{ generator_form.file_type.label }}</label>
                     {{ generator_form.file_type }}
+                    {% if generator_form.file_type.errors %}
+                        <div class="text-danger small mt-1">{{ generator_form.file_type.errors }}</div>
+                    {% endif %}
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="{{ generator_form.file.id_for_label }}">{{ generator_form.file.label }}</label>
                     {{ generator_form.file }}
+                    {% if generator_form.file.errors %}
+                        <div class="text-danger small mt-1">{{ generator_form.file.errors }}</div>
+                    {% endif %}
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <div class="form-check">
@@ -219,6 +236,9 @@
                 <div class="col-12">
                     <label class="form-label" for="{{ generator_form.content.id_for_label }}">{{ generator_form.content.label }}</label>
                     {{ generator_form.content }}
+                    {% if generator_form.content.errors %}
+                        <div class="text-danger small mt-1">{{ generator_form.content.errors }}</div>
+                    {% endif %}
                 </div>
                 <div class="col-12 d-flex justify-content-end">
                     <button class="btn btn-primary icon-action-btn" type="submit" aria-label="Шаблонды сақтау" title="Шаблонды сақтау">
