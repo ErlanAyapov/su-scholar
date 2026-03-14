@@ -144,11 +144,14 @@
 <script>
     (function () {
         const changeUrlTemplate = "{{ change_url_template|escapejs }}";
+        const liveLogsUrl = "{{ live_logs_url|escapejs }}";
         const tableBody = document.getElementById("celery-live-tbody");
         const statusBadge = document.getElementById("celery-live-status");
         const initialRaw = document.getElementById("celery-live-initial");
         const rows = new Map();
         let socket = null;
+        let latestSeenId = 0;
+        let periodicSyncTimer = null;
 
         function setSocketState(state, label) {
             statusBadge.dataset.state = state;
@@ -208,12 +211,40 @@
             }
 
             rows.set(key, nextNode);
+            const numericId = Number(item.id || 0);
+            if (Number.isFinite(numericId) && numericId > 0) {
+                latestSeenId = Math.max(latestSeenId, numericId);
+            }
         }
 
         function initRows() {
             if (!initialRaw) return;
             const data = JSON.parse(initialRaw.textContent || "[]");
             data.forEach((item) => upsertRow(item));
+        }
+
+        async function pollRows() {
+            if (!liveLogsUrl) return;
+            try {
+                const url = `${liveLogsUrl}?since_id=${encodeURIComponent(String(latestSeenId || 0))}`;
+                const response = await fetch(url, {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                });
+                if (!response.ok) return;
+                const payload = await response.json();
+                const logs = Array.isArray(payload.logs) ? payload.logs : [];
+                logs.forEach((item) => upsertRow(item));
+            } catch (error) {
+                // Keep silent: websocket can still be active.
+            }
+        }
+
+        function startPeriodicSync() {
+            if (periodicSyncTimer) return;
+            periodicSyncTimer = window.setInterval(pollRows, 7000);
         }
 
         function startSocket() {
@@ -246,6 +277,7 @@
         }
 
         initRows();
+        startPeriodicSync();
         startSocket();
     })();
 </script>

@@ -1,17 +1,31 @@
 from django.urls import path
 
 from .views import (
+    account_activate,
+    account_login,
     account_logout,
     account_page,
+    account_register,
+    account_set_password,
     employee_profile,
     employee_profile_sync,
     employees_list,
     employees_list_chunk,
+    register_email_status,
+    register_send_activation_email,
 )
 
 
 urlpatterns = [
     path('account/', account_page, name='account_page'),
+    path('account/login/', account_login, name='account_login'),
+    path('account/register/', account_register, name='account_register'),
+    path('account/register/email-status/', register_email_status, name='register_email_status'),
+    path('account/register/send-activation/', register_send_activation_email, name='register_send_activation_email'),
+    path('account/activate/<uidb64>/<token>/', account_activate, name='account_activate'),
+    path('account/set-password/<uidb64>/<token>/', account_set_password, name='account_set_password'),
+    path('login/', account_login, name='login'),
+    path('register/', account_register, name='register'),
     path('account/logout/', account_logout, name='account_logout'),
     path('employees/<int:user_id>/', employee_profile, name='employee_profile'),
     path('employees/<int:user_id>/sync/', employee_profile_sync, name='employee_profile_sync'),

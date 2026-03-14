@@ -4,10 +4,10 @@
 
 {% block content %}
 <section class="scope-switch" aria-label="Search scope">
-    <a class="scope-switch-item {% if active_tab == 'documents' %}is-active{% endif %}" href="{% url 'main' %}?tab=documents">
+    <a class="scope-switch-item {% if active_tab == 'documents' %}is-active{% endif %}" href="{% url 'advanced_search' %}?tab=documents">
         ЖҰМЫСТАР
     </a>
-    <a class="scope-switch-item {% if active_tab == 'researchers' %}is-active{% endif %}" href="{% url 'main' %}?tab=researchers">
+    <a class="scope-switch-item {% if active_tab == 'researchers' %}is-active{% endif %}" href="{% url 'advanced_search' %}?tab=researchers">
         АДАМДАР
     </a>
 </section>
@@ -16,15 +16,15 @@
     <section class="research-shell">
         <div class="research-search-card">
             <h1 class="h4 mb-3">Құжаттар іздеуі</h1>
-            <form method="get" action="{% url 'main' %}" class="research-search-form">
+            <form method="get" action="{% url 'advanced_search' %}" class="research-search-form">
                 <input type="hidden" name="tab" value="documents">
                 {% if request.GET.show %}<input type="hidden" name="show" value="{{ request.GET.show }}">{% endif %}
                 {% if request.GET.staff_user %}<input type="hidden" name="staff_user" value="{{ request.GET.staff_user }}">{% endif %}
 
                 <div class="research-grid-1">
                     <label class="field">
-                        <span class="label">Іздеу (тақырып, автор, DOI, журнал)</span>
-                        <input class="control" type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Мысалы: Albanbay Nurtay">
+                        <span class="label">Іздеу (тақырып, автор, DOI, журнал, кілт сөздер)</span>
+                        <input class="control" type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Мысалы: iot">
                     </label>
                 </div>
 
@@ -84,7 +84,7 @@
 
                 <div
                     id="documentsExtraFilters"
-                    class="collapse documents-advanced  {% if request.GET.lang or request.GET.oa or request.GET.db or request.GET.quartile or request.GET.area or request.GET.venue or selected_tags %}show{% endif %}"
+                    class="collapse documents-advanced   {% if request.GET.lang or request.GET.oa or request.GET.db or request.GET.quartile or request.GET.area or request.GET.venue or selected_tags %}show{% endif %}"
                 >
                     <div class="research-grid-2">
                         <label class="field">
@@ -174,7 +174,7 @@
                 </div>
 
                 <div class="research-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'main' %}?tab=documents">Тазарту</a>
+                    <a class="btn btn-outline-secondary" href="{% url 'advanced_search' %}?tab=documents">Тазарту</a>
                     <button class="btn btn-primary" type="submit">Іздеу</button>
                 </div>
             </form>
@@ -321,7 +321,7 @@
     <section class="research-shell">
         <div class="research-search-card">
             <h1 class="h4 mb-3">Зерттеушілер іздеуі</h1>
-            <form method="get" action="{% url 'main' %}" class="research-search-form">
+            <form method="get" action="{% url 'advanced_search' %}" class="research-search-form">
                 <input type="hidden" name="tab" value="researchers">
 
                 <div class="research-grid-2">
@@ -381,7 +381,7 @@
                 </div>
 
                 <div class="research-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'main' %}?tab=researchers">Тазарту</a>
+                    <a class="btn btn-outline-secondary" href="{% url 'advanced_search' %}?tab=researchers">Тазарту</a>
                     <button class="btn btn-primary" type="submit">Іздеу</button>
                 </div>
             </form>

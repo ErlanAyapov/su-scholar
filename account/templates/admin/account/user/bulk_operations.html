@@ -394,6 +394,7 @@
         let reconnectAttempts = 0;
         let reconnectTimer = null;
         let pollingTimer = null;
+        let periodicSyncTimer = null;
         let lastSocketNoticeTs = 0;
         let reconnectDisabled = false;
 
@@ -555,6 +556,11 @@
             pollingTimer = null;
         }
 
+        function startPeriodicSync() {
+            if (periodicSyncTimer) return;
+            periodicSyncTimer = window.setInterval(pollTaskLogs, 8000);
+        }
+
         function scheduleReconnect() {
             if (reconnectDisabled) return;
             if (reconnectAttempts >= 12) {
@@ -670,6 +676,7 @@
         });
 
         hydrateInitialLogs();
+        startPeriodicSync();
         connectWebSocket();
     })();
 </script>

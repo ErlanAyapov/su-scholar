@@ -1,23 +1,63 @@
 import json
+from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q, Sum
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.core.paginator import Paginator
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes, force_str
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_decode, urlsafe_base64_encode
 
 from document.models import Document
 from main.models import Publication
 from main.tasks import sync_user_publications_task
 
-from .forms import LoginForm, ProfileEditForm, RegisterForm
+from .forms import ActivationSetPasswordForm, LoginForm, ProfileEditForm, RegisterForm
 
 
 User = get_user_model()
 PAGE_SIZE = 20
+
+
+def _normalize_safe_next_url(request, next_url: str, default_url: str) -> str:
+    candidate = (next_url or "").strip()
+    if not candidate:
+        return default_url
+    if url_has_allowed_host_and_scheme(candidate, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return candidate
+    return default_url
+
+
+def _get_safe_next_url(request, default_url: str) -> str:
+    next_url = request.POST.get("next") or request.GET.get("next") or ""
+    return _normalize_safe_next_url(request, next_url, default_url)
+
+
+def _get_public_base_url(request) -> str:
+    app_public_url = str(getattr(settings, "APP_PUBLIC_URL", "") or "").strip()
+    if app_public_url:
+        return app_public_url.rstrip("/")
+    return request.build_absolute_uri("/").rstrip("/")
+
+
+def _build_public_url(request, path: str) -> str:
+    normalized_path = path if path.startswith("/") else f"/{path}"
+    return f"{_get_public_base_url(request)}{normalized_path}"
+
+
+def _user_from_uid(uidb64: str):
+    try:
+        user_id = force_str(urlsafe_base64_decode(uidb64))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return User.objects.filter(pk=user_id).first()
 
 
 def _employees_queryset():
@@ -179,7 +219,7 @@ def employee_profile(request, user_id: int):
     return render(request, "account/user_profile.html", context)
 
 
-@login_required(login_url="account_page")
+@login_required(login_url="account_login")
 def employee_profile_sync(request, user_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -223,33 +263,240 @@ def employee_profile_sync(request, user_id: int):
 def account_page(request):
     if request.user.is_authenticated:
         return redirect("employee_profile", user_id=request.user.id)
+    return render(request, "account/account_page.html")
 
-    register_form = RegisterForm(prefix="register")
-    login_form = LoginForm(request=request, prefix="login")
 
-    if request.method == "POST":
-        if "register_submit" in request.POST:
-            register_form = RegisterForm(request.POST, prefix="register")
-            if register_form.is_valid():
-                user = register_form.save()
-                login(request, user)
-                return redirect("account_page")
-        elif "login_submit" in request.POST:
-            login_form = LoginForm(request=request, data=request.POST, prefix="login")
-            if login_form.is_valid():
-                login(request, login_form.get_user())
-                return redirect("account_page")
+def account_login(request):
+    if request.user.is_authenticated:
+        return redirect("employee_profile", user_id=request.user.id)
+
+    form = LoginForm(request=request, data=request.POST or None)
+    default_redirect = reverse("account_page")
+    next_url = _get_safe_next_url(request, default_url=default_redirect)
+
+    if request.method == "POST" and form.is_valid():
+        login(request, form.get_user())
+        return redirect(next_url)
 
     return render(
         request,
-        "account/account_page.html",
+        "account/login.html",
         {
-            "register_form": register_form,
-            "login_form": login_form,
+            "login_form": form,
+            "next_url": next_url,
+            "activated": request.GET.get("activated") == "1",
+        },
+    )
+
+
+def account_register(request):
+    if request.user.is_authenticated:
+        return redirect("employee_profile", user_id=request.user.id)
+
+    form = RegisterForm(request.POST or None)
+    default_redirect = reverse("account_page")
+    next_url = _get_safe_next_url(request, default_url=default_redirect)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        login(request, user)
+        return redirect(next_url)
+
+    return render(
+        request,
+        "account/register.html",
+        {
+            "register_form": form,
+            "next_url": next_url,
+        },
+    )
+
+
+def register_email_status(request):
+    email = request.GET.get("email", "").strip().lower()
+    if not email:
+        return JsonResponse({"detail": "Email is required"}, status=400)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if not user:
+        return JsonResponse(
+            {
+                "status": "new",
+                "button_label": "Тіркелу",
+                "detail": "Email бойынша аккаунт табылмады. Тіркелуді жалғастырыңыз.",
+            }
+        )
+
+    if not user.is_user:
+        full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        return JsonResponse(
+            {
+                "status": "needs_activation",
+                "button_label": "Аккаунты активациялау",
+                "detail": f"{full_name} үшін аккаунт табылды. Белсендіру хатын жіберуге болады.",
+            }
+        )
+
+    return JsonResponse(
+        {
+            "status": "already_registered",
+            "button_label": "Тіркелу",
+            "login_url": reverse("account_login"),
+            "detail": "Бұл email бойынша аккаунт бар. Кіру бөлімін қолданыңыз.",
+        }
+    )
+
+
+def register_send_activation_email(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    payload = {}
+    content_type = (request.content_type or "").split(";")[0].strip().lower()
+    if content_type == "application/json":
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+
+    email = str(payload.get("email") or request.POST.get("email") or "").strip().lower()
+    if not email:
+        return JsonResponse({"detail": "Email is required"}, status=400)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if not user:
+        return JsonResponse({"detail": "Бұл email жүйеде табылмады."}, status=404)
+
+    if user.is_user:
+        return JsonResponse({"detail": "Бұл email бойынша аккаунт әлдеқашан тіркелген."}, status=400)
+
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    activation_path = reverse("account_activate", kwargs={"uidb64": uidb64, "token": token})
+
+    raw_next_url = str(payload.get("next") or request.POST.get("next") or "").strip()
+    safe_next_url = _normalize_safe_next_url(request, raw_next_url, default_url="")
+    if safe_next_url:
+        activation_path = f"{activation_path}?{urlencode({'next': safe_next_url})}"
+
+    referral_path = f"{reverse('account_register')}?{urlencode({'ref': user.pk})}"
+    activation_url = _build_public_url(request, activation_path)
+    referral_url = _build_public_url(request, referral_path)
+
+    display_name = f"{user.first_name} {user.last_name}".strip() or user.username or "әріптес"
+    subject = "SU Science: аккаунтты белсендіру"
+    message = (
+        f"Сәлеметсіз бе, {display_name}!\n\n"
+        "SU Science платформасына қосылғаныңызға рақмет.\n"
+        "Аккаунтты белсендіру үшін төмендегі сілтеме бойынша өтіңіз:\n"
+        f"{activation_url}\n\n"
+        "Сізге жеке реферальды сілтеме:\n"
+        f"{referral_url}\n\n"
+        "Сілтеме ашылғаннан кейін сіз құпиясөз орнату бетіне өтесіз.\n"
+        "Егер бұл сұранысты сіз жібермесеңіз, бұл хатты елемеңіз."
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        return JsonResponse({"detail": "Хатты жіберу мүмкін болмады. SMTP баптауларын тексеріңіз."}, status=500)
+
+    return JsonResponse({"detail": "Белсендіру хаты жіберілді. Email-ді тексеріңіз."})
+
+
+def account_activate(request, uidb64: str, token: str):
+    user = _user_from_uid(uidb64)
+    if not user or not default_token_generator.check_token(user, token):
+        return render(
+            request,
+            "account/set_password.html",
+            {
+                "form": None,
+                "invalid_link": True,
+            },
+        )
+
+    if not user.is_active:
+        user.is_active = True
+        user.save(update_fields=["is_active"])
+
+    set_password_url = reverse("account_set_password", kwargs={"uidb64": uidb64, "token": token})
+    safe_next_url = _normalize_safe_next_url(request, request.GET.get("next", ""), default_url="")
+    if safe_next_url:
+        set_password_url = f"{set_password_url}?{urlencode({'next': safe_next_url})}"
+    return redirect(set_password_url)
+
+
+def account_set_password(request, uidb64: str, token: str):
+    user = _user_from_uid(uidb64)
+    if not user or not default_token_generator.check_token(user, token):
+        return render(
+            request,
+            "account/set_password.html",
+            {
+                "form": None,
+                "invalid_link": True,
+            },
+        )
+
+    form = ActivationSetPasswordForm(user, request.POST or None)
+    next_url = _get_safe_next_url(request, default_url=reverse("account_page"))
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+
+        login_url = reverse("account_login")
+        login_params = {"next": next_url, "activated": "1"} if next_url else {"activated": "1"}
+        return redirect(f"{login_url}?{urlencode(login_params)}")
+
+    return render(
+        request,
+        "account/set_password.html",
+        {
+            "form": form,
+            "invalid_link": False,
+            "next_url": next_url,
         },
     )
 
 
 def account_logout(request):
     logout(request)
-    return redirect("account_page")
+    return redirect("account_login")
+
+
+def search_employee_from_email(request):
+    email = request.GET.get("email", "").strip().lower()
+    if not email:
+        return JsonResponse({"detail": "Email is required"}, status=400)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if not user:
+        return JsonResponse({"detail": "User not found"}, status=404)
+
+    return JsonResponse({
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "profile_url": reverse("employee_profile", kwargs={"user_id": user.id}),
+    })
+
+
+def activate_user(request, user_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({"detail": "Forbidden"}, status=403)
+
+    user = get_object_or_404(User, pk=user_id)
+    user.is_active = True
+    user.save()
+    return JsonResponse({"detail": "User activated"})

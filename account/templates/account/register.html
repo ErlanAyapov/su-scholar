@@ -1,0 +1,88 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}SU Science - Тіркелу{% endblock %}
+
+{% block content %}
+<section class="auth-shell auth-shell-narrow">
+    <div class="auth-card">
+        <div class="auth-card-head">
+            <h1>Жаңа аккаунт ашу</h1>
+            <p>Тіркелу формасын толтырыңыз.</p>
+        </div>
+
+        <form
+            method="post"
+            novalidate
+            class="auth-form"
+            id="registerForm"
+            data-email-status-url="{% url 'register_email_status' %}"
+            data-activation-url="{% url 'register_send_activation_email' %}"
+        >
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <input type="hidden" name="register_action" id="registerAction" value="register">
+            <input type="hidden" name="email" id="id_email" value="{{ request.POST.email|default:'' }}">
+
+            <input
+                type="email"
+                name="email_input"
+                id="id_register_email"
+                class="form-control"
+                autocomplete="email"
+                placeholder="Электрондық пошта @satbayev.university"
+                value="{{ request.POST.email|default:'' }}"
+                required
+            >
+
+            {% if register_form.email.errors %}
+                <div class="auth-error">{{ register_form.email.errors }}</div>
+            {% endif %}
+
+            <div id="registerFlowMessage" class="auth-alert d-none" role="status" aria-live="polite"></div>
+
+            <div id="formDetails" class="{% if not register_form.errors %}d-none{% endif %}">
+                {% if register_form.non_field_errors %}
+                    <div class="auth-alert auth-alert-danger">
+                        {{ register_form.non_field_errors }}
+                    </div>
+                {% endif %}
+                {% for field in register_form %}
+                    {% if field.name != "email" %}
+                        <div class="auth-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="auth-help">{{ field.help_text|safe }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="auth-error">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <button
+                type="submit"
+                class="auth-btn auth-btn-primary auth-btn-wide"
+                id="registerSubmitBtn"
+                data-default-label="Тіркелу"
+                data-activation-label="Аккаунты активациялау"
+                disabled
+            >
+                Тіркелу
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <span>Аккаунтыңыз бар ма?</span>
+            <a href="{% url 'account_login' %}">Кіру</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'account/scripts/register_flow.js' %}"></script>
+{% endblock %}

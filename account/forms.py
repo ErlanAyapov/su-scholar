@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm, UserCreationForm
 
 
 User = get_user_model()
@@ -16,11 +16,12 @@ class RegisterForm(UserCreationForm):
         self.fields["first_name"].required = True
         self.fields["last_name"].required = True
         self.fields["email"].required = True
+        self.fields["email"].widget = forms.EmailInput()
 
         self.fields["username"].label = "Пайдаланушы аты"
         self.fields["first_name"].label = "Аты"
         self.fields["last_name"].label = "Тегі"
-        self.fields["email"].label = "Email"
+        # self.fields["email"].label = "Email"
         self.fields["password1"].label = "Құпиясөз"
         self.fields["password2"].label = "Құпиясөзді растау"
 
@@ -29,6 +30,20 @@ class RegisterForm(UserCreationForm):
             field.widget.attrs.setdefault("placeholder", field.label)
             if field_name in {"password1", "password2"}:
                 field.help_text = None
+
+    def clean_email(self):
+        email = str(self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            raise forms.ValidationError("Email міндетті.")
+
+        existing_user = User.objects.filter(email__iexact=email).first()
+        if not existing_user:
+            return email
+
+        if existing_user.is_user:
+            raise forms.ValidationError("Бұл email бойынша аккаунт бар. Кіру бөлімін қолданыңыз.")
+
+        raise forms.ValidationError("Бұл email қызметкер профиліне тиесілі. Аккаунтты белсендіруді таңдаңыз.")
 
 
 class LoginForm(AuthenticationForm):
@@ -44,6 +59,21 @@ class LoginForm(AuthenticationForm):
         super().__init__(*args, **kwargs)
         self.fields["username"].widget.attrs.update({"class": "form-control", "placeholder": "Пайдаланушы аты"})
         self.fields["password"].widget.attrs.update({"class": "form-control", "placeholder": "Құпиясөз"})
+
+
+class ActivationSetPasswordForm(SetPasswordForm):
+    error_messages = {
+        "password_mismatch": "Құпиясөздер сәйкес келмейді.",
+    }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(user, *args, **kwargs)
+        self.fields["new_password1"].label = "Жаңа құпиясөз"
+        self.fields["new_password2"].label = "Жаңа құпиясөзді растау"
+
+        for field in self.fields.values():
+            field.widget.attrs.update({"class": "form-control"})
+            field.widget.attrs.setdefault("placeholder", field.label)
 
 
 class ProfileEditForm(forms.ModelForm):

@@ -3,164 +3,28 @@
 {% block title %}SU Science - Аккаунт{% endblock %}
 
 {% block content %}
-<section class="mx-auto" style="max-width: 980px;">
-    {% if request.user.is_authenticated %}
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-                    <h1 class="h4 m-0">Жеке кабинет</h1>
-                    <form method="post" action="{% url 'account_logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Шығу</button>
-                    </form>
-                </div>
+<section class="auth-shell">
+    <div class="auth-hero">
+        <span class="auth-badge">SU Science</span>
+        <h1>Қош келдіңіз</h1>
+        <p>
+            Профильді басқару және жарияланым деректерін синхрондау үшін жүйеге кіріңіз
+            немесе жаңа аккаунт жасаңыз.
+        </p>
+    </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="text-muted small">Логин</div>
-                        <div>{{ request.user.username }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-muted small">Электрондық пошта</div>
-                        <div>{{ request.user.email|default:"-" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-muted small">Аты</div>
-                        <div>{{ request.user.first_name|default:"-" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-muted small">Тегі</div>
-                        <div>{{ request.user.last_name|default:"-" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-muted small">Тіркелген күні</div>
-                        <div>{{ request.user.date_joined|date:"d.m.Y H:i" }}</div>
-                    </div>
-                </div>
-
-                <hr class="my-4">
-
-                <h2 class="h5 mb-3">Менің генерацияланған құжаттарым</h2>
-                {% if generated_documents %}
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Атауы</th>
-                                    <th>Түрі</th>
-                                    <th>Шаблон</th>
-                                    <th>Жаңартылды</th>
-                                    <th class="text-end">Әрекеттер</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for doc in generated_documents %}
-                                    <tr>
-                                        <td>{{ doc.title }}</td>
-                                        <td>{{ doc.file_type|upper }}</td>
-                                        <td>
-                                            {% if doc.generated_by %}
-                                                {{ doc.generated_by.title }}
-                                            {% else %}
-                                                -
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ doc.updated_at|date:"d.m.Y H:i" }}</td>
-                                        <td class="text-end">
-                                            <div class="d-flex flex-wrap justify-content-end gap-2">
-                                                {% if doc.file_type == "docx" %}
-                                                    <a class="btn btn-sm btn-outline-primary icon-action-btn" href="{% url 'document_edit' doc.id %}" aria-label="Ашу" title="Ашу">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                                            <path fill-rule="evenodd" d="M6.364 13.657a.5.5 0 0 1 0-.707L10.314 9H1.5a.5.5 0 0 1 0-1h8.814L6.364 4.05a.5.5 0 1 1 .707-.707l4.8 4.8a.5.5 0 0 1 0 .707l-4.8 4.8a.5.5 0 0 1-.707 0"/>
-                                                        </svg>
-                                                    </a>
-                                                {% else %}
-                                                    <a class="btn btn-sm btn-outline-primary icon-action-btn" href="{% url 'document_detail' doc.id %}" target="_blank" rel="noopener noreferrer" aria-label="Ашу" title="Ашу">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                                            <path fill-rule="evenodd" d="M6.364 13.657a.5.5 0 0 1 0-.707L10.314 9H1.5a.5.5 0 0 1 0-1h8.814L6.364 4.05a.5.5 0 1 1 .707-.707l4.8 4.8a.5.5 0 0 1 0 .707l-4.8 4.8a.5.5 0 0 1-.707 0"/>
-                                                        </svg>
-                                                    </a>
-                                                {% endif %}
-                                                <a class="btn btn-sm btn-outline-success icon-action-btn" href="{% url 'document_file' doc.id %}?download=1" aria-label="Жүктеу" title="Жүктеу">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                        <path d="M12 4v11"/>
-                                                        <path d="m7 10 5 5 5-5"/>
-                                                        <path d="M5 20h14"/>
-                                                    </svg>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="alert alert-light border mb-0">Сізде әзірге генерацияланған құжаттар жоқ.</div>
-                {% endif %}
-            </div>
-        </div>
-    {% else %}
-        <div class="row g-3">
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h1 class="h5 mb-3">Кіру</h1>
-                        <form method="post" novalidate>
-                            {% csrf_token %}
-                            {% if login_form.non_field_errors %}
-                                <div class="alert alert-danger py-2">
-                                    {{ login_form.non_field_errors }}
-                                </div>
-                            {% endif %}
-                            <div class="row g-3">
-                                {% for field in login_form %}
-                                    <div class="col-12">
-                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field }}
-                                        {% if field.errors %}
-                                            <div class="text-danger small mt-1">{{ field.errors }}</div>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            <button type="submit" name="login_submit" class="btn btn-primary mt-3">Кіру</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h5 mb-3">Тіркелу</h2>
-                        <form method="post" novalidate>
-                            {% csrf_token %}
-                            {% if register_form.non_field_errors %}
-                                <div class="alert alert-danger py-2">
-                                    {{ register_form.non_field_errors }}
-                                </div>
-                            {% endif %}
-                            <div class="row g-3">
-                                {% for field in register_form %}
-                                    <div class="col-12">
-                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field }}
-                                        {% if field.help_text %}
-                                            <div class="form-text">{{ field.help_text|safe }}</div>
-                                        {% endif %}
-                                        {% if field.errors %}
-                                            <div class="text-danger small mt-1">{{ field.errors }}</div>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            <button type="submit" name="register_submit" class="btn btn-outline-primary mt-3">Тіркелу</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endif %}
+    <div class="auth-chooser-grid">
+        <article class="auth-chooser-card">
+            <h2>Кіру</h2>
+            <p>Бар аккаунтыңыз арқылы жеке кабинетке өтіңіз.</p>
+            <a class="auth-btn auth-btn-primary" href="{% url 'account_login' %}">Кіру бетіне өту</a>
+        </article>
+        <article class="auth-chooser-card">
+            <h2>Тіркелу</h2>
+            <p>Платформада жұмыс істеу үшін жаңа аккаунт ашыңыз.</p>
+            <a class="auth-btn auth-btn-outline" href="{% url 'account_register' %}">Аккаунт ашу</a>
+        </article>
+    </div>
 </section>
 {% endblock %}
+
