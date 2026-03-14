@@ -2,7 +2,8 @@
     <h1 class="display-4" id="brandText">SU Science</h1>
 
     <div class="search-container" id="searchContainer">
-        <form method="get" action="{% url 'main_search' %}" class="d-flex justify-content-center">
+        {% with search_action|default:"main_search" as search_action_resolved %}
+        <form method="get" action="{% url search_action_resolved %}" class="d-flex justify-content-center">
             <input type="hidden" name="tab" value="documents">
             <input
                 type="search"
@@ -42,9 +43,11 @@
                 </svg>
             </button>
         </form>
+        {% endwith %}
         <div id="searchSuggestions" class="search-suggestions d-none" role="listbox" aria-label="Іздеу ұсыныстары"></div>
     </div>
 
+    {% if not hide_quick_search %}
     <div class="quick-search-panel" id="quickSearchPanel">
         <a class="quick-search-link" href="{% url 'main_search' %}?tab=documents&show=all">Барлығын көрсету</a>
         <a class="quick-search-link" href="{% url 'main_search' %}?tab=documents&status=published">Жарияланғандар</a>
@@ -52,6 +55,7 @@
         <a class="quick-search-link" href="{% url 'main_search' %}?tab=documents&quartile=Q1">Q1</a>
         <a class="quick-search-link" href="{% url 'main_search' %}?tab=documents&status=published&y_min={{ quick_year_from }}">Соңғы 5 жыл</a>
     </div>
+    {% endif %}
 
     <div class="filter-container">
         <div class="filter-panel" id="filterPanel" aria-hidden="true">

@@ -17,7 +17,7 @@ from django.utils.text import slugify
 
 from account.models import Department
 from document.models import Document, DocumentGenerator
-from main.models import DepartmentArea, IndexingDatabase, Language, Publication, PublicationType, Tag, Venue
+from main.models import DepartmentArea, IndexingDatabase, Language, NewsItem, Publication, PublicationType, Tag, Venue
 from utils.document_generator import generate_document, generate_docx
 
 User = get_user_model()
@@ -510,6 +510,7 @@ def build_main_page_context(request):
         "areas": DepartmentArea.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
         "tags_top": Tag.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name")[:20],
         "venues_top": Venue.objects.annotate(c=Count("publications", distinct=True)).order_by("-c", "name")[:15],
+        "news_items": NewsItem.objects.prefetch_related("media").order_by("-publication_date", "-id")[:3],
         "year_min": years["min"] or 1900,
         "year_max": years["max"] or 2026,
         "selected_tags": selected_tags,
