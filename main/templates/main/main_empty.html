@@ -3,84 +3,485 @@
 
 {% block title %}SU Science{% endblock %}
 
+{% block styles %}
+<style>
+  .dashboard-home {
+    background:
+      radial-gradient(circle at top right, rgba(13, 110, 253, 0.08), transparent 24rem),
+      linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);
+    border-radius: 1.75rem;
+    padding: 1.5rem;
+  }
+
+  .dashboard-panel {
+    border: 1px solid #dbe4ef;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.06);
+  }
+
+  .hero-panel {
+    min-height: 23rem;
+    background:
+      linear-gradient(135deg, rgba(7, 20, 40, 0.88), rgba(14, 63, 111, 0.58)),
+      url("{% static 'main/images/team.jpg' %}") center/cover no-repeat;
+    color: #ffffff;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hero-panel::after {
+    content: "";
+    position: absolute;
+    inset: auto -3rem -3rem auto;
+    width: 14rem;
+    height: 14rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .soft-tile {
+    background: #f8fbff;
+    border: 1px solid #dbe4ef;
+    border-radius: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .soft-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.8rem 1.8rem rgba(13, 110, 253, 0.08);
+  }
+
+  .metric-card {
+    border: 1px solid #dbe4ef;
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  }
+
+  .metric-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #10243e;
+  }
+
+  .mini-bars {
+    align-items: end;
+    display: flex;
+    gap: 0.65rem;
+    min-height: 10rem;
+  }
+
+  .mini-bars .bar-group {
+    flex: 1;
+    text-align: center;
+  }
+
+  .mini-bars .bar {
+    background: linear-gradient(180deg, #0d6efd 0%, #123f86 100%);
+    border-radius: 1rem 1rem 0.45rem 0.45rem;
+    min-height: 1rem;
+    width: 100%;
+  }
+
+  .news-thumb {
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .placeholder-box {
+    border: 1px dashed #b6c6d8;
+    border-radius: 1.25rem;
+    background: #f8fbff;
+    color: #6c7a89;
+    min-height: 10rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-
-{% include "main/partials/documents_search_full.html" with search_action="advanced_search" hide_quick_search=True %}
-
-<section class="mt-4">
-  <h2 class="h4 mb-3">Жаңалықтар</h2>
-  <div class="row g-3">
-    {% for item in news_items %}
-      <div class="col-12 col-md-4">
-        <div class="card h-100">
-          {% with item.media.all|first as first_media %}
-            {% if first_media and first_media.media_type == "image" and first_media.file %}
-              <img src="{{ first_media.file.url }}" class="card-img-top" alt="{{ first_media.description|default:item.title }}">
-            {% endif %}
-          {% endwith %}
-          <div class="card-body">
-            <h5 class="card-title">{{ item.title }}</h5>
-            {% if item.content %}
-              <p class="card-text">{{ item.content|truncatechars:140 }}</p>
-            {% endif %}
-            {% if item.publication_date %}
-              <p class="card-text"><small class="text-muted">{{ item.publication_date }}</small></p>
-            {% endif %}
+<section class="dashboard-home">
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="dashboard-panel hero-panel p-4 p-md-5 mb-4">
+        <div class="row align-items-end h-100 position-relative">
+          <div class="col-xl-8">
+            <span class="badge rounded-pill bg-light text-dark px-3 py-2 mb-3">SU Science Research Management System</span>
+            <h1 class="display-6 fw-semibold mb-3">Научно-исследовательская экосистема университета</h1>
+            <p class="lead mb-4">
+              Исследователи, лаборатории, публикации, проекты, гранты и аналитические панели в одном пространстве.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+              <a class="btn btn-light btn-lg" href="{% url 'advanced_search' %}?tab=researchers">Смотреть исследователей</a>
+              <a class="btn btn-outline-light btn-lg" href="{% url 'advanced_search' %}?tab=documents">Открыть аналитику</a>
+            </div>
           </div>
         </div>
       </div>
-    {% endfor %}
-  </div>
 
-  <div class="card mt-3">
-    <div class="card-body">
-      <h5 class="card-title">Большая карточка</h5>
-      <p class="card-text">Содержимое будет добавлено позже.</p>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+          <a class="soft-tile d-block text-center text-decoration-none text-dark p-3 h-100" href="{% url 'advanced_search' %}?tab=researchers">Исследователи</a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="soft-tile text-center p-3 h-100">Лаборатории</div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="soft-tile text-center p-3 h-100">Проекты и гранты</div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <a class="soft-tile d-block text-center text-decoration-none text-dark p-3 h-100" href="{% url 'advanced_search' %}?tab=documents">Публикации</a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="soft-tile text-center p-3 h-100">Аналитика</div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="soft-tile text-center p-3 h-100">Коллаборации</div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Исследователи</div>
+            <div class="metric-number">{{ home_stats.researchers }}</div>
+            <div class="small text-muted mt-2">активных профилей в системе</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Публикации</div>
+            <div class="metric-number">{{ home_stats.publications }}</div>
+            <div class="small text-muted mt-2">записей в общей базе</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Проекты</div>
+            <div class="metric-number">{{ home_stats.projects }}</div>
+            <div class="small text-muted mt-2">активных и архивных проектов</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Источники</div>
+            <div class="metric-number">{{ home_stats.venues }}</div>
+            <div class="small text-muted mt-2">журналов и конференций</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+          <div class="dashboard-panel p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 class="h4 mb-1">Последние публикации</h2>
+                <p class="text-muted mb-0">Свежие записи из публикационной базы.</p>
+              </div>
+              <a class="btn btn-outline-primary btn-sm" href="{% url 'main_search' %}?tab=documents&show=all">Все публикации</a>
+            </div>
+
+            <div class="vstack gap-3">
+              {% for publication in recent_publications %}
+                <div class="soft-tile p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold mb-1">{{ publication.title_original }}</div>
+                      <div class="small text-muted">
+                        {{ publication.year }}
+                        {% if publication.pub_type %} • {{ publication.pub_type.name }}{% endif %}
+                        {% if publication.venue %} • {{ publication.venue.name }}{% endif %}
+                      </div>
+                    </div>
+                    <a class="btn btn-sm btn-outline-secondary flex-shrink-0" href="{% url 'publication_detail' publication.pk %}">Открыть</a>
+                  </div>
+                </div>
+              {% empty %}
+                <div class="alert alert-light border mb-0">Публикации пока не добавлены.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-4">
+          <div class="dashboard-panel p-4 mb-4">
+            <h2 class="h4 mb-1">Жаңалықтар</h2>
+            <p class="text-muted mb-3">Новости и объявления, добавленные через админку.</p>
+
+            <div class="vstack gap-3">
+              {% for item in news_items %}
+                <div class="soft-tile overflow-hidden">
+                  {% with item.media.all|first as first_media %}
+                    {% if first_media and first_media.media_type == "image" and first_media.file %}
+                      <img class="news-thumb w-100" src="{{ first_media.file.url }}" alt="{{ item.title }}">
+                    {% endif %}
+                  {% endwith %}
+                  <div class="p-3">
+                    <div class="fw-semibold mb-1">{{ item.title }}</div>
+                    {% if item.content %}
+                      <div class="small text-muted mb-2">{{ item.content|truncatechars:140 }}</div>
+                    {% endif %}
+                    {% if item.publication_date %}
+                      <div class="small text-secondary">{{ item.publication_date }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% empty %}
+                <div class="alert alert-light border mb-0">Пока нет новостей.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="dashboard-panel p-4">
+            <h2 class="h4 mb-1">Быстрая аналитика</h2>
+            <p class="text-muted mb-3">Зона под мини-виджеты, графики и сводки.</p>
+            <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4">
+              Мини-дашборд по публикациям, грантам и коллаборациям.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-panel p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h4 mb-1">Профиль исследователя</h2>
+            <p class="text-muted mb-0">Образец персональной аналитики и связанного контента.</p>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" type="button">Экспорт отчета</button>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="soft-tile p-4 mb-4">
+              <div class="row g-3 align-items-center">
+                <div class="col-md-auto">
+                  <div class="bg-secondary-subtle rounded-4" style="width: 96px; height: 96px;"></div>
+                </div>
+                <div class="col">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h3 class="h4 mb-0">Нуртай Албанбай</h3>
+                    <span class="badge rounded-pill text-bg-dark">Профессор</span>
+                  </div>
+                  <p class="text-muted mb-3">Институт автоматики и информационных технологий • Кафедра кибербезопасности</p>
+                  <div class="d-flex flex-wrap gap-2 small">
+                    <span class="badge text-bg-light border">ORCID</span>
+                    <span class="badge text-bg-light border">Scopus</span>
+                    <span class="badge text-bg-light border">Web of Science</span>
+                    <span class="badge text-bg-light border">Google Scholar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-xl-3">
+                <div class="metric-card p-3 h-100">
+                  <div class="text-muted small">Публикации</div>
+                  <div class="metric-number fs-2">128</div>
+                  <div class="small text-muted">+14% к прошлому периоду</div>
+                </div>
+              </div>
+              <div class="col-6 col-xl-3">
+                <div class="metric-card p-3 h-100">
+                  <div class="text-muted small">Цитирования</div>
+                  <div class="metric-number fs-2">2 436</div>
+                  <div class="small text-muted">+9% к прошлому периоду</div>
+                </div>
+              </div>
+              <div class="col-6 col-xl-3">
+                <div class="metric-card p-3 h-100">
+                  <div class="text-muted small">Гранты</div>
+                  <div class="metric-number fs-2">18</div>
+                  <div class="small text-muted">+3 к прошлому периоду</div>
+                </div>
+              </div>
+              <div class="col-6 col-xl-3">
+                <div class="metric-card p-3 h-100">
+                  <div class="text-muted small">Финансирование</div>
+                  <div class="metric-number fs-2">486 млн</div>
+                  <div class="small text-muted">+11% к прошлому периоду</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dashboard-panel p-4 border-0 shadow-none bg-light">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="h5 mb-0">Научные результаты</h3>
+                <div class="d-flex flex-wrap gap-2">
+                  <span class="badge text-bg-light border">Поиск</span>
+                  <span class="badge text-bg-light border">Год</span>
+                  <span class="badge text-bg-light border">Тематика</span>
+                  <span class="badge text-bg-light border">Сортировка</span>
+                </div>
+              </div>
+              <div class="vstack gap-3">
+                <div class="soft-tile p-3">
+                  <div class="fw-semibold">Electromagnetic Vibration Energy Harvester with Magnetic Levitation</div>
+                  <div class="small text-muted">2024 • Article • Q2 • 12 citations</div>
+                </div>
+                <div class="soft-tile p-3">
+                  <div class="fw-semibold">Secure Federated Learning on ESP32 using Lightweight Ciphers</div>
+                  <div class="small text-muted">2024 • Article • Q2 • 12 citations</div>
+                </div>
+                <div class="soft-tile p-3">
+                  <div class="fw-semibold">LoRaWAN Smart-City Deployment and Reliability Analysis</div>
+                  <div class="small text-muted">2024 • Article • Q2 • 12 citations</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="soft-tile p-4 mb-4">
+              <h3 class="h5 mb-3">Коллаборации</h3>
+              <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4 mb-3">
+                Граф сети внутренних и внешних коллабораций
+              </div>
+              <div class="vstack gap-2">
+                <div class="soft-tile p-3">
+                  <div class="fw-semibold">А. А. Иванов</div>
+                  <div class="small text-muted">Кибербезопасность • 6 публикаций</div>
+                </div>
+                <div class="soft-tile p-3">
+                  <div class="fw-semibold">М. К. Садыкова</div>
+                  <div class="small text-muted">Автоматизация • 4 публикации</div>
+                </div>
+                <div class="soft-tile p-3">
+                  <div class="fw-semibold">Е. Т. Нургалиев</div>
+                  <div class="small text-muted">Робототехника • 3 публикации</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="soft-tile p-4">
+              <h3 class="h5 mb-3">Что важно руководству</h3>
+              <div class="list-group list-group-flush">
+                <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                  <span>Проекты и гранты</span>
+                  <strong>7</strong>
+                </div>
+                <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                  <span>Привлеченное финансирование</span>
+                  <strong>96 млн</strong>
+                </div>
+                <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                  <span>Внешние партнеры</span>
+                  <strong>12</strong>
+                </div>
+                <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                  <span>Open Access</span>
+                  <strong>68%</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-panel p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h4 mb-1">Dashboard кафедры</h2>
+            <p class="text-muted mb-0">Показатели по команде, динамике и лучшим сотрудникам.</p>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" type="button">Экспорт отчета</button>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Исследователи</div><div class="metric-number fs-2">32</div><div class="small text-muted">2 новых профиля</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Публикации</div><div class="metric-number fs-2">46</div><div class="small text-muted">+12%</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Гранты</div><div class="metric-number fs-2">7</div><div class="small text-muted">+2</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Финансирование</div><div class="metric-number fs-2">118 млн</div><div class="small text-muted">+15%</div></div></div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="soft-tile p-4 h-100">
+              <h3 class="h5 mb-3">Публикации по годам</h3>
+              <div class="mini-bars">
+                <div class="bar-group"><div class="bar" style="height: 47%;"></div><div class="small text-muted mt-2">2020</div></div>
+                <div class="bar-group"><div class="bar" style="height: 57%;"></div><div class="small text-muted mt-2">2021</div></div>
+                <div class="bar-group"><div class="bar" style="height: 64%;"></div><div class="small text-muted mt-2">2022</div></div>
+                <div class="bar-group"><div class="bar" style="height: 79%;"></div><div class="small text-muted mt-2">2023</div></div>
+                <div class="bar-group"><div class="bar" style="height: 93%;"></div><div class="small text-muted mt-2">2024</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="soft-tile p-4 h-100">
+              <h3 class="h5 mb-3">Финансирование по годам</h3>
+              <div class="mini-bars">
+                <div class="bar-group"><div class="bar" style="height: 40%;"></div><div class="small text-muted mt-2">2020</div></div>
+                <div class="bar-group"><div class="bar" style="height: 53%;"></div><div class="small text-muted mt-2">2021</div></div>
+                <div class="bar-group"><div class="bar" style="height: 61%;"></div><div class="small text-muted mt-2">2022</div></div>
+                <div class="bar-group"><div class="bar" style="height: 73%;"></div><div class="small text-muted mt-2">2023</div></div>
+                <div class="bar-group"><div class="bar" style="height: 88%;"></div><div class="small text-muted mt-2">2024</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-xl-6">
+          <div class="dashboard-panel p-4 h-100">
+            <h2 class="h4 mb-3">Dashboard института</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead>
+                  <tr>
+                    <th>Кафедра</th>
+                    <th>Публикации</th>
+                    <th>Цитирования</th>
+                    <th>Гранты</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Кибербезопасность</td><td>46</td><td>812</td><td>7</td></tr>
+                  <tr><td>Автоматизация</td><td>38</td><td>654</td><td>5</td></tr>
+                  <tr><td>Информационные системы</td><td>31</td><td>521</td><td>4</td></tr>
+                  <tr><td>Электроника</td><td>24</td><td>280</td><td>2</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4 mt-3">
+              Карта межкафедральных коллабораций
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-6">
+          <div class="dashboard-panel p-4 h-100">
+            <h2 class="h4 mb-3">Dashboard университета</h2>
+            <div class="table-responsive mb-3">
+              <table class="table align-middle">
+                <thead>
+                  <tr>
+                    <th>Институт</th>
+                    <th>Публикации</th>
+                    <th>Цитирования</th>
+                    <th>Гранты</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>ИАИТ</td><td>139</td><td>2 843</td><td>16</td></tr>
+                  <tr><td>Горно-металлургический</td><td>97</td><td>1 506</td><td>11</td></tr>
+                  <tr><td>Энергетика и машиностроение</td><td>82</td><td>1 133</td><td>8</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="vstack gap-2">
+              <div class="soft-tile p-3">2 кафедры со снижением публикационной динамики</div>
+              <div class="soft-tile p-3">11 профилей без внешних коллабораций</div>
+              <div class="soft-tile p-3">Open Access ниже 50% в одном институте</div>
+              <div class="soft-tile p-3">3 гранта завершаются в этом квартале</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
-
-<div id="carouselExampleCaptions" class="carousel slide">
-  <div class="carousel-indicators">
-    <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-    <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="1" aria-label="Slide 2"></button>
-    <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="2" aria-label="Slide 3"></button>
-  </div>
-  <div class="carousel-inner">
-    <div class="carousel-item active">
-      <img src="{% static 'main/images/team.jpg' %}" class="d-block w-100" alt="...">
-      <div class="carousel-caption d-none d-md-block">
-        <h5>Научно иследовательская лаботория киберзащиты и искусственного интеллекта</h5>
-        <p>-Передовые исследования в области кибербезопасности и искусственного интеллекта.</p>
-      </div>
-    </div>
-    <div class="carousel-item">
-      <img src="{% static 'main/images/cybersecurity.png' %}" class="d-block w-100" alt="...">
-      <div class="carousel-caption d-none d-md-block">
-        <h5>Second slide label</h5>
-        <p>Some representative placeholder content for the second slide.</p>
-      </div>
-    </div>
-    <div class="carousel-item">
-      <img src="{% static 'main/images/ai_brain.jpg' %}" class="d-block w-100" alt="...">
-      <div class="carousel-caption d-none d-md-block">
-        <h5>Third slide label</h5>
-        <p>Some representative placeholder content for the third slide.</p>
-      </div>
-    </div>
-  </div>
-  <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev">
-    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-    <span class="visually-hidden">Previous</span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next">
-    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-    <span class="visually-hidden">Next</span>
-  </button>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script src="{% static 'main/scripts/main_filter.js' %}"></script>
-<script src="{% static 'main/scripts/result_view_toggle.js' %}"></script>
 {% endblock %}

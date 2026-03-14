@@ -17,7 +17,7 @@ from django.utils.text import slugify
 
 from account.models import Department
 from document.models import Document, DocumentGenerator
-from main.models import DepartmentArea, IndexingDatabase, Language, NewsItem, Publication, PublicationType, Tag, Venue
+from main.models import DepartmentArea, IndexingDatabase, Language, NewsItem, Project, Publication, PublicationType, Tag, Venue
 from utils.document_generator import generate_document, generate_docx
 
 User = get_user_model()
@@ -503,6 +503,11 @@ def build_main_page_context(request):
     years = Publication.objects.aggregate(min=Min("year"), max=Max("year"))
     current_year = date.today().year
     quick_year_from = current_year - 5
+    recent_publications = (
+        Publication.objects.select_related("pub_type", "venue")
+        .prefetch_related("authors")
+        .order_by("-year", "-id")[:4]
+    )
     return {
         "pub_types": PublicationType.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
         "languages": Language.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
@@ -511,6 +516,13 @@ def build_main_page_context(request):
         "tags_top": Tag.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name")[:20],
         "venues_top": Venue.objects.annotate(c=Count("publications", distinct=True)).order_by("-c", "name")[:15],
         "news_items": NewsItem.objects.prefetch_related("media").order_by("-publication_date", "-id")[:3],
+        "recent_publications": recent_publications,
+        "home_stats": {
+            "researchers": User.objects.count(),
+            "publications": Publication.objects.count(),
+            "projects": Project.objects.count(),
+            "venues": Venue.objects.count(),
+        },
         "year_min": years["min"] or 1900,
         "year_max": years["max"] or 2026,
         "selected_tags": selected_tags,
