@@ -19,6 +19,13 @@ class HomePageView(View):
         return render(request, self.template_name, context)
 
 
+class MainPageView(View):
+    template_name = "main/main_empty.html"
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+
 class SearchPageView(View):
     template_name = "main/search_page.html"
 

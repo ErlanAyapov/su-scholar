@@ -311,3 +311,30 @@ class RepositoryLink(models.Model):
 
     def __str__(self):
         return self.url
+
+
+# News and announcements related to publications, projects, etc.
+class NewsItem(models.Model):
+    title = models.CharField(max_length=300)
+    content = models.TextField()
+    publication_date = models.DateField()
+    related_publications = models.ManyToManyField(Publication, blank=True)
+    related_projects = models.ManyToManyField(Project, blank=True)
+
+    def __str__(self):
+        return self.title
+    
+class NewsMedia(models.Model):
+    MEDIA_TYPE_CHOICES = [
+        ("image", "Image"),
+        ("video", "Video"),
+        ("other", "Other"),
+    ]
+
+    news_item = models.ForeignKey(NewsItem, on_delete=models.CASCADE, related_name="media")
+    file = models.FileField(upload_to="news_media/")
+    description = models.CharField(max_length=200, blank=True)
+    media_type = models.CharField(max_length=50, choices=MEDIA_TYPE_CHOICES, default="image")  # image, video, etc.
+
+    def __str__(self):
+        return f"{self.news_item_id} media"

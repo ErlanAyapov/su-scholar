@@ -11,7 +11,7 @@
                 {{ publication.year }} &bull; {{ publication.pub_type.name }} &bull; {{ publication.venue.name }}
             </p>
         </div>
-        <a href="{% url 'main' %}" id="backToSearchBtn" class="btn btn-outline-secondary btn-sm">Іздеуге оралу</a>
+        <a href="{% url 'advanced_search' %}" id="backToSearchBtn" class="btn btn-outline-secondary btn-sm">Іздеуге оралу</a>
     </div>
 
     <section class="result-card mb-3">
@@ -210,7 +210,7 @@
         try {
             const savedQuery = localStorage.getItem("su_science_main_filters");
             if (savedQuery !== null) {
-                backButton.href = `{% url 'main' %}${savedQuery}`;
+                backButton.href = `{% url 'advanced_search' %}${savedQuery}`;
             }
         } catch (error) {
             // Ignore localStorage failures and keep default link.

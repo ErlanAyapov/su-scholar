@@ -1,4 +1,4 @@
-{% extends "main/base.html" %}
+﻿{% extends "main/base.html" %}
 {% load static %}
 
 {% block title %}SU Science - {{ profile_user.get_full_name|default:profile_user.username }}{% endblock %}
@@ -47,7 +47,7 @@
                 </div>
 
                 <div class="profile-stats" aria-label="Профиль статистикасы">
-                    <a class="profile-stat" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published" data-open-onclick="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">
+                    <a class="profile-stat" href="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published" data-open-onclick="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published">
                         <strong>{{ publication_count }}</strong>
                         <span>Жарияланым</span>
                     </a>
@@ -74,9 +74,9 @@
         <div class="row g-3 profile-content">
             <div class="col-lg-8">
                 <div class="profile-block">
-                    <div class="profile-block-head" data-open-onclick="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">
+                    <div class="profile-block-head" data-open-onclick="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published">
                         <h2 class="h5 mb-0">Соңғы жарияланымдар</h2>
-                        <a class="profile-mini-link" href="{% url 'main' %}?staff_user={{ profile_user.id }}&status=published">Барлығын көру</a>
+                        <a class="profile-mini-link" href="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published">Барлығын көру</a>
                     </div>
                     {% if recent_publications %}
                         <div class="profile-post-grid">

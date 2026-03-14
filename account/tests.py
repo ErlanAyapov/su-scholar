@@ -1,9 +1,13 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
 from account.services.satbayev_scraper import extract_teacher_profile
 from account.tasks import _build_update_payload, _update_user_photo_from_satbayev, enqueue_satbayev_enrichment
@@ -50,6 +54,96 @@ class BulkOperationsAdminTests(TestCase):
         self.assertEqual(response.json()["task_id"], "task-123")
         self.assertTrue(response.json()["ok"])
         mock_delay.assert_called_once_with(force=True)
+
+
+class RegistrationActivationFlowTests(TestCase):
+    def setUp(self):
+        self.staff_user = User.objects.create_user(
+            username="staff-inactive",
+            email="staff.inactive@satbayev.university",
+            is_user=False,
+            is_active=False,
+        )
+        self.active_user = User.objects.create_user(
+            username="regular-user",
+            email="regular.user@satbayev.university",
+            password="RegularPass123!",
+            is_user=True,
+            is_active=True,
+        )
+
+    def test_register_email_status_returns_needs_activation_for_staff_profile(self):
+        response = self.client.get(
+            reverse("register_email_status"),
+            {"email": self.staff_user.email},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "needs_activation")
+
+    def test_register_email_status_returns_already_registered_for_regular_user(self):
+        response = self.client.get(
+            reverse("register_email_status"),
+            {"email": self.active_user.email},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "already_registered")
+
+    @patch("account.views.send_mail")
+    def test_register_send_activation_email_sends_link(self, mock_send_mail):
+        mock_send_mail.return_value = 1
+
+        response = self.client.post(
+            reverse("register_send_activation_email"),
+            data=json.dumps({"email": self.staff_user.email}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_send_mail.assert_called_once()
+        kwargs = mock_send_mail.call_args.kwargs
+        self.assertIn("/account/activate/", kwargs["message"])
+        self.assertIn("subject", kwargs)
+        self.assertEqual(kwargs["recipient_list"], [self.staff_user.email])
+
+    def test_account_activate_marks_user_active_and_redirects_to_set_password(self):
+        uidb64 = urlsafe_base64_encode(force_bytes(self.staff_user.pk))
+        token = default_token_generator.make_token(self.staff_user)
+
+        response = self.client.get(
+            reverse("account_activate", kwargs={"uidb64": uidb64, "token": token}),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            reverse("account_set_password", kwargs={"uidb64": uidb64, "token": token}),
+            fetch_redirect_response=False,
+        )
+        self.staff_user.refresh_from_db()
+        self.assertTrue(self.staff_user.is_active)
+
+    def test_account_set_password_saves_password_and_redirects_to_login(self):
+        uidb64 = urlsafe_base64_encode(force_bytes(self.staff_user.pk))
+        token = default_token_generator.make_token(self.staff_user)
+
+        response = self.client.post(
+            reverse("account_set_password", kwargs={"uidb64": uidb64, "token": token}),
+            {
+                "new_password1": "StrongPass123!@#",
+                "new_password2": "StrongPass123!@#",
+                "next": reverse("account_page"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("account_login"), response.url)
+        self.staff_user.refresh_from_db()
+        self.assertTrue(self.staff_user.check_password("StrongPass123!@#"))
+        self.assertTrue(self.staff_user.is_active)
 
 
 class SatbayevScraperTests(SimpleTestCase):
