@@ -52,3 +52,10 @@ class PublicationDetailView(View):
     def get(self, request, pk: int):
         context = build_publication_detail_context(pk)
         return render(request, self.template_name, context)
+
+
+class ProjectsGrantsDemoView(View):
+    template_name = "main/projects_grants_demo.html"
+
+    def get(self, request):
+        return render(request, self.template_name)

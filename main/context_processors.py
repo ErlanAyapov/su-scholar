@@ -17,9 +17,13 @@ REPORT_NAV_URLS = {
     "synonym_detail",
 }
 
-DOCUMENTS_NAV_URLS = {
+PUBLICATIONS_NAV_URLS = {
     "main_search",
     "publication_detail",
+}
+
+PROJECTS_NAV_URLS = {
+    "projects_grants_demo",
 }
 
 ACCOUNT_NAV_URLS = {
@@ -42,17 +46,27 @@ def layout_navigation(request):
     resolver_match = getattr(request, "resolver_match", None)
     url_name = getattr(resolver_match, "url_name", "") or ""
     search_tab = (request.GET.get("tab") or "").strip().lower()
-    documents_search_active = url_name == "advanced_search" and search_tab != "researchers"
+    researchers_search_active = url_name == "advanced_search" and search_tab == "researchers"
+    publications_search_active = url_name == "advanced_search" and search_tab != "researchers"
+
+    active = {
+        "home": url_name == "main",
+        "researchers": researchers_search_active,
+        "projects": url_name in PROJECTS_NAV_URLS,
+        "publications": url_name in PUBLICATIONS_NAV_URLS or publications_search_active,
+        "analytics": url_name in REPORT_NAV_URLS,
+        "account": url_name in ACCOUNT_NAV_URLS,
+    }
 
     return {
         "layout_nav": {
             "url_name": url_name,
             "search_tab": search_tab,
             "active": {
-                "home": url_name == "main",
-                "reports": url_name in REPORT_NAV_URLS,
-                "documents": url_name in DOCUMENTS_NAV_URLS or documents_search_active,
-                "account": url_name in ACCOUNT_NAV_URLS,
+                **active,
+                # Backward-compatible aliases for older templates.
+                "reports": active["analytics"],
+                "documents": active["publications"],
             },
         }
     }

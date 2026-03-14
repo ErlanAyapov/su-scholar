@@ -32,28 +32,58 @@ class LayoutNavigationTests(SimpleTestCase):
         nav = layout_navigation(request)["layout_nav"]["active"]
 
         self.assertTrue(nav["home"])
-        self.assertFalse(nav["reports"])
-        self.assertFalse(nav["documents"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
         self.assertFalse(nav["account"])
 
-    def test_documents_search_tab_marks_documents_as_active(self):
+    def test_documents_search_tab_marks_publications_as_active(self):
         request = self._build_request(url_name="advanced_search", query="tab=documents")
 
         nav = layout_navigation(request)["layout_nav"]["active"]
 
         self.assertFalse(nav["home"])
-        self.assertFalse(nav["reports"])
-        self.assertTrue(nav["documents"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertTrue(nav["publications"])
+        self.assertFalse(nav["analytics"])
         self.assertFalse(nav["account"])
 
-    def test_researchers_search_tab_does_not_mark_documents_as_active(self):
+    def test_researchers_search_tab_marks_researchers_as_active(self):
         request = self._build_request(url_name="advanced_search", query="tab=researchers")
 
         nav = layout_navigation(request)["layout_nav"]["active"]
 
         self.assertFalse(nav["home"])
-        self.assertFalse(nav["reports"])
-        self.assertFalse(nav["documents"])
+        self.assertTrue(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_projects_page_marks_projects_as_active(self):
+        request = self._build_request(url_name="projects_grants_demo")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertTrue(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_document_main_marks_analytics_as_active(self):
+        request = self._build_request(url_name="document_main")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertTrue(nav["analytics"])
         self.assertFalse(nav["account"])
 
     def test_employee_profile_marks_account_as_active(self):
@@ -62,8 +92,10 @@ class LayoutNavigationTests(SimpleTestCase):
         nav = layout_navigation(request)["layout_nav"]["active"]
 
         self.assertFalse(nav["home"])
-        self.assertFalse(nav["reports"])
-        self.assertFalse(nav["documents"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
         self.assertTrue(nav["account"])
 
 

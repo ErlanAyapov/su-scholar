@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="kk">
+<html lang="ru">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,86 +12,71 @@
     <link rel="icon" type="image/x-icon" href="{% static 'main/images/favicon.ico' %}">
     {% block styles %}{% endblock %}
 </head>
-<body>
-    <div class="profile-shell profile-dashboard app-layout">
-        <aside class="profile-rail app-sidebar">
-            <a class="app-brand" href="{% url 'main' %}">
-                <img src="{% static 'main/images/icon.png' %}" alt="SU Science" width="46" height="46">
-                <div>
-                    <div class="profile-rail-eyebrow">SU Science</div>
-                    <div class="app-brand-title">Research Workspace</div>
-                </div>
+<body class="rms-page">
+    <div class="rms-app-shell">
+        <header class="rms-topbar">
+            <a class="rms-brand" href="{% url 'main' %}">
+                <span class="rms-brand-mark">SU</span>
+                <span class="rms-brand-copy">
+                    <strong>SU Science</strong>
+                    <small>Research Management System</small>
+                </span>
             </a>
 
-            <div class="profile-rail-head">
-                <h1 class="profile-rail-title">Навигация</h1>
-                <p class="profile-rail-copy">
-                    Единое левое меню для поиска, документов, отчётов и аккаунта.
-                </p>
-            </div>
-
-            <nav class="profile-nav" aria-label="Основная навигация">
-                <a class="profile-nav-item {% if layout_nav.active.home %}is-active{% endif %}" href="{% url 'main' %}">
-                    <i class="bi bi-house-door"></i>
-                    <span>Басты бет</span>
+            <nav class="rms-quick-nav" aria-label="Основное меню">
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.researchers %}is-active{% endif %}"
+                    href="{% url 'advanced_search' %}?tab=researchers&researcher_scope=staff"
+                >
+                    Исследователи
                 </a>
-                <a class="profile-nav-item {% if layout_nav.active.reports %}is-active{% endif %}" href="{% url 'document_main' %}">
-                    <i class="bi bi-file-earmark-bar-graph"></i>
-                    <span>Есептер</span>
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.projects %}is-active{% endif %}"
+                    href="{% url 'projects_grants_demo' %}"
+                >
+                    Проекты и гранты
                 </a>
-                <a class="profile-nav-item {% if layout_nav.active.documents %}is-active{% endif %}" href="{% url 'main_search' %}">
-                    <i class="bi bi-files"></i>
-                    <span>Құжаттар</span>
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.publications %}is-active{% endif %}"
+                    href="{% url 'advanced_search' %}?tab=documents&status=published&show=all"
+                >
+                    Публикации
                 </a>
-                <a class="profile-nav-item {% if layout_nav.active.account %}is-active{% endif %}" href="{% url 'account_page' %}">
-                    <i class="bi bi-person-circle"></i>
-                    <span>Аккаунт</span>
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.analytics %}is-active{% endif %}"
+                    href="{% url 'document_main' %}"
+                >
+                    Аналитика
+                </a>
+                <a
+                    class="rms-nav-pill is-account {% if layout_nav.active.account %}is-active{% endif %}"
+                    href="{% url 'account_page' %}"
+                >
+                    Аккаунт
                 </a>
             </nav>
+        </header>
 
-            <div class="profile-rail-card">
-                <div class="profile-rail-card-title">Пайдаланушы</div>
-                <div class="profile-rail-stats">
-                    <div class="profile-rail-stat">
-                        <span>Статус</span>
-                        <strong>{% if request.user.is_authenticated %}Авторизован{% else %}Гость{% endif %}</strong>
-                    </div>
-                    <div class="profile-rail-stat">
-                        <span>Профиль</span>
-                        <strong>
-                            {% if request.user.is_authenticated %}
-                                {{ request.user.get_full_name|default:request.user.username }}
-                            {% else %}
-                                Вход не выполнен
-                            {% endif %}
-                        </strong>
-                    </div>
+        <main class="rms-content">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="rms-footer">
+            <div class="rms-footer-grid">
+                <div>
+                    <h4>SU Science</h4>
+                    <p><a href="#"><i class="bi bi-info-circle me-2"></i>SuScience деген не?</a></p>
+                    <p><a href="#"><i class="bi bi-question-circle me-2"></i>SuScience қалай жұмыс істейді?</a></p>
+                    <span class="text-muted">© 2026 SU Science. Барлық құқықтар қорғалған.</span>
+                </div>
+                <div>
+                    <h4>Байланыс</h4>
+                    <p><a href="mailto:n.albanbay@satbayev.university"><i class="bi bi-envelope-fill me-2"></i>n.albanbay@satbayev.university</a></p>
+                    <p><a href="tel:+77083210030"><i class="bi bi-telephone-fill me-2"></i>+7 708 321 0030</a></p>
+                    <p><a href="https://wa.me/77083210030"><i class="bi bi-whatsapp me-2"></i>+7 708 321 0030</a></p>
                 </div>
             </div>
-        </aside>
-
-        <div class="profile-workspace app-workspace">
-            <main class="app-main">
-                {% block content %}{% endblock %}
-            </main>
-
-            <footer class="app-footer">
-                <div class="app-footer-grid">
-                    <div>
-                        <h4>SU Science</h4>
-                        <p><a href="#"><i class="bi bi-info-circle me-2"></i>SuScience деген не?</a></p>
-                        <p><a href="#"><i class="bi bi-question-circle me-2"></i>SuScience қалай жұмыс істейді?</a></p>
-                        <span class="text-muted">© 2026 SU Science. Барлық құқықтар қорғалған.</span>
-                    </div>
-                    <div>
-                        <h4>Байланыс</h4>
-                        <p><a href="mailto:n.albanbay@satbayev.university"><i class="bi bi-envelope-fill me-2"></i>n.albanbay@satbayev.university</a></p>
-                        <p><a href="tel:+77083210030"><i class="bi bi-telephone-fill me-2"></i>+7 708 321 0030</a></p>
-                        <p><a href="https://wa.me/77083210030"><i class="bi bi-whatsapp me-2"></i>+7 708 321 0030</a></p>
-                    </div>
-                </div>
-            </footer>
-        </div>
+        </footer>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

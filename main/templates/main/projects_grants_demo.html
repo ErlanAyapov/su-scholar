@@ -1,0 +1,119 @@
+{% extends "main/base.html" %}
+
+{% block title %}SU Science - Проекты и гранты{% endblock %}
+
+{% block content %}
+<section class="rms-section-card">
+    <div class="rms-section-head">
+        <div>
+            <h1 class="rms-section-title">Проекты и гранты</h1>
+            <p class="rms-section-subtitle">
+                Демо-страница управления научными проектами: активные заявки, бюджет, дедлайны и командная загрузка.
+            </p>
+        </div>
+        <div class="rms-section-actions">
+            <a class="rms-action-btn" href="{% url 'advanced_search' %}?tab=documents&status=published&show=all">
+                Публикации по проектам
+            </a>
+            <a class="rms-action-btn is-primary" href="{% url 'document_main' %}">
+                Аналитический отчет
+            </a>
+        </div>
+    </div>
+
+    <div class="rms-kpi-grid">
+        <article class="rms-kpi-card">
+            <span class="rms-kpi-label">Активные проекты</span>
+            <strong class="rms-kpi-value">18</strong>
+            <span class="rms-kpi-meta">+3 за квартал</span>
+        </article>
+        <article class="rms-kpi-card">
+            <span class="rms-kpi-label">Грантовые заявки</span>
+            <strong class="rms-kpi-value">27</strong>
+            <span class="rms-kpi-meta">конверсия 41%</span>
+        </article>
+        <article class="rms-kpi-card">
+            <span class="rms-kpi-label">Бюджет</span>
+            <strong class="rms-kpi-value">₸ 486 млн</strong>
+            <span class="rms-kpi-meta">освоение 73%</span>
+        </article>
+        <article class="rms-kpi-card">
+            <span class="rms-kpi-label">Коллаборации</span>
+            <strong class="rms-kpi-value">12</strong>
+            <span class="rms-kpi-meta">международные партнеры</span>
+        </article>
+    </div>
+
+    <div class="rms-demo-grid">
+        <article class="rms-demo-card">
+            <h2 class="rms-demo-title">Текущие проекты</h2>
+            <div class="table-responsive">
+                <table class="table align-middle rms-demo-table">
+                    <thead>
+                        <tr>
+                            <th>Проект</th>
+                            <th>Руководитель</th>
+                            <th>Срок</th>
+                            <th>Статус</th>
+                            <th>Бюджет</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AI Security for Smart Campus</td>
+                            <td>Н. Албанбай</td>
+                            <td>Q4 2026</td>
+                            <td><span class="rms-badge ok">В работе</span></td>
+                            <td>₸ 96 млн</td>
+                        </tr>
+                        <tr>
+                            <td>Industrial IoT Diagnostics</td>
+                            <td>М. Садыкова</td>
+                            <td>Q2 2027</td>
+                            <td><span class="rms-badge info">Набор команды</span></td>
+                            <td>₸ 74 млн</td>
+                        </tr>
+                        <tr>
+                            <td>Robotic Process Monitoring</td>
+                            <td>Е. Нургалиев</td>
+                            <td>Q1 2027</td>
+                            <td><span class="rms-badge warn">Риск дедлайна</span></td>
+                            <td>₸ 51 млн</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="rms-demo-card">
+            <h2 class="rms-demo-title">Ближайшие дедлайны</h2>
+            <div class="rms-timeline">
+                <div class="rms-timeline-item">
+                    <strong>21 марта</strong>
+                    <p>Подача гранта «Digital University 2026»</p>
+                </div>
+                <div class="rms-timeline-item">
+                    <strong>29 марта</strong>
+                    <p>Промежуточный отчет по AI Security for Smart Campus</p>
+                </div>
+                <div class="rms-timeline-item">
+                    <strong>11 апреля</strong>
+                    <p>Пересмотр бюджета Industrial IoT Diagnostics</p>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <article class="rms-demo-card">
+        <h2 class="rms-demo-title">Приоритетные направления финансирования</h2>
+        <div class="rms-pill-row">
+            <span class="rms-tag-pill">Cybersecurity</span>
+            <span class="rms-tag-pill">Industrial AI</span>
+            <span class="rms-tag-pill">Energy Systems</span>
+            <span class="rms-tag-pill">Smart Materials</span>
+            <span class="rms-tag-pill">Digital Twins</span>
+            <span class="rms-tag-pill">Robotics</span>
+        </div>
+    </article>
+</section>
+{% endblock %}
