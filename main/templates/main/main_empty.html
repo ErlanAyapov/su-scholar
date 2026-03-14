@@ -5,6 +5,41 @@
 
 {% block content %}
 
+{% include "main/partials/documents_search_full.html" with search_action="advanced_search" hide_quick_search=True %}
+
+<section class="mt-4">
+  <h2 class="h4 mb-3">Жаңалықтар</h2>
+  <div class="row g-3">
+    {% for item in news_items %}
+      <div class="col-12 col-md-4">
+        <div class="card h-100">
+          {% with item.media.all|first as first_media %}
+            {% if first_media and first_media.media_type == "image" and first_media.file %}
+              <img src="{{ first_media.file.url }}" class="card-img-top" alt="{{ first_media.description|default:item.title }}">
+            {% endif %}
+          {% endwith %}
+          <div class="card-body">
+            <h5 class="card-title">{{ item.title }}</h5>
+            {% if item.content %}
+              <p class="card-text">{{ item.content|truncatechars:140 }}</p>
+            {% endif %}
+            {% if item.publication_date %}
+              <p class="card-text"><small class="text-muted">{{ item.publication_date }}</small></p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="card-title">Большая карточка</h5>
+      <p class="card-text">Содержимое будет добавлено позже.</p>
+    </div>
+  </div>
+</section>
+
 <div id="carouselExampleCaptions" class="carousel slide">
   <div class="carousel-indicators">
     <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
@@ -43,4 +78,9 @@
     <span class="visually-hidden">Next</span>
   </button>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'main/scripts/main_filter.js' %}"></script>
+<script src="{% static 'main/scripts/result_view_toggle.js' %}"></script>
 {% endblock %}

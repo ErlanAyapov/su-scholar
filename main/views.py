@@ -23,7 +23,8 @@ class MainPageView(View):
     template_name = "main/main_empty.html"
 
     def get(self, request):
-        return render(request, self.template_name)
+        context = build_main_page_context(request)
+        return render(request, self.template_name, context)
 
 
 class SearchPageView(View):

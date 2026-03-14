@@ -62,35 +62,6 @@
                                 </svg>
                             </a>
                         </li>
-                        {% if request.resolver_match.url_name != 'advanced_search' %}
-                            <li class="nav-item ms-lg-2 mt-2 mt-lg-0" id="navSearchItem">
-                                <form class="nav-quick-search-form d-flex" method="get" action="{% url 'advanced_search' %}">
-                                    <input type="hidden" name="tab" value="documents">
-                                    <input
-                                        type="search"
-                                        name="search"
-                                        class=""
-                                        placeholder="Smart іздеу..."
-                                        aria-label="Smart іздеу"
-                                        title="Іздеуді ФИО, тақырыптар, кілт сөздер арқылы жүргізуге болады"
-                                    >
-                                    <button type="submit" class="">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-                                        </svg>
-                                    </button>
-                                </form>
-                            </li>
-                        {% else %}
-                         <li class="nav-item nav-link-custom active">
-                            <a class="nav-link" href="{% url 'advanced_search' %}">
-                                Іздеу
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-                                </svg>
-                            </a>
-                        </li>
-                        {% endif %}
                     </ul>
                 </div>
             </div>
