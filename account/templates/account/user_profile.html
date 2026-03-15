@@ -148,7 +148,7 @@
                 {{ profile_user.department.institute.university.name }} •
               {% endif %}
               {% if profile_user.department and profile_user.department.institute %}
-                Институт {{ profile_user.department.institute.name }} •
+                 {{ profile_user.department.institute.name }} •
               {% endif %}
               {% if profile_user.department %}
                 Кафедра {{ profile_user.department.name }}
@@ -242,27 +242,31 @@
     <div class="col-lg-4">
       <div class="soft-tile p-4 mb-4">
         <h3 class="h5 mb-3">Коллаборации</h3>
-        <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4 mb-3">
+        <div class=" d-none placeholder-box d-flex align-items-center justify-content-center text-center p-4 mb-3">
           Граф сети внутренних и внешних коллабораций
         </div>
         <div class="vstack gap-2">
           <div class="soft-tile p-3">
-            <div class="fw-semibold">А. А. Иванов</div>
-            <div class="small text-muted">Кибербезопасность • 6 публикаций</div>
+            <div class="fw-semibold">Т. Ерлан</div>
+            <div class="small text-muted">Кибербезопасность • 16 публикаций</div>
           </div>
           <div class="soft-tile p-3">
-            <div class="fw-semibold">М. К. Садыкова</div>
-            <div class="small text-muted">Автоматизация • 4 публикации</div>
+            <div class="fw-semibold">K. Graffi</div>
+            <div class="small text-muted">Кибербезопасность • 14 публикации</div>
           </div>
           <div class="soft-tile p-3">
-            <div class="fw-semibold">Е. Т. Нургалиев</div>
-            <div class="small text-muted">Робототехника • 3 публикации</div>
+            <div class="fw-semibold">І. Самат</div>
+            <div class="small text-muted">Кибербезопасность • 13 публикации</div>
+          </div>
+          <div class="soft-tile p-3">
+            <div class="fw-semibold">A. Мустафа</div>
+            <div class="small text-muted">Работатехника • 9 публикации</div>
           </div>
         </div>
       </div>
 
       <div class="soft-tile p-4">
-        <h3 class="h5 mb-3">Что важно руководству</h3>
+        <h3 class="h5 mb-3">Финансы</h3>
         <div class="list-group list-group-flush">
           <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
             <span>Проекты и гранты</span>

@@ -6,8 +6,9 @@ from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.http import QueryDict
-from django.test import SimpleTestCase, TestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
 
+from account.models import Department, Institute, University
 from main.context_processors import layout_navigation
 from main.models import Language, Publication, PublicationType, Venue
 from main.services.publication_importer import (
@@ -17,6 +18,7 @@ from main.services.publication_importer import (
     _safe_year,
     import_works_from_scholar,
 )
+from main.utils import build_search_page_context
 from project.asgi import application
 
 User = get_user_model()
@@ -155,6 +157,63 @@ class ScholarParsingTests(SimpleTestCase):
         self.assertEqual(works[2]["year"], 0)
         self.assertEqual(works[0]["venue"], "NovaInfo. Ru 2 (32), 25-32")
         self.assertEqual(works[2]["venue"], "ВЕСТНИК ТОРАЙГЫРОВ УНИВЕРСИТЕТА")
+
+
+class ResearcherHierarchyFilterTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.university_1 = University.objects.create(name="University A")
+        self.university_2 = University.objects.create(name="University B")
+        self.institute_1 = Institute.objects.create(name="Institute A1", university=self.university_1)
+        self.institute_2 = Institute.objects.create(name="Institute B1", university=self.university_2)
+        self.department_1 = Department.objects.create(name="Department A1", institute=self.institute_1)
+        self.department_2 = Department.objects.create(name="Department B1", institute=self.institute_2)
+
+        self.user_1 = User.objects.create_user(
+            username="researcher-a",
+            password="testpass123",
+            first_name="A",
+            last_name="One",
+            department=self.department_1,
+        )
+        self.user_2 = User.objects.create_user(
+            username="researcher-b",
+            password="testpass123",
+            first_name="B",
+            last_name="Two",
+            department=self.department_2,
+        )
+
+    def test_researcher_filter_by_university(self):
+        request = self.factory.get(
+            "/advanced_search/",
+            {
+                "tab": "researchers",
+                "researcher_university": str(self.university_1.id),
+            },
+        )
+
+        context = build_search_page_context(request)
+        result_ids = {user.id for user in context["researcher_results"]}
+
+        self.assertTrue(context["researcher_show_results"])
+        self.assertIn(self.user_1.id, result_ids)
+        self.assertNotIn(self.user_2.id, result_ids)
+
+    def test_researcher_filter_by_department_fills_parent_hierarchy(self):
+        request = self.factory.get(
+            "/advanced_search/",
+            {
+                "tab": "researchers",
+                "researcher_department": str(self.department_1.id),
+            },
+        )
+
+        context = build_search_page_context(request)
+
+        self.assertEqual(context["researcher_department"], self.department_1.id)
+        self.assertEqual(context["researcher_institute"], self.institute_1.id)
+        self.assertEqual(context["researcher_university"], self.university_1.id)
 
 
 class AbstractExtractionTests(SimpleTestCase):

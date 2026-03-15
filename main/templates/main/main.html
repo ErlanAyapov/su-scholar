@@ -341,11 +341,59 @@
                         <input class="control" type="text" name="research_q" value="{{ research_q|default:'' }}" placeholder="username, email, ORCID, Scopus">
                     </label>
                     <label class="field">
+                        <span class="label">Университет</span>
+                        <select
+                            id="researcherUniversitySelect"
+                            name="researcher_university"
+                            class="control"
+                        >
+                            <option value="">Все</option>
+                            {% for university in research_universities %}
+                                <option value="{{ university.id }}" {% if researcher_university == university.id %}selected{% endif %}>
+                                    {{ university.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
+                <div class="research-grid-2">
+                    <label class="field">
+                        <span class="label">Институт</span>
+                        <select
+                            id="researcherInstituteSelect"
+                            name="researcher_institute"
+                            class="control"
+                        >
+                            <option value="">Все</option>
+                            {% for institute in research_institutes %}
+                                <option
+                                    value="{{ institute.id }}"
+                                    data-university-id="{{ institute.university_id }}"
+                                    {% if researcher_institute == institute.id %}selected{% endif %}
+                                >
+                                    {{ institute.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="field">
                         <span class="label">Кафедра</span>
-                        <select name="researcher_department" class="control">
+                        <select
+                            id="researcherDepartmentSelect"
+                            name="researcher_department"
+                            class="control"
+                        >
                             <option value="">Все</option>
                             {% for dept in research_departments %}
-                                <option value="{{ dept.id }}" {% if researcher_department == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                                <option
+                                    value="{{ dept.id }}"
+                                    data-institute-id="{{ dept.institute_id }}"
+                                    data-university-id="{{ dept.institute.university_id }}"
+                                    {% if researcher_department == dept.id %}selected{% endif %}
+                                >
+                                    {{ dept.name }}
+                                </option>
                             {% endfor %}
                         </select>
                     </label>
@@ -456,4 +504,5 @@
 
 {% block scripts %}
 <script src="{% static 'main/scripts/result_view_toggle.js' %}"></script>
+<script src="{% static 'main/scripts/researcher_hierarchy_filters.js' %}"></script>
 {% endblock %}
