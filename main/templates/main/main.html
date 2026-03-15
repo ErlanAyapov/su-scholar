@@ -4,7 +4,7 @@
 {% block title %}SU Science{% endblock %}
 
 {% block content %}
-<section class="scope-switch" aria-label="Search scope">
+<section class="scope-switch d-none" aria-label="Search scope">
     <a class="scope-switch-item {% if active_tab == 'documents' %}is-active{% endif %}" href="{% url 'advanced_search' %}?tab=documents">
         ПУБЛИКАЦИИ
     </a>
