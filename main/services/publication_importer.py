@@ -41,10 +41,10 @@ ABSTRACT_LABEL_RE = re.compile(r"^\s*(abstract|summary)\s*[:\-]\s*", re.IGNORECA
 ABSTRACT_META_KEYS = {
     "citation_abstract",
     "dc.description.abstract",
-    "dc.description",
-    "description",
-    "og:description",
-    "twitter:description",
+    "dcterms.abstract",
+    "prism.abstract",
+    "eprints.abstract",
+    "abstract",
 }
 ABSTRACT_SECTION_SELECTORS = (
     "section.abstract",
@@ -54,6 +54,32 @@ ABSTRACT_SECTION_SELECTORS = (
     "#Abs1-content",
     "[data-test='abstract']",
     "[data-testid='abstract']",
+)
+ABSTRACT_KEYWORDS_RE = re.compile(r"^\s*(keywords?|index terms?)\b", re.IGNORECASE)
+ABSTRACT_AUTHOR_LINE_RE = re.compile(
+    r"^\s*(authors?|co[\s\-]?authors?|author information|affiliations?|byline|corresponding author)\b",
+    re.IGNORECASE,
+)
+ABSTRACT_NOISE_SELECTOR = ",".join(
+    (
+        "script",
+        "style",
+        "noscript",
+        "nav",
+        "aside",
+        "header",
+        "footer",
+        "figure",
+        "table",
+        ".author",
+        ".authors",
+        ".byline",
+        "[itemprop='author']",
+        "[class*='author']",
+        "[id*='author']",
+        "[class*='byline']",
+        "[id*='byline']",
+    )
 )
 MAX_ABSTRACT_LENGTH = 20_000
 MIN_ABSTRACT_LENGTH = 40
@@ -196,10 +222,66 @@ def _is_usable_abstract(value: str) -> bool:
     text = _normalize_abstract_text(value)
     if len(text) < MIN_ABSTRACT_LENGTH:
         return False
+    if ABSTRACT_AUTHOR_LINE_RE.match(text):
+        return False
     words = text.split()
     if len(words) < 8:
         return False
     return True
+
+
+def _extract_abstract_candidate_from_node(node) -> str:
+    fragment = BeautifulSoup(str(node), "html.parser")
+    root = fragment.find()
+    if root is None:
+        return ""
+
+    for noisy in root.select(ABSTRACT_NOISE_SELECTOR):
+        noisy.decompose()
+
+    paragraph_parts = []
+    for part in root.select("p, div, span"):
+        text = _normalize_abstract_text(part.get_text(" ", strip=True))
+        if not text:
+            continue
+        if ABSTRACT_KEYWORDS_RE.match(text):
+            break
+        if ABSTRACT_AUTHOR_LINE_RE.match(text):
+            continue
+        if len(text.split()) < 8:
+            continue
+        paragraph_parts.append(text)
+        if len(paragraph_parts) >= 4:
+            break
+
+    if paragraph_parts:
+        return _normalize_abstract_text(" ".join(paragraph_parts))
+
+    text = _normalize_abstract_text(root.get_text(" ", strip=True))
+    if ABSTRACT_AUTHOR_LINE_RE.match(text) or ABSTRACT_KEYWORDS_RE.match(text):
+        return ""
+    return text
+
+
+def _extract_abstract_from_heading_siblings(heading) -> str:
+    chunks: list[str] = []
+    for sibling in heading.find_next_siblings():
+        if sibling.name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            break
+
+        text = _extract_abstract_candidate_from_node(sibling)
+        if not text:
+            continue
+        if ABSTRACT_KEYWORDS_RE.match(text):
+            break
+        if ABSTRACT_AUTHOR_LINE_RE.match(text):
+            continue
+
+        chunks.append(text)
+        if len(" ".join(chunks)) >= 1800 or len(chunks) >= 4:
+            break
+
+    return _normalize_abstract_text(" ".join(chunks))
 
 
 def _extract_abstract_from_html(html: str) -> str:
@@ -218,15 +300,14 @@ def _extract_abstract_from_html(html: str) -> str:
 
     for selector in ABSTRACT_SECTION_SELECTORS:
         for node in soup.select(selector):
-            content = _normalize_abstract_text(node.get_text(" ", strip=True))
+            content = _extract_abstract_candidate_from_node(node)
             if _is_usable_abstract(content):
                 return content
 
-    heading = soup.find(
-        lambda tag: tag.name in {"h1", "h2", "h3", "h4", "strong"} and "abstract" in tag.get_text(" ", strip=True).lower()
-    )
-    if heading and heading.parent:
-        content = _normalize_abstract_text(heading.parent.get_text(" ", strip=True))
+    for heading in soup.find_all(
+        lambda tag: tag.name in {"h1", "h2", "h3", "h4", "h5", "h6", "strong"} and "abstract" in tag.get_text(" ", strip=True).lower()
+    ):
+        content = _extract_abstract_from_heading_siblings(heading)
         if _is_usable_abstract(content):
             return content
 

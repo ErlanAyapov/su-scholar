@@ -12,6 +12,7 @@ from main.context_processors import layout_navigation
 from main.models import Language, Publication, PublicationType, Venue
 from main.services.publication_importer import (
     _build_record_id,
+    _extract_abstract_from_html,
     _fetch_scholar_profile_works,
     _safe_year,
     import_works_from_scholar,
@@ -154,6 +155,45 @@ class ScholarParsingTests(SimpleTestCase):
         self.assertEqual(works[2]["year"], 0)
         self.assertEqual(works[0]["venue"], "NovaInfo. Ru 2 (32), 25-32")
         self.assertEqual(works[2]["venue"], "ВЕСТНИК ТОРАЙГЫРОВ УНИВЕРСИТЕТА")
+
+
+class AbstractExtractionTests(SimpleTestCase):
+    def test_extract_abstract_ignores_author_blocks_inside_abstract_section(self):
+        html = """
+        <section class="abstract">
+            <div class="authors">Authors: A. A. Ivanov, M. K. Sadykova</div>
+            <p>
+                Abstract: This paper proposes a lightweight architecture for IoT telemetry
+                processing with adaptive filtering and anomaly detection under noisy channels.
+            </p>
+        </section>
+        """
+
+        abstract = _extract_abstract_from_html(html)
+
+        self.assertIn("This paper proposes a lightweight architecture", abstract)
+        self.assertNotIn("Ivanov", abstract)
+        self.assertNotIn("Authors:", abstract)
+
+    def test_extract_abstract_from_heading_uses_content_after_heading_only(self):
+        html = """
+        <div class="article-body">
+            <h2>Abstract</h2>
+            <div class="byline">Authors: A. A. Ivanov, M. K. Sadykova</div>
+            <p>
+                We evaluate a university-scale dataset and show stable precision across
+                multiple domains with reduced annotation costs.
+            </p>
+            <h3>Keywords</h3>
+            <p>IoT, University analytics</p>
+        </div>
+        """
+
+        abstract = _extract_abstract_from_html(html)
+
+        self.assertIn("We evaluate a university-scale dataset", abstract)
+        self.assertNotIn("Authors:", abstract)
+        self.assertNotIn("Keywords", abstract)
 
 
 class ScholarImportTests(TestCase):
