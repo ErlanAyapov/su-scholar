@@ -147,7 +147,7 @@
               {% if profile_user.department and profile_user.department.university %}
                 {{ profile_user.department.university.name }} •
               {% endif %}
-              {{ profile_user.department.name|default:"Подразделение не указано" }}
+              {% if profile_user.department %}Кафедра {% endif %}{{ profile_user.department.name|default:"Подразделение не указано" }}
             </p>
             <div class="d-flex flex-wrap gap-2 small">
               {% for link in external_links %}

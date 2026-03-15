@@ -504,9 +504,9 @@ def build_main_page_context(request):
     current_year = date.today().year
     quick_year_from = current_year - 5
     recent_publications = (
-        Publication.objects.select_related("pub_type", "venue")
+        Publication.objects.filter(created_by=40).select_related("pub_type", "venue")
         .prefetch_related("authors")
-        .order_by("-year", "-id")[:4]
+        .order_by("-year", "-id")[:5]
     )
     return {
         "pub_types": PublicationType.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
