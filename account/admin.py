@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
-from account.models import Department, Role, University, User
+from account.models import Department, Institute, Role, University, User
 from account.tasks import enqueue_satbayev_enrichment, enrich_user_profile_from_satbayev
 from core.models import CeleryTaskLog
 from core.services.celery_task_channels import serialize_task_log
@@ -259,11 +259,24 @@ class UniversityAdmin(admin.ModelAdmin):
     search_fields = ("name", "country")
 
 
-@admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
+@admin.register(Institute)
+class InstituteAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "university")
     list_filter = ("university",)
     search_fields = ("name", "university__name")
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "institute", "university_name")
+    list_filter = ("institute", "institute__university")
+    search_fields = ("name", "institute__name", "institute__university__name")
+
+    @admin.display(description="University")
+    def university_name(self, obj: Department):
+        if not obj.institute_id:
+            return "-"
+        return obj.institute.university
 
 
 @admin.register(Role)

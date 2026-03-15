@@ -11,6 +11,25 @@ class University(models.Model):
         return self.name
 
 
+class Institute(models.Model):
+    """
+    Institute inside a university.
+    """
+
+    name = models.CharField(max_length=200)
+    university = models.ForeignKey(
+        University,
+        on_delete=models.CASCADE,
+        related_name="institutes",
+    )
+
+    class Meta:
+        unique_together = ("name", "university")
+
+    def __str__(self):
+        return f"{self.name} ({self.university})"
+
+
 class Role(models.Model):
     """
     Роль пользователя в системе.
@@ -28,14 +47,20 @@ class Department(models.Model):
     Кафедра
     """
     name = models.CharField(max_length=200)
-    university = models.ForeignKey(
-        University,
+    institute = models.ForeignKey(
+        Institute,
         on_delete=models.CASCADE,
         related_name="departments"
     )
 
+    @property
+    def university(self):
+        if not self.institute_id:
+            return None
+        return self.institute.university
+
     def __str__(self):
-        return f"{self.name} ({self.university})"
+        return f"{self.name} ({self.institute})"
 
 
 class User(AbstractUser):

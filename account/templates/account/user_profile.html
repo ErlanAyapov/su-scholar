@@ -144,10 +144,17 @@
               {% endif %}
             </div>
             <p class="text-muted mb-3">
-              {% if profile_user.department and profile_user.department.university %}
-                {{ profile_user.department.university.name }} •
+              {% if profile_user.department and profile_user.department.institute and profile_user.department.institute.university %}
+                {{ profile_user.department.institute.university.name }} •
               {% endif %}
-              {% if profile_user.department %}Кафедра {% endif %}{{ profile_user.department.name|default:"Подразделение не указано" }}
+              {% if profile_user.department and profile_user.department.institute %}
+                Институт {{ profile_user.department.institute.name }} •
+              {% endif %}
+              {% if profile_user.department %}
+                Кафедра {{ profile_user.department.name }}
+              {% else %}
+                Подразделение не указано
+              {% endif %}
             </p>
             <div class="d-flex flex-wrap gap-2 small">
               {% for link in external_links %}

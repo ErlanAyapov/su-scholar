@@ -140,7 +140,7 @@ def employees_list_chunk(request):
 
 def employee_profile(request, user_id: int):
     profile_user = get_object_or_404(
-        User.objects.select_related("department").prefetch_related("universities", "roles"),
+        User.objects.select_related("department__institute__university").prefetch_related("universities", "roles"),
         pk=user_id,
     )
     can_edit_profile = bool(request.user.is_authenticated and request.user.id == profile_user.id)
