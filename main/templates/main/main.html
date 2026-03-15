@@ -364,6 +364,7 @@
                             id="researcherInstituteSelect"
                             name="researcher_institute"
                             class="control"
+                            {% if not researcher_university %}disabled{% endif %}
                         >
                             <option value="">Все</option>
                             {% for institute in research_institutes %}
@@ -383,6 +384,7 @@
                             id="researcherDepartmentSelect"
                             name="researcher_department"
                             class="control"
+                            {% if not researcher_institute %}disabled{% endif %}
                         >
                             <option value="">Все</option>
                             {% for dept in research_departments %}
