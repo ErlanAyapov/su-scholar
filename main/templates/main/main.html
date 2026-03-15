@@ -1,5 +1,6 @@
 {% extends "main/base.html" %}
 {% load static %}
+{% load base_tags %}
 {% block title %}SU Science{% endblock %}
 
 {% block content %}
@@ -225,10 +226,11 @@
                                 {% for tag in selected_tags %}
                                     <input type="hidden" name="tags" value="{{ tag }}">
                                 {% endfor %}
+                                {% get_document_generators request.user "search" as doc_templates %}
 
                                 <div class="col">
                                     <select id="reportTemplateMain" name="template_key" class="form-select" required>
-                                        {% for template in report_templates %}
+                                        {% for template in doc_templates %}
                                             <option value="{{ template.key }}">{{ template.title }}</option>
                                         {% endfor %}
                                     </select>

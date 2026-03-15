@@ -11,6 +11,7 @@ from account.tasks import enqueue_satbayev_enrichment, enrich_user_profile_from_
 from core.models import CeleryTaskLog
 from core.services.celery_task_channels import serialize_task_log
 from main.tasks import (
+    enrich_publications_with_abstracts_task,
     import_publications_for_all_users_task,
     import_publications_from_google_scholar_for_all_users_task,
     import_publications_from_google_scholar_task,
@@ -172,6 +173,14 @@ class UserAdmin(BaseUserAdmin):
                 "task_id": task.id,
             }
 
+        if operation == "enrich_publications_abstracts_all":
+            task = enrich_publications_with_abstracts_task.delay(limit=limit, force=force)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Дополнить данные доступных работ (кол-во) поставлено в очередь. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
         return {
             "level": messages.ERROR,
             "message": "Неизвестная операция.",
@@ -210,7 +219,7 @@ class UserAdmin(BaseUserAdmin):
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
-            "title": "Массовые операции пользователей",
+            "title": "Массовые операции по пользователям",
             "changelist_url": changelist_url,
             "default_limit": 200,
             "bulk_logs_url": bulk_logs_url,

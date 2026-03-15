@@ -11,6 +11,8 @@ from django.utils.http import urlsafe_base64_encode
 
 from account.services.satbayev_scraper import extract_teacher_profile
 from account.tasks import _build_update_payload, _update_user_photo_from_satbayev, enqueue_satbayev_enrichment
+from document.models import Document, DocumentGenerator
+from main.models import Language, Publication, PublicationType, Venue
 
 User = get_user_model()
 
@@ -54,6 +56,22 @@ class BulkOperationsAdminTests(TestCase):
         self.assertEqual(response.json()["task_id"], "task-123")
         self.assertTrue(response.json()["ok"])
         mock_delay.assert_called_once_with(force=True)
+
+    @patch("account.admin.enrich_publications_with_abstracts_task.delay")
+    def test_bulk_operations_ajax_queues_publication_abstract_enrichment(self, mock_delay):
+        mock_delay.return_value = SimpleNamespace(id="task-abstracts-1")
+
+        response = self.client.post(
+            self.url,
+            {"operation": "enrich_publications_abstracts_all", "limit": "25", "force": "1"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["task_id"], "task-abstracts-1")
+        self.assertTrue(payload["ok"])
+        mock_delay.assert_called_once_with(limit=25, force=True)
 
 
 class RegistrationActivationFlowTests(TestCase):
@@ -144,6 +162,105 @@ class RegistrationActivationFlowTests(TestCase):
         self.staff_user.refresh_from_db()
         self.assertTrue(self.staff_user.check_password("StrongPass123!@#"))
         self.assertTrue(self.staff_user.is_active)
+
+
+class EmployeeProfileExportTests(TestCase):
+    def setUp(self):
+        self.profile_user = User.objects.create_user(
+            username="profile-owner",
+            password="OwnerPass123!",
+            first_name="Nurtay",
+            last_name="Albanbay",
+        )
+        self.request_user = User.objects.create_user(
+            username="request-user",
+            password="RequesterPass123!",
+            first_name="Report",
+            last_name="User",
+        )
+        self.pub_type = PublicationType.objects.create(name="Journal Article")
+        self.language = Language.objects.create(code="en", name="English")
+        self.venue = Venue.objects.create(
+            name="Test Journal",
+            kind="journal",
+            character="scientific_journal",
+        )
+        Publication.objects.create(
+            record_id="profile-export-1",
+            pub_type=self.pub_type,
+            title_original="Profile export publication",
+            language=self.language,
+            year=2025,
+            status="published",
+            venue=self.venue,
+            created_by=self.profile_user,
+        )
+
+    def _create_generator(self, *, title: str, access_to_all: bool, page: str):
+        return DocumentGenerator.objects.create(
+            title=title,
+            content="Count: {{ publications|length }}",
+            file="synthetic_documents/template.txt",
+            file_type="txt",
+            user=self.request_user,
+            access_to_all=access_to_all,
+            page=page,
+        )
+
+    def test_authenticated_export_creates_document_and_redirects_to_download(self):
+        self.client.force_login(self.request_user)
+        generator = self._create_generator(
+            title="Employee export template",
+            access_to_all=True,
+            page="employee",
+        )
+
+        response = self.client.post(
+            reverse("employee_profile_export", kwargs={"user_id": self.profile_user.id}),
+            {"template_key": f"g:{generator.id}"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        document = Document.objects.get(generated_by=generator, user=self.request_user)
+        expected_download_url = f"{reverse('document_file', kwargs={'pk': document.pk})}?download=1"
+        self.assertEqual(response.url, expected_download_url)
+        self.assertEqual(document.file_type, "txt")
+
+    def test_export_rejects_templates_for_other_pages(self):
+        self.client.force_login(self.request_user)
+        generator = self._create_generator(
+            title="Search-only template",
+            access_to_all=True,
+            page="main_search",
+        )
+
+        response = self.client.post(
+            reverse("employee_profile_export", kwargs={"user_id": self.profile_user.id}),
+            {"template_key": f"g:{generator.id}"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse("employee_profile", kwargs={"user_id": self.profile_user.id}),
+        )
+        self.assertEqual(Document.objects.count(), 0)
+
+    def test_anonymous_export_returns_attachment_without_saving_document(self):
+        generator = self._create_generator(
+            title="Public employee template",
+            access_to_all=True,
+            page="employee",
+        )
+
+        response = self.client.post(
+            reverse("employee_profile_export", kwargs={"user_id": self.profile_user.id}),
+            {"template_key": f"g:{generator.id}"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment;", response["Content-Disposition"])
+        self.assertEqual(Document.objects.count(), 0)
 
 
 class SatbayevScraperTests(SimpleTestCase):

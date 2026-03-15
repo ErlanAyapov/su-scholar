@@ -2,6 +2,8 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from asgiref.sync import async_to_sync
+from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase
@@ -14,6 +16,7 @@ from main.services.publication_importer import (
     _safe_year,
     import_works_from_scholar,
 )
+from project.asgi import application
 
 User = get_user_model()
 
@@ -74,8 +77,8 @@ class LayoutNavigationTests(SimpleTestCase):
         self.assertFalse(nav["analytics"])
         self.assertFalse(nav["account"])
 
-    def test_document_main_marks_analytics_as_active(self):
-        request = self._build_request(url_name="document_main")
+    def test_analytics_page_marks_analytics_as_active(self):
+        request = self._build_request(url_name="analytics_page")
 
         nav = layout_navigation(request)["layout_nav"]["active"]
 
@@ -208,3 +211,36 @@ class ScholarImportTests(TestCase):
         self.assertEqual(publication.year, 2015)
         self.assertEqual(result["created"], 0)
         self.assertEqual(result["updated"], 1)
+
+
+class LlmWebSocketTests(SimpleTestCase):
+    def test_llm_websocket_connects_and_sends_ready(self):
+        async def scenario():
+            communicator = WebsocketCommunicator(application, "/ws/llm/")
+            connected, _ = await communicator.connect()
+
+            self.assertTrue(connected)
+            payload = await communicator.receive_json_from()
+            self.assertEqual(payload.get("type"), "llm_ready")
+
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()
+
+    def test_llm_websocket_rejects_empty_prompt(self):
+        async def scenario():
+            communicator = WebsocketCommunicator(application, "/ws/llm/")
+            connected, _ = await communicator.connect()
+
+            self.assertTrue(connected)
+            await communicator.receive_json_from()  # llm_ready
+
+            await communicator.send_json_to({"action": "ask", "prompt": ""})
+            payload = await communicator.receive_json_from()
+
+            self.assertEqual(payload.get("type"), "llm_error")
+            self.assertEqual(payload.get("message"), "Prompt is empty")
+
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()

@@ -18,6 +18,13 @@ from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_de
 from document.models import Document
 from main.models import Publication
 from main.tasks import sync_user_publications_task
+from main.utils import (
+    build_filtered_publications,
+    extract_selected_tags,
+    make_generated_document,
+    make_generated_response_for_anonymous,
+    resolve_generator_template_for_request,
+)
 
 from .forms import ActivationSetPasswordForm, LoginForm, ProfileEditForm, RegisterForm
 
@@ -258,6 +265,51 @@ def employee_profile_sync(request, user_id: int):
         },
         status=202,
     )
+
+
+def employee_profile_export(request, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    profile_user = get_object_or_404(User, pk=user_id)
+    selected_template = (request.POST.get("template_key") or request.POST.get("template_id") or "").strip()
+    if not selected_template:
+        return redirect("employee_profile", user_id=user_id)
+
+    generator_template = resolve_generator_template_for_request(request.user, selected_template)
+    if not generator_template:
+        return redirect("employee_profile", user_id=user_id)
+
+    template_page = (generator_template.page or "").strip()
+    if template_page not in {"", "employee"}:
+        return redirect("employee_profile", user_id=user_id)
+
+    filter_payload = request.POST.copy()
+    filter_payload["staff_user"] = str(profile_user.id)
+    selected_tags = extract_selected_tags(filter_payload)
+    publications_queryset, _ = build_filtered_publications(filter_payload, selected_tags)
+
+    requested_title = (request.POST.get("report_title") or "").strip()
+    if not requested_title:
+        full_name = profile_user.get_full_name().strip() or profile_user.username
+        requested_title = f"{generator_template.title} - {full_name}"
+
+    if not request.user.is_authenticated:
+        return make_generated_response_for_anonymous(
+            generator_template=generator_template,
+            publications_queryset=publications_queryset,
+            requested_title=requested_title,
+        )
+
+    document = make_generated_document(
+        generator_template=generator_template,
+        publications_queryset=publications_queryset,
+        user=request.user,
+        requested_title=requested_title,
+    )
+    if not document.file:
+        return redirect("document_detail", pk=document.pk)
+    return redirect(f"{reverse('document_file', kwargs={'pk': document.pk})}?download=1")
 
 
 def account_page(request):

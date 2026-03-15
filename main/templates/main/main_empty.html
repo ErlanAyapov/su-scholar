@@ -24,7 +24,7 @@
     min-height: 23rem;
     background:
       linear-gradient(135deg, rgba(7, 20, 40, 0.88), rgba(14, 63, 111, 0.58)),
-      url("{% static 'main/images/team.jpg' %}") center/cover no-repeat;
+      url("{% static 'main/images/university.jpg' %}") center/cover no-repeat;
     color: #ffffff;
     overflow: hidden;
     position: relative;
@@ -38,6 +38,52 @@
     height: 14rem;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.08);
+  }
+
+  .hero-search-wrap {
+    margin: 0 auto;
+    max-width: 48rem;
+    width: 100%;
+  }
+
+  .hero-search-form {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(219, 228, 239, 0.95);
+    border-radius: 999px;
+    box-shadow: 0 0.9rem 2rem rgba(8, 18, 34, 0.22);
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.4rem 0.45rem 0.4rem 1rem;
+  }
+
+  .hero-search-input {
+    background: transparent;
+    border: 0;
+    color: #10243e;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .hero-search-input::placeholder {
+    color: #6f8197;
+  }
+
+  .hero-search-input:focus {
+    outline: none;
+  }
+
+  .hero-search-btn {
+    border-radius: 999px;
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 575.98px) {
+    .hero-search-form {
+      padding: 0.35rem;
+    }
   }
 
   .soft-tile {
@@ -106,19 +152,33 @@
       <div class="dashboard-panel hero-panel p-4 p-md-5 mb-4">
         <div class="row align-items-end h-100 position-relative">
           <div class="col-xl-8">
-            <span class="badge rounded-pill bg-light text-dark px-3 py-2 mb-3">SU Science Research Management System</span>
-            <h1 class="display-6 fw-semibold mb-3">Научно-исследовательская экосистема университета</h1>
-            <p class="lead mb-4">
-              Исследователи, лаборатории, публикации, проекты, гранты и аналитические панели в одном пространстве.
-            </p>
-            <div class="d-flex flex-wrap gap-3">
-              <a class="btn btn-light btn-lg" href="{% url 'advanced_search' %}?tab=researchers">Смотреть исследователей</a>
-              <a class="btn btn-outline-light btn-lg" href="{% url 'advanced_search' %}?tab=documents">Открыть аналитику</a>
+            <!-- <span class="badge rounded-pill bg-light text-dark px-3 py-2 mb-3">SU Science Research Management System</span> -->
+            <h1 class="display-6 fw-semibold mb-2" style="opacity: 0.7;">Научно-исследовательская экосистема университета</h1>
+            
+          </div>
+          <div class="col-12 mt-4">
+            <div class="hero-search-wrap">
+              <form class="hero-search-form" method="get" action="{% url 'advanced_search' %}">
+                <input type="hidden" name="tab" value="documents">
+                <input type="hidden" name="show" value="all">
+                <input type="hidden" name="status" value="published">
+                <input
+                  class="hero-search-input"
+                  type="text"
+                  name="search"
+                  placeholder="Поиск по публикациям, авторам, DOI..."
+                  aria-label="Поиск по публикациям"
+                >
+                <button class="btn btn-primary hero-search-btn" type="submit">Поиск</button>
+              </form>
             </div>
           </div>
+          <p class="lead mt-4" style="opacity: 0.7;">
+              Исследователи, лаборатории, публикации, проекты, гранты и аналитические панели в одном пространстве.
+            </p> 
         </div>
       </div>
-
+      {% comment %}
       <div class="row g-3 mb-4">
         <div class="col-6 col-md-4 col-xl-2">
           <a class="soft-tile d-block text-center text-decoration-none text-dark p-3 h-100" href="{% url 'advanced_search' %}?tab=researchers">Исследователи</a>
@@ -139,7 +199,7 @@
           <div class="soft-tile text-center p-3 h-100">Коллаборации</div>
         </div>
       </div>
-
+      {% endcomment %}
       <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3">
           <div class="metric-card p-4 h-100">
@@ -204,10 +264,27 @@
           </div>
         </div>
 
-        <div class="col-xl-4">
-          <div class="dashboard-panel p-4 mb-4">
-            <h2 class="h4 mb-1">Жаңалықтар</h2>
-            <p class="text-muted mb-3">Новости и объявления, добавленные через админку.</p>
+        <div class="col-xl-4 ">
+          <div class="dashboard-panel p-4 mb-3">
+            <h2 class="h4 mb-1 text-muted">ИИ ассистент</h2>
+            <div class="llm-response" id="llmConversation" role="log" aria-live="polite" aria-relevant="additions text">
+              <div class="llm-message llm-message-assistant">
+                <div class="llm-message-role">Ассистент</div>
+                <div class="llm-message-text" id="LlmResponse">Задавайте любые вопросы! Я помогу...</div>
+              </div>
+              <div class="llm-examples" id="llmExamples" aria-label="Примеры запросов">
+                <button class="llm-example-btn" type="button" data-llm-example="Покажи топ кафедры по грантам">Покажи топ кафедры по грантам</button>
+                <button class="llm-example-btn" type="button" data-llm-example="Найди исследователей IoT">Найди исследователей IoT</button>
+                <button class="llm-example-btn" type="button" data-llm-example="Сколько Q1 публикаций у университета">Сколько Q1 публикаций у университета</button>
+              </div>
+            </div>
+            <div class="llm-input d-flex">
+              <input id="llmPromptInput" type="text" placeholder="Спросите что-то...">
+              <button id="llmSendButton" type="button" aria-label="Отправить"><i class="bi bi-send"></i></button>
+            </div>
+          </div>
+          <div class="dashboard-panel p-4 ">
+            <h2 class="h4 mb-1">Новости</h2>
 
             <div class="vstack gap-3">
               {% for item in news_items %}
@@ -231,18 +308,11 @@
                 <div class="alert alert-light border mb-0">Пока нет новостей.</div>
               {% endfor %}
             </div>
-          </div>
-
-          <div class="dashboard-panel p-4">
-            <h2 class="h4 mb-1">Быстрая аналитика</h2>
-            <p class="text-muted mb-3">Зона под мини-виджеты, графики и сводки.</p>
-            <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4">
-              Мини-дашборд по публикациям, грантам и коллаборациям.
-            </div>
-          </div>
+          </div> 
         </div>
       </div>
 
+      {% comment %}
       <div class="dashboard-panel p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
@@ -379,7 +449,9 @@
           </div>
         </div>
       </div>
+      {% endcomment %}
 
+      {% comment %}
       <div class="dashboard-panel p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
@@ -481,7 +553,12 @@
           </div>
         </div>
       </div>
+      {% endcomment %}
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'main/scripts/llm_stream.js' %}"></script>
 {% endblock %}

@@ -59,3 +59,10 @@ class ProjectsGrantsDemoView(View):
 
     def get(self, request):
         return render(request, self.template_name)
+
+
+class AnalyticsPageView(View):
+    template_name = "main/analytics.html"
+
+    def get(self, request):
+        return render(request, self.template_name)

@@ -17,6 +17,10 @@ REPORT_NAV_URLS = {
     "synonym_detail",
 }
 
+ANALYTICS_NAV_URLS = {
+    "analytics_page",
+}
+
 PUBLICATIONS_NAV_URLS = {
     "main_search",
     "publication_detail",
@@ -54,7 +58,7 @@ def layout_navigation(request):
         "researchers": researchers_search_active,
         "projects": url_name in PROJECTS_NAV_URLS,
         "publications": url_name in PUBLICATIONS_NAV_URLS or publications_search_active,
-        "analytics": url_name in REPORT_NAV_URLS,
+        "analytics": url_name in ANALYTICS_NAV_URLS,
         "account": url_name in ACCOUNT_NAV_URLS,
     }
 

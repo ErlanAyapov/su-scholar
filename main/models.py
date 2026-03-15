@@ -132,6 +132,7 @@ class Publication(models.Model):
     doi = models.CharField(max_length=120, blank=True)
     url_publisher = models.URLField(blank=True)
     url_open_access = models.URLField(blank=True)
+    abstract = models.TextField(blank=True)
 
     # 25-36 (часть вынесем в отдельные таблицы, см. ниже)
     indexing = models.ManyToManyField(IndexingDatabase, blank=True)

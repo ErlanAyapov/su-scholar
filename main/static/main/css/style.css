@@ -1482,7 +1482,119 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
 }
+.llm-response {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 260px;
+    overflow-y: auto;
+    padding: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f6fb 100%);
+}
 
+.llm-message {
+    max-width: 92%;
+    padding: 10px 12px;
+    border-radius: 14px;
+    word-break: break-word;
+    line-height: 1.45;
+}
+
+.llm-message-role {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-bottom: 5px;
+    opacity: 0.7;
+}
+
+.llm-message-text {
+    white-space: pre-wrap;
+    color: #0f172a;
+    font-size: 0.92rem;
+}
+
+.llm-message-assistant {
+    align-self: flex-start;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.llm-message-user {
+    align-self: flex-end;
+    background: #0f172a;
+    border: 1px solid #0f172a;
+}
+
+.llm-message-user .llm-message-role,
+.llm-message-user .llm-message-text {
+    color: #ffffff;
+    opacity: 1;
+}
+
+.llm-examples {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.llm-example-btn {
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    background: #ffffff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 6px 11px;
+    font-size: 0.8rem;
+    line-height: 1.25;
+    transition: all 0.15s ease;
+}
+
+.llm-example-btn:hover {
+    border-color: rgba(15, 23, 42, 0.3);
+    background: #e3e8ef;
+}
+
+.llm-example-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.llm-input {
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    margin-top: 12px;
+    padding: 6px;
+    border-radius: 999px;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+}
+
+.llm-input input {
+    width: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    padding: 0 10px;
+}
+
+.llm-input button {
+    border: 0;
+    background: #0f172a;
+    color: #ffffff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.llm-input button:disabled {
+    opacity: 0.5;
+}
 .auth-chooser-card,
 .auth-card {
     border-radius: 18px;

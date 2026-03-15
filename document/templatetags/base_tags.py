@@ -23,6 +23,7 @@ def get_document_generators(user_or_request, page=""):
     else:
         queryset = queryset.filter(access_to_all=True)
 
-    queryset = queryset.filter(page=page_value) if page_value else queryset
+    if page_value:
+        queryset = queryset.filter(Q(page=page_value) | Q(page="") | Q(page__isnull=True))
 
     return queryset.distinct().order_by("-created_at", "-id")
