@@ -229,7 +229,7 @@
                                 <div class="col">
                                     <select id="reportTemplateMain" name="template_key" class="form-select" required>
                                         {% for template in doc_templates %}
-                                            <option value="{{ template.key }}">{{ template.title }}</option>
+                                            <option value="{{ template.id }}">{{ template.title }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
