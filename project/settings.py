@@ -100,6 +100,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'main.context_processors.layout_navigation',
             ],
         },
     },
@@ -161,6 +162,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DOCK_EDITOR_URL = os.getenv('DOCK_EDITOR_URL', '')
 APP_PUBLIC_URL = os.getenv('APP_PUBLIC_URL', '')
 ONLYOFFICE_JWT_SECRET = os.getenv('ONLYOFFICE_JWT_SECRET', '')
+LLM_API = os.getenv('LLM_API', 'http://localhost:11434/v1')
+LLM_API_KEY = os.getenv('LLM_API_KEY', '')
+LLM_MODEL = os.getenv('LLM_MODEL', 'gpt-oss:20b')
 
 # Email (SMTP)
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')

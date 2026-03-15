@@ -3,8 +3,10 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from requests import RequestException
 
+from core.tasks.logged_task import LoggedTask
 from main.realtime import notify_public, notify_user
 from main.services.publication_importer import (
+    enrich_publications_with_abstracts,
     import_publications_for_user,
     import_scholar_works_for_all_users,
     import_works_from_scholar,
@@ -343,3 +345,50 @@ def import_publications_from_google_scholar_for_all_users_task(force: bool = Fal
         force=force,
     )
     return {"status": "ok", **summary, "force": force}
+
+
+@shared_task(bind=True, base=LoggedTask)
+def enrich_publications_with_abstracts_task(
+    self,
+    limit: int = 200,
+    force: bool = False,
+    timeout: int = 20,
+) -> dict:
+    self.log_info(
+        "Publication abstract enrichment started",
+        object_type="publication",
+        meta={"limit": limit, "force": force},
+    )
+
+    def _progress(current: int, total: int, publication) -> None:
+        self.log_progress(
+            message=f"Parsing abstract ({current}/{total})",
+            current=current,
+            total=total,
+            object_type="publication",
+            object_id=str(publication.id),
+            meta={"url_publisher": publication.url_publisher},
+        )
+
+    summary = enrich_publications_with_abstracts(
+        limit=limit,
+        force=force,
+        timeout=timeout,
+        progress_callback=_progress,
+    )
+    result = {"status": "ok", **summary}
+
+    self.log_info(
+        f"Дополнить данные доступных работ (кол-во): {summary.get('updated', 0)}",
+        object_type="publication",
+        meta=result,
+    )
+    notify_public(
+        "Дополнение абстрактов публикаций завершено",
+        source="publication_abstract",
+        processed=summary.get("processed", 0),
+        updated=summary.get("updated", 0),
+        failed=summary.get("failed", 0),
+        force=force,
+    )
+    return result

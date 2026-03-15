@@ -18,6 +18,8 @@ from main.models import (
     Tag,
     Venue,
     VenueMetric,
+    NewsItem,
+    NewsMedia,
 )
 
 try:
@@ -239,3 +241,6 @@ class PublicationFileAdmin(admin.ModelAdmin):
 class RepositoryLinkAdmin(admin.ModelAdmin):
     list_display = ("id", "publication", "url", "label")
     search_fields = ("publication__title_original", "url", "label")
+
+admin.site.register(NewsItem)
+admin.site.register(NewsMedia)

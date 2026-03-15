@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="kk">
+<html lang="ru">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,114 +12,72 @@
     <link rel="icon" type="image/x-icon" href="{% static 'main/images/favicon.ico' %}">
     {% block styles %}{% endblock %}
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <div class="container">
-                <a class="navbar-brand" href="{% url 'main' %}">
-                    <img src="{% static 'main/images/icon.png' %}" alt="SU Science" width="50">
-                    <span class="navbar-brand-text h4 pt-2">SU Science</span>
+<body class="rms-page">
+    <div class="rms-app-shell">
+        <header class="rms-topbar">
+            <a class="rms-brand" href="{% url 'main' %}">
+                <span class="rms-brand-mark">SU</span>
+                <span class="rms-brand-copy">
+                    <strong>SU Science</strong>
+                    <small>Research Management System</small>
+                </span>
+            </a>
+
+            <nav class="rms-quick-nav" aria-label="Основное меню">
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.researchers %}is-active{% endif %}"
+                    href="{% url 'advanced_search' %}?tab=researchers&researcher_scope=staff"
+                >
+                    Исследователи
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Навигацияны ауыстыру">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
-                        <!-- <li class="nav-item nav-link-custom">
-                            <a class="nav-link" href="{% url 'employees' %}">
-                                Қызметкерлер
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
-                                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
-                                </svg>
-                            </a>
-                        </li> -->
-                       
-                        
-                        <li class="nav-item nav-link-custom">
-                            <a class="nav-link" href="{% url 'document_main' %}">
-                                Есептер
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-text" viewBox="0 0 16 16">
-                                    <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
-                                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
-                                </svg>
-                            </a>
-                        </li>
-                        <li class="nav-item nav-link-custom">
-                            <a class="nav-link" href="{% url 'document_main' %}">
-                                Құжаттар
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-text" viewBox="0 0 16 16">
-                                    <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
-                                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
-                                </svg>
-                            </a>
-                        </li>
-                        <li class="nav-item nav-link-custom">
-                            <a class="nav-link" href="{% url 'account_page' %}">
-                                Аккаунт
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
-                                    <path d="M11 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
-                                    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
-                                </svg>
-                            </a>
-                        </li>
-                        {% if request.resolver_match.url_name != 'advanced_search' %}
-                            <li class="nav-item ms-lg-2 mt-2 mt-lg-0" id="navSearchItem">
-                                <form class="nav-quick-search-form d-flex" method="get" action="{% url 'advanced_search' %}">
-                                    <input type="hidden" name="tab" value="documents">
-                                    <input
-                                        type="search"
-                                        name="search"
-                                        class=""
-                                        placeholder="Smart іздеу..."
-                                        aria-label="Smart іздеу"
-                                        title="Іздеуді ФИО, тақырыптар, кілт сөздер арқылы жүргізуге болады"
-                                    >
-                                    <button type="submit" class="">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-                                        </svg>
-                                    </button>
-                                </form>
-                            </li>
-                        {% else %}
-                         <li class="nav-item nav-link-custom active">
-                            <a class="nav-link" href="{% url 'advanced_search' %}">
-                                Іздеу
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-                                </svg>
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.projects %}is-active{% endif %}"
+                    href="{% url 'projects_grants_demo' %}"
+                >
+                    Проекты и гранты
+                </a>
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.publications %}is-active{% endif %}"
+                    href="{% url 'advanced_search' %}?tab=documents&status=published&show=all"
+                >
+                    Публикации
+                </a>
+                <a
+                    class="rms-nav-pill {% if layout_nav.active.analytics %}is-active{% endif %}"
+                    href="{% url 'analytics_page' %}"
+                >
+                    Аналитика
+                </a>
+                <a
+                    class="rms-nav-pill  {% if layout_nav.active.account %}is-active{% endif %}"
+                    href="{% url 'account_page' %}"
+                >
+                    Аккаунт
+                </a>
+            </nav>
+        </header>
 
-    <main class="container py-4">
-        {% block content %}{% endblock %}
-    </main>
+        <main class="rms-content">
+            {% block content %}{% endblock %}
+        </main>
 
-    <footer class="">
-        <div class="container text-start py-3">
-            <div class="row">
-                <div class="col-sm align-self-start">
-                    <h4>SuScience - жүйесі жайында</h4>
+        <footer class="rms-footer">
+            <div class="rms-footer-grid">
+                <div>
+                    <h4>SU Science</h4>
                     <p><a href="#"><i class="bi bi-info-circle me-2"></i>SuScience деген не?</a></p>
                     <p><a href="#"><i class="bi bi-question-circle me-2"></i>SuScience қалай жұмыс істейді?</a></p>
                     <span class="text-muted">© 2026 SU Science. Барлық құқықтар қорғалған.</span>
                 </div>
-                <div class="col-sm">
+                <div>
                     <h4>Байланыс</h4>
                     <p><a href="mailto:n.albanbay@satbayev.university"><i class="bi bi-envelope-fill me-2"></i>n.albanbay@satbayev.university</a></p>
                     <p><a href="tel:+77083210030"><i class="bi bi-telephone-fill me-2"></i>+7 708 321 0030</a></p>
                     <p><a href="https://wa.me/77083210030"><i class="bi bi-whatsapp me-2"></i>+7 708 321 0030</a></p>
                 </div>
-            </div> 
-        </div>
-        
-    </footer>
+            </div>
+        </footer>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

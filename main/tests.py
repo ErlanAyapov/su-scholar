@@ -1,9 +1,14 @@
 from datetime import date
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from asgiref.sync import async_to_sync
+from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
+from django.http import QueryDict
 from django.test import SimpleTestCase, TestCase
 
+from main.context_processors import layout_navigation
 from main.models import Language, Publication, PublicationType, Venue
 from main.services.publication_importer import (
     _build_record_id,
@@ -11,8 +16,90 @@ from main.services.publication_importer import (
     _safe_year,
     import_works_from_scholar,
 )
+from project.asgi import application
 
 User = get_user_model()
+
+
+class LayoutNavigationTests(SimpleTestCase):
+    def _build_request(self, *, url_name: str, query: str = ""):
+        request = SimpleNamespace(
+            resolver_match=SimpleNamespace(url_name=url_name),
+            GET=QueryDict(query),
+        )
+        return request
+
+    def test_main_page_marks_home_as_active(self):
+        request = self._build_request(url_name="main")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertTrue(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_documents_search_tab_marks_publications_as_active(self):
+        request = self._build_request(url_name="advanced_search", query="tab=documents")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertTrue(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_researchers_search_tab_marks_researchers_as_active(self):
+        request = self._build_request(url_name="advanced_search", query="tab=researchers")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertTrue(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_projects_page_marks_projects_as_active(self):
+        request = self._build_request(url_name="projects_grants_demo")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertTrue(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_analytics_page_marks_analytics_as_active(self):
+        request = self._build_request(url_name="analytics_page")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertTrue(nav["analytics"])
+        self.assertFalse(nav["account"])
+
+    def test_employee_profile_marks_account_as_active(self):
+        request = self._build_request(url_name="employee_profile")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertTrue(nav["account"])
 
 
 class ScholarParsingTests(SimpleTestCase):
@@ -124,3 +211,36 @@ class ScholarImportTests(TestCase):
         self.assertEqual(publication.year, 2015)
         self.assertEqual(result["created"], 0)
         self.assertEqual(result["updated"], 1)
+
+
+class LlmWebSocketTests(SimpleTestCase):
+    def test_llm_websocket_connects_and_sends_ready(self):
+        async def scenario():
+            communicator = WebsocketCommunicator(application, "/ws/llm/")
+            connected, _ = await communicator.connect()
+
+            self.assertTrue(connected)
+            payload = await communicator.receive_json_from()
+            self.assertEqual(payload.get("type"), "llm_ready")
+
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()
+
+    def test_llm_websocket_rejects_empty_prompt(self):
+        async def scenario():
+            communicator = WebsocketCommunicator(application, "/ws/llm/")
+            connected, _ = await communicator.connect()
+
+            self.assertTrue(connected)
+            await communicator.receive_json_from()  # llm_ready
+
+            await communicator.send_json_to({"action": "ask", "prompt": ""})
+            payload = await communicator.receive_json_from()
+
+            self.assertEqual(payload.get("type"), "llm_error")
+            self.assertEqual(payload.get("message"), "Prompt is empty")
+
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()

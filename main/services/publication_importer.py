@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 import requests
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
+from django.db import models
 
 from main.models import (
     Author,
@@ -36,6 +37,26 @@ GOOGLE_SCHOLAR_CITATIONS_URL = "https://scholar.google.com/citations"
 
 DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.IGNORECASE)
 YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+ABSTRACT_LABEL_RE = re.compile(r"^\s*(abstract|summary)\s*[:\-]\s*", re.IGNORECASE)
+ABSTRACT_META_KEYS = {
+    "citation_abstract",
+    "dc.description.abstract",
+    "dc.description",
+    "description",
+    "og:description",
+    "twitter:description",
+}
+ABSTRACT_SECTION_SELECTORS = (
+    "section.abstract",
+    "div.abstract",
+    "p.abstract",
+    "#abstract",
+    "#Abs1-content",
+    "[data-test='abstract']",
+    "[data-testid='abstract']",
+)
+MAX_ABSTRACT_LENGTH = 20_000
+MIN_ABSTRACT_LENGTH = 40
 
 
 def _normalize_doi(raw_value: str) -> str:
@@ -160,6 +181,72 @@ def _clean_scholar_venue(raw_value: str) -> str:
     value = re.sub(r"(?:,\s*|\s+)(?:19|20)\d{2}$", "", value, flags=re.UNICODE).strip(" ,")
     value = re.sub(r",\s*0$", "", value, flags=re.UNICODE).strip(" ,")
     return value
+
+
+def _normalize_abstract_text(raw_value: str) -> str:
+    value = (raw_value or "").replace("\xa0", " ")
+    value = re.sub(r"\s+", " ", value, flags=re.UNICODE).strip()
+    value = ABSTRACT_LABEL_RE.sub("", value)
+    if len(value) > MAX_ABSTRACT_LENGTH:
+        value = value[:MAX_ABSTRACT_LENGTH].strip()
+    return value
+
+
+def _is_usable_abstract(value: str) -> bool:
+    text = _normalize_abstract_text(value)
+    if len(text) < MIN_ABSTRACT_LENGTH:
+        return False
+    words = text.split()
+    if len(words) < 8:
+        return False
+    return True
+
+
+def _extract_abstract_from_html(html: str) -> str:
+    if not html:
+        return ""
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    for meta in soup.find_all("meta"):
+        key = (meta.get("name") or meta.get("property") or "").strip().lower()
+        if key not in ABSTRACT_META_KEYS:
+            continue
+        content = _normalize_abstract_text(meta.get("content", ""))
+        if _is_usable_abstract(content):
+            return content
+
+    for selector in ABSTRACT_SECTION_SELECTORS:
+        for node in soup.select(selector):
+            content = _normalize_abstract_text(node.get_text(" ", strip=True))
+            if _is_usable_abstract(content):
+                return content
+
+    heading = soup.find(
+        lambda tag: tag.name in {"h1", "h2", "h3", "h4", "strong"} and "abstract" in tag.get_text(" ", strip=True).lower()
+    )
+    if heading and heading.parent:
+        content = _normalize_abstract_text(heading.parent.get_text(" ", strip=True))
+        if _is_usable_abstract(content):
+            return content
+
+    return ""
+
+
+def _is_supported_publication_url(url: str) -> bool:
+    parsed = urlparse((url or "").strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _fetch_abstract_from_publisher_url(url: str, timeout: int = 20) -> str:
+    response = requests.get(url, headers=REQUEST_HEADERS, timeout=timeout)
+    response.raise_for_status()
+
+    content_type = (response.headers.get("Content-Type") or "").lower()
+    if content_type and "html" not in content_type and "xml" not in content_type:
+        return ""
+
+    return _extract_abstract_from_html(response.text)
 
 
 def _extract_scholar_year(row, venue_text: str = "") -> int:
@@ -1003,3 +1090,75 @@ def import_scholar_works_for_all_users(timeout: int = 30, force: bool = False) -
         summary["results"].append(result)
 
     return summary
+
+
+def enrich_publications_with_abstracts(
+    *,
+    limit: int = 200,
+    force: bool = False,
+    timeout: int = 20,
+    progress_callback=None,
+) -> dict:
+    queryset = Publication.objects.exclude(url_publisher="").order_by("id")
+    if not force:
+        queryset = queryset.filter(models.Q(abstract__isnull=True) | models.Q(abstract=""))
+
+    available_works = queryset.count()
+    publications = list(queryset[:limit] if limit and limit > 0 else queryset)
+
+    visited = 0
+    updated = 0
+    skipped_invalid_url = 0
+    skipped_no_abstract = 0
+    skipped_unchanged = 0
+    failed = 0
+    errors: list[str] = []
+
+    total = len(publications)
+    for index, publication in enumerate(publications, start=1):
+        if callable(progress_callback):
+            progress_callback(index, total, publication)
+
+        url = (publication.url_publisher or "").strip()
+        if not _is_supported_publication_url(url):
+            skipped_invalid_url += 1
+            continue
+
+        visited += 1
+        try:
+            abstract = _fetch_abstract_from_publisher_url(url=url, timeout=timeout)
+        except requests.RequestException as exc:
+            failed += 1
+            if len(errors) < 50:
+                errors.append(f"{publication.id}:{exc}")
+            continue
+
+        if not abstract:
+            skipped_no_abstract += 1
+            continue
+
+        normalized = _normalize_abstract_text(abstract)
+        existing = _normalize_abstract_text(publication.abstract or "")
+        if not force and existing:
+            skipped_unchanged += 1
+            continue
+        if force and existing == normalized:
+            skipped_unchanged += 1
+            continue
+
+        publication.abstract = normalized
+        publication.save(update_fields=["abstract", "updated_at"])
+        updated += 1
+
+    return {
+        "available_works": available_works,
+        "processed": total,
+        "visited": visited,
+        "updated": updated,
+        "skipped_invalid_url": skipped_invalid_url,
+        "skipped_no_abstract": skipped_no_abstract,
+        "skipped_unchanged": skipped_unchanged,
+        "failed": failed,
+        "errors": errors,
+        "force": force,
+    }

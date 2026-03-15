@@ -26,9 +26,10 @@ class DocumentGeneratorCreateForm(forms.ModelForm):
 
     class Meta:
         model = DocumentGenerator
-        fields = ("title", "file_type", "file", "access_to_all", "content")
+        fields = ("title", "page", "file_type", "file", "access_to_all", "content")
         labels = {
             "title": "Title",
+            "page": "Page",
             "access_to_all": "Accessible for all users",
         }
         widgets = {
@@ -36,6 +37,12 @@ class DocumentGeneratorCreateForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "placeholder": "Template title",
+                }
+            ),
+            "page": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "document_main / main_search / advanced_search",
                 }
             ),
             "access_to_all": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -51,6 +58,8 @@ class DocumentGeneratorCreateForm(forms.ModelForm):
         file_type = (cleaned.get("file_type") or "").strip().lower()
         uploaded_file = cleaned.get("file")
         content = (cleaned.get("content") or "").strip()
+        page = (cleaned.get("page") or "").strip()
+        cleaned["page"] = page or None
         has_existing_file = bool(self.instance and self.instance.pk and self.instance.file)
 
         if file_type == "docx":
@@ -64,4 +73,3 @@ class DocumentGeneratorCreateForm(forms.ModelForm):
                 self.add_error("content", "Provide template text or upload TXT file.")
 
         return cleaned
-

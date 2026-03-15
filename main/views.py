@@ -23,7 +23,8 @@ class MainPageView(View):
     template_name = "main/main_empty.html"
 
     def get(self, request):
-        return render(request, self.template_name)
+        context = build_main_page_context(request)
+        return render(request, self.template_name, context)
 
 
 class SearchPageView(View):
@@ -51,3 +52,17 @@ class PublicationDetailView(View):
     def get(self, request, pk: int):
         context = build_publication_detail_context(pk)
         return render(request, self.template_name, context)
+
+
+class ProjectsGrantsDemoView(View):
+    template_name = "main/projects_grants_demo.html"
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+
+class AnalyticsPageView(View):
+    template_name = "main/analytics.html"
+
+    def get(self, request):
+        return render(request, self.template_name)

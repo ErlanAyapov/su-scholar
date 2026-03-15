@@ -1,358 +1,286 @@
-﻿{% extends "main/base.html" %}
-{% load static %}
+{% extends "main/base.html" %}
+{% load static base_tags %}
 
-{% block title %}SU Science - {{ profile_user.get_full_name|default:profile_user.username }}{% endblock %}
+{% block title %}SU Science - Профиль исследователя{% endblock %}
+
+{% block styles %}
+<style>
+  .dashboard-panel {
+    border: 1px solid #dbe4ef;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.06);
+  }
+
+  .soft-tile {
+    background: #f8fbff;
+    border: 1px solid #dbe4ef;
+    border-radius: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .soft-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.8rem 1.8rem rgba(13, 110, 253, 0.08);
+  }
+
+  .metric-card {
+    border: 1px solid #dbe4ef;
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  }
+
+  .metric-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #10243e;
+  }
+
+  .placeholder-box {
+    border: 1px dashed #b6c6d8;
+    border-radius: 1.25rem;
+    background: #f8fbff;
+    color: #6c7a89;
+    min-height: 10rem;
+  }
+
+  .profile-avatar {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: 1px solid #dbe4ef;
+    display: block;
+  }
+
+  .profile-avatar-fallback {
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9eff7;
+    border: 1px solid #dbe4ef;
+    color: #44566b;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="profile-page">
-    <div class="profile-shell">
-        {% if profile_updated %}
-            <div class="alert alert-success rounded-0 border-0 mb-0">
-                Деректер сәтті жаңартылды.
-            </div>
-        {% endif %}
-
-        <div class="profile-cover"></div>
-
-        <div class="profile-head">
-            <div class="profile-avatar-wrap">
-                {% if profile_user.photo %}
-                    <img class="profile-avatar" src="{{ profile_user.photo.url }}" alt="{{ profile_user.get_full_name|default:profile_user.username }}">
-                {% else %}
-                    {% if profile_user.gender == "female" %}
-                        <img src="{% static 'main/images/woman-user-color-icon.svg' %}" alt="Әдепкі аватар" class="profile-avatar">
-                    {% else %}
-                        <img src="{% static 'main/images/man-user-color-icon.svg' %}" alt="Әдепкі аватар" class="profile-avatar">
-                    {% endif %}
-                {% endif %}
-            </div>
-
-            <div class="profile-head-main">
-                <div class="profile-identity-row">
-                    <div>
-                        <h1 class="profile-name">
-                            {{ profile_user.last_name }} {{ profile_user.first_name }}{% if profile_user.father_name %} {{ profile_user.father_name }}{% endif %}
-                        </h1>
-                        <p class="profile-username">@{{ profile_user.username }}</p>
-                    </div>
-              
-                    {% if request.user == profile_user %}
-                        <a href="{% url 'account_logout' %}" class="btn btn-outline-danger p-1 m-0 btn-sm">
-                            Аккаунттан шығу
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-door-open-fill" viewBox="0 0 16 16">
-                            <path d="M1.5 15a.5.5 0 0 0 0 1h13a.5.5 0 0 0 0-1H13V2.5A1.5 1.5 0 0 0 11.5 1H11V.5a.5.5 0 0 0-.57-.495l-7 1A.5.5 0 0 0 3 1.5V15zM11 2h.5a.5.5 0 0 1 .5.5V15h-1zm-2.5 8c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1"/>
-                            </svg>
-                        </a>
-                    {% endif %}
-                </div>
-
-                <div class="profile-stats" aria-label="Профиль статистикасы">
-                    <a class="profile-stat" href="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published" data-open-onclick="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published">
-                        <strong>{{ publication_count }}</strong>
-                        <span>Жарияланым</span>
-                    </a>
-                    <div class="profile-stat">
-                        <strong>{{ citations_total }}</strong>
-                        <span>Дәйексөз</span>
-                    </div>
-                    <div class="profile-stat">
-                        <strong>{{ open_access_count }}</strong>
-                        <span>Open Access</span>
-                    </div>
-                    <div class="profile-stat">
-                        <strong>{{ template_count }}</strong>
-                        <span>Шаблон</span>
-                    </div>
-                    <div class="profile-stat">
-                        <strong>{{ generated_reports_count }}</strong>
-                        <span>Есеп</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 profile-content">
-            <div class="col-lg-8">
-                <div class="profile-block">
-                    <div class="profile-block-head" data-open-onclick="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published">
-                        <h2 class="h5 mb-0">Соңғы жарияланымдар</h2>
-                        <a class="profile-mini-link" href="{% url 'advanced_search' %}?staff_user={{ profile_user.id }}&status=published">Барлығын көру</a>
-                    </div>
-                    {% if recent_publications %}
-                        <div class="profile-post-grid">
-                            {% for publication in recent_publications %}
-                                <article class="profile-post-card">
-                                    <h3 class="profile-post-title">
-                                        <a href="{% url 'publication_detail' publication.id %}">
-                                            {{ publication.title_original }}
-                                        </a>
-                                    </h3>
-                                    <p class="profile-post-meta">
-                                        {{ publication.year }}{% if publication.venue %} · {{ publication.venue.name }}{% endif %}
-                                    </p>
-                                    <p class="profile-post-extra">
-                                        {% if publication.doi %}DOI: {{ publication.doi }}{% elif publication.pub_type %}{{ publication.pub_type.name }}{% else %}Түрі көрсетілмеген{% endif %}
-                                    </p>
-                                </article>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="alert alert-light border mb-0">Қазіргі таңда жарияланым табылмады.</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                {% if can_edit_profile and profile_form %}
-                    <div class="profile-block mb-3">
-                        <h2 class="h6 mb-3">Профильді өңдеу</h2>
-                        <form method="post" enctype="multipart/form-data" class="profile-edit-form">
-                            {% csrf_token %}
-                            <div class="profile-form-grid">
-                                {% for field in profile_form %}
-                                    <div class="profile-form-field">
-                                        <label class="form-label mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field }}
-                                        {% if field.errors %}
-                                            <div class="text-danger small mt-1">{{ field.errors }}</div>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm mt-3">Сақтау</button>
-                        </form>
-                    </div>
-                {% endif %}
-
-                {% if can_manage_sync %}
-                    <div
-                        class="profile-block mb-3 profile-sync-block"
-                        id="profileSyncBlock"
-                        data-profile-user-id="{{ profile_user.id }}"
-                        data-sync-url="{{ profile_sync_url }}"
-                    >
-                        <div class="profile-block-head">
-                            <h2 class="h6 mb-0">Порталдармен синхрондау</h2>
-                            <span class="badge text-bg-light" id="profileSyncState">Дайын</span>
-                        </div>
-                        <div class="profile-sync-actions mb-2">
-                            {% for sync_source in sync_sources %}
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-primary btn-sm profile-sync-btn"
-                                    data-sync-source="{{ sync_source.key }}"
-                                >
-                                    {{ sync_source.label }}
-                                </button>
-                            {% endfor %}
-                        </div>
-                        <div class="profile-sync-log-wrap">
-                            <div class="profile-sync-log" id="profileSyncLog" aria-live="polite"></div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                <div class="profile-block mb-3">
-                    <h2 class="h6 mb-3">Байланыс</h2>
-                    <ul class="profile-list mb-0">
-                        <li>
-                            <span>E-mail</span>
-                            <strong>
-                                {% if profile_user.email %}
-                                    <a href="mailto:{{ profile_user.email }}">{{ profile_user.email }}</a>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </strong>
-                        </li>
-                        <li>
-                            <span>Кафедра</span>
-                            <strong>{{ profile_user.department.name|default:"-" }}</strong>
-                        </li>
-                        <li>
-                            <span>Тіркелген күні</span>
-                            <strong>{{ profile_user.date_joined|date:"d.m.Y" }}</strong>
-                        </li>
-                    </ul>
-                </div>
-
-                {% if external_links %}
-                    <div class="profile-block mb-3">
-                        <h2 class="h6 mb-3">Ғылыми профильдер</h2>
-                        <div class="profile-links">
-                            {% for link in external_links %}
-                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.label }}</a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if top_venues %}
-                    <div class="profile-block mb-3">
-                        <h2 class="h6 mb-3">Топ басылым алаңдары</h2>
-                        <ul class="profile-list mb-0">
-                            {% for venue in top_venues %}
-                                <li>
-                                    <span>{{ venue.venue__name }}</span>
-                                    <strong>{{ venue.total }}</strong>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-                {% if request.user.id == profile_user.id %}
-                    <div class="profile-block">
-                        <div class="profile-block-head">
-                            <h2 class="h6 mb-0">Құжаттар</h2>
-                            <span class="badge text-bg-light">{{ generated_documents_count }}</span>
-                        </div>
-                        {% if recent_generated_documents %}
-                            <ul class="profile-doc-list mb-0">
-                                {% for doc in recent_generated_documents %}
-                                    <li>
-                                        <span>{{ doc.title }}</span>
-                                        <a href="{% url 'document_file' doc.id %}?download=1" aria-label="Жүктеу">↓</a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <div class="text-body-secondary small">Әзірге құжат жоқ.</div>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            </div>
-        </div>
+<div class="dashboard-panel p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="h4 mb-1">Профиль исследователя</h2>
+      <p class="text-muted mb-0">Образец персональной аналитики и связанного контента.</p>
     </div>
-</section>
+    <div class="btn-group" role="group" aria-label="Report export controls">
+      {% get_document_generators request.user "employee" as doc_templates %}
+      <div class="btn-group" role="group">
+        <button
+          id="profileExportDropdown"
+          type="button"
+          class="btn btn-outline-secondary btn-sm dropdown-toggle"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          Экспорт отчета
+        </button>
+        <ul class="dropdown-menu p-0 pt-1 pb-1" aria-labelledby="profileExportDropdown">
+          {% for doc in doc_templates %}
+            <li>
+              <a
+                class="dropdown-item js-profile-export-template"
+                href="#"
+                data-template-key="g:{{ doc.id }}"
+                data-template-title="{{ doc.title }}"
+              >
+                {{ doc.title }}
+              </a>
+            </li>
+          {% empty %}
+            <li><span class="dropdown-item-text text-muted small">Шаблоны не найдены</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'document_main' %}">
+        <i class="bi bi-gear-fill"></i>
+      </a>
+      <form
+        id="profileExportForm"
+        class="d-none"
+        method="post"
+        action="{% url 'employee_profile_export' user_id=profile_user.id %}"
+      >
+        {% csrf_token %}
+        <input type="hidden" name="template_key" id="profileExportTemplateKey">
+        <input type="hidden" name="report_title" id="profileExportReportTitle">
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      {% with primary_role=profile_user.roles.all|first %}
+      <div class="soft-tile p-4 mb-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-auto">
+            {% if profile_user.photo %}
+              <img class="profile-avatar rounded-4" src="{{ profile_user.photo.url }}" alt="{{ profile_user.get_full_name|default:profile_user.username }}">
+            {% else %}
+              <div class="profile-avatar-fallback rounded-4">
+                {{ profile_user.first_name|default:profile_user.username|slice:":1"|upper }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <h3 class="h4 mb-0">
+                {{ profile_user.last_name }} {{ profile_user.first_name }}{% if profile_user.father_name %} {{ profile_user.father_name }}{% endif %}
+              </h3>
+              {% if primary_role %}
+                <span class="badge rounded-pill text-bg-dark">{{ primary_role.name }}</span>
+              {% endif %}
+            </div>
+            <p class="text-muted mb-3">
+              {% if profile_user.department and profile_user.department.university %}
+                {{ profile_user.department.university.name }} •
+              {% endif %}
+              {{ profile_user.department.name|default:"Подразделение не указано" }}
+            </p>
+            <div class="d-flex flex-wrap gap-2 small">
+              {% for link in external_links %}
+                <a class="badge text-bg-light border text-decoration-none" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                  {{ link.label }}
+                </a>
+              {% empty %}
+                <span class="badge text-bg-light border">Профили не указаны</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endwith %}
+
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-3 h-100">
+            <div class="text-muted small">Публикации</div>
+            <div class="metric-number fs-2">128</div>
+            <div class="small text-muted">+14% к прошлому периоду</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-3 h-100">
+            <div class="text-muted small">Цитирования</div>
+            <div class="metric-number fs-2">2 436</div>
+            <div class="small text-muted">+9% к прошлому периоду</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-3 h-100">
+            <div class="text-muted small">Гранты</div>
+            <div class="metric-number fs-2">18</div>
+            <div class="small text-muted">+3 к прошлому периоду</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="metric-card p-3 h-100">
+            <div class="text-muted small">Финансирование</div>
+            <div class="metric-number fs-2">486 млн</div>
+            <div class="small text-muted">+11% к прошлому периоду</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-panel p-4 border-0 shadow-none bg-light">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="h5 mb-0">Научные результаты</h3>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge text-bg-light border">Поиск</span>
+            <span class="badge text-bg-light border">Год</span>
+            <span class="badge text-bg-light border">Тематика</span>
+            <span class="badge text-bg-light border">Сортировка</span>
+          </div>
+        </div>
+        <div class="vstack gap-3">
+          {% for publication in recent_publications %}
+            <div class="soft-tile p-3">
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div>
+                  <div class="fw-semibold">{{ publication.title_original }}</div>
+                  <div class="small text-muted">
+                    {{ publication.year }}
+                    {% if publication.pub_type %} &bull; {{ publication.pub_type.name }}{% endif %}
+                    {% if publication.venue %} &bull; {{ publication.venue.name }}{% endif %}
+                    &bull; {{ publication.citations_count|default:0 }} citations
+                    {% if publication.open_access %} &bull; Open Access{% endif %}
+                  </div>
+                </div>
+                <a class="btn btn-sm btn-outline-secondary flex-shrink-0" href="{% url 'publication_detail' publication.pk %}">
+                  Открыть
+                </a>
+              </div>
+            </div>
+          {% empty %}
+            <div class="soft-tile p-3">
+              <div class="small text-muted">Публикации пока не найдены.</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="soft-tile p-4 mb-4">
+        <h3 class="h5 mb-3">Коллаборации</h3>
+        <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4 mb-3">
+          Граф сети внутренних и внешних коллабораций
+        </div>
+        <div class="vstack gap-2">
+          <div class="soft-tile p-3">
+            <div class="fw-semibold">А. А. Иванов</div>
+            <div class="small text-muted">Кибербезопасность • 6 публикаций</div>
+          </div>
+          <div class="soft-tile p-3">
+            <div class="fw-semibold">М. К. Садыкова</div>
+            <div class="small text-muted">Автоматизация • 4 публикации</div>
+          </div>
+          <div class="soft-tile p-3">
+            <div class="fw-semibold">Е. Т. Нургалиев</div>
+            <div class="small text-muted">Робототехника • 3 публикации</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="soft-tile p-4">
+        <h3 class="h5 mb-3">Что важно руководству</h3>
+        <div class="list-group list-group-flush">
+          <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+            <span>Проекты и гранты</span>
+            <strong>7</strong>
+          </div>
+          <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+            <span>Привлеченное финансирование</span>
+            <strong>96 млн</strong>
+          </div>
+          <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+            <span>Внешние партнеры</span>
+            <strong>12</strong>
+          </div>
+          <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+            <span>Open Access</span>
+            <strong>68%</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 {{ block.super }}
-{% if can_manage_sync %}
-<script>
-    (function () {
-        const syncBlock = document.getElementById("profileSyncBlock");
-        if (!syncBlock) return;
-
-        const syncUrl = syncBlock.dataset.syncUrl || "";
-        const profileUserId = Number(syncBlock.dataset.profileUserId || 0);
-        const logContainer = document.getElementById("profileSyncLog");
-        const stateBadge = document.getElementById("profileSyncState");
-        const buttons = Array.from(syncBlock.querySelectorAll(".profile-sync-btn"));
-        let busyFallbackTimer = null;
-
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(";").shift();
-            return "";
-        }
-
-        function appendLog(message, level = "info", source = "", timestamp = "") {
-            if (!logContainer || !message) return;
-            const row = document.createElement("div");
-            row.className = `profile-sync-log-row level-${level || "info"}`;
-
-            const timeEl = document.createElement("span");
-            timeEl.className = "profile-sync-log-time";
-            const date = timestamp ? new Date(timestamp) : new Date();
-            timeEl.textContent = Number.isNaN(date.getTime())
-                ? "--:--:--"
-                : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-            const textEl = document.createElement("span");
-            textEl.className = "profile-sync-log-text";
-            const sourcePrefix = source ? `[${String(source).toUpperCase()}] ` : "";
-            textEl.textContent = `${sourcePrefix}${message}`;
-
-            row.appendChild(timeEl);
-            row.appendChild(textEl);
-            logContainer.prepend(row);
-
-            while (logContainer.children.length > 80) {
-                logContainer.removeChild(logContainer.lastChild);
-            }
-        }
-
-        function setBusy(isBusy) {
-            if (!isBusy && busyFallbackTimer) {
-                clearTimeout(busyFallbackTimer);
-                busyFallbackTimer = null;
-            }
-            buttons.forEach((button) => {
-                button.disabled = isBusy;
-            });
-            if (!stateBadge) return;
-            if (isBusy) {
-                stateBadge.textContent = "Жүктеліп жатыр";
-                stateBadge.className = "badge text-bg-primary";
-            } else {
-                stateBadge.textContent = "Дайын";
-                stateBadge.className = "badge text-bg-light";
-            }
-        }
-
-        async function startSync(source) {
-            if (!syncUrl) return;
-            setBusy(true);
-            appendLog("Синхрондау кезегіне жіберілді", "info", source);
-
-            try {
-                const response = await fetch(syncUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "X-CSRFToken": getCookie("csrftoken"),
-                    },
-                    credentials: "same-origin",
-                    body: JSON.stringify({ source }),
-                });
-
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                    appendLog(data.detail || "Синхрондауды бастау сәтсіз", "danger", source);
-                    setBusy(false);
-                    return;
-                }
-
-                appendLog(`Task ID: ${data.task_id || "-"}`, "info", source);
-                if (window.AppFeedback && typeof window.AppFeedback.showToast === "function") {
-                    window.AppFeedback.showToast("Синхрондау басталды", { type: "info", duration: 1800 });
-                }
-                if (busyFallbackTimer) {
-                    clearTimeout(busyFallbackTimer);
-                }
-                busyFallbackTimer = setTimeout(() => {
-                    appendLog("WebSocket логы кешігіп тұр, күйді қолмен жаңартыңыз", "warning", source);
-                    setBusy(false);
-                }, 45000);
-            } catch (error) {
-                appendLog("Желілік қате: сервермен байланыс жоқ", "danger", source);
-                setBusy(false);
-            }
-        }
-
-        buttons.forEach((button) => {
-            button.addEventListener("click", () => {
-                startSync(button.dataset.syncSource || "all");
-            });
-        });
-
-        window.addEventListener("app:websocket-message", (event) => {
-            const payload = event.detail || {};
-            if (payload.type !== "sync_log") return;
-            if (Number(payload.target_user_id) !== profileUserId) return;
-
-            appendLog(payload.message || "", payload.level || "info", payload.source || "", payload.timestamp || "");
-            if ((payload.message || "").toLowerCase().includes("аяқталды")) {
-                setBusy(false);
-            }
-        });
-
-        appendLog("WebSocket log каналы қосылды", "info", "system");
-    })();
-</script>
-{% endif %}
+<script src="{% static 'account/scripts/profile_export.js' %}"></script>
 {% endblock %}

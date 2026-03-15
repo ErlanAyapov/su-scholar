@@ -363,6 +363,31 @@
                 <button type="submit" class="bulk-submit">Запустить импорт</button>
             </form>
         </article>
+        <article class="bulk-card">
+            <h2>Дополнить данные доступных работ (кол-во)</h2>
+            <p>
+                Массово открывает страницы из <code>publication.url_publisher</code> и заполняет поле <code>abstract</code>,
+                если абстракт найден на странице.
+            </p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="enrich_publications_abstracts_all">
+                <div class="bulk-field-grid">
+                    <div class="bulk-field">
+                        <label for="abstracts-limit">Лимит</label>
+                        <input id="abstracts-limit" class="bulk-input" type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
+                    </div>
+                    <label class="bulk-checkbox">
+                        Force
+                        <span class="bulk-checkbox-row">
+                            <input type="checkbox" name="force" value="1">
+                            <span>Перезаписать уже заполненные abstract</span>
+                        </span>
+                    </label>
+                </div>
+                <button type="submit" class="bulk-submit">Запустить дополнение</button>
+            </form>
+        </article>
     </section>
 
     <section class="bulk-log-card">
