@@ -8,7 +8,7 @@
         {{ publication.year }} &bull; {{ publication.pub_type.name }} &bull; {{ publication.venue.name }}
     </p>
     <p class="result-meta">
-        Тіл: {{ publication.language.name }}
+        Язык: {{ publication.language.name }}
         {% if publication.quartile %} &bull; Квартиль: {{ publication.quartile }}{% endif %}
         {% if publication.open_access %} &bull; OA{% endif %}
     </p>
@@ -19,11 +19,11 @@
     {% endif %}
     {% if publication.url_publisher %}
         <p class="result-link">
-            Дереккөз: <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer">{{ publication.url_publisher }}</a>
+            Источник: <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer">{{ publication.url_publisher }}</a>
         </p>
     {% endif %}
     <p class="result-link result-open-link">
-        <a href="{% url 'publication_detail' publication.id %}" aria-label="Толық карточканы ашу">
+        <a href="{% url 'publication_detail' publication.id %}" aria-label="Открыть полную карточку">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8m15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z"/>
             </svg>

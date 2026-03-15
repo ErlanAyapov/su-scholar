@@ -6,17 +6,17 @@
 {% block content %}
 <section class="scope-switch" aria-label="Search scope">
     <a class="scope-switch-item {% if active_tab == 'documents' %}is-active{% endif %}" href="{% url 'advanced_search' %}?tab=documents">
-        ЖҰМЫСТАР
+        ПУБЛИКАЦИИ
     </a>
     <a class="scope-switch-item {% if active_tab == 'researchers' %}is-active{% endif %}" href="{% url 'advanced_search' %}?tab=researchers">
-        АДАМДАР
+        ИССЛЕДОВАТЕЛИ
     </a>
 </section>
 
 {% if active_tab == "documents" %}
     <section class="research-shell">
         <div class="research-search-card">
-            <h1 class="h4 mb-3">Құжаттар іздеуі</h1>
+            <h1 class="h4 mb-3">Поиск публикаций</h1>
             <form method="get" action="{% url 'advanced_search' %}" class="research-search-form">
                 <input type="hidden" name="tab" value="documents">
                 {% if request.GET.show %}<input type="hidden" name="show" value="{{ request.GET.show }}">{% endif %}
@@ -24,54 +24,53 @@
 
                 <div class="research-grid-1">
                     <label class="field">
-                        <span class="label">Іздеу (тақырып, автор, DOI, журнал, кілт сөздер)</span>
-                        <input class="control" type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Мысалы: iot">
+                        <span class="label">Поиск (название, автор, DOI, журнал, ключевые слова)</span>
+                        <input class="control" type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Например: IoT">
                     </label>
                 </div>
 
                 <div class="research-grid-2">
-                    <label class="field  d-none">
-                        <span class="label">Мәртебе</span>
+                    <label class="field d-none">
+                        <span class="label">Статус</span>
                         <select name="status" class="control">
-                            <option value="">Барлығы</option>
-                            <option value="submitted" {% if request.GET.status == "submitted" %}selected{% endif %}>Жіберілді</option>
-                            <option value="accepted" {% if request.GET.status == "accepted" %}selected{% endif %}>Қабылданды</option>
-                            <option value="published" {% if request.GET.status == "published" %}selected{% endif %}>Жарияланды</option>
+                            <option value="">Все</option>
+                            <option value="submitted" {% if request.GET.status == "submitted" %}selected{% endif %}>Отправлена</option>
+                            <option value="accepted" {% if request.GET.status == "accepted" %}selected{% endif %}>Принята</option>
+                            <option value="published" {% if request.GET.status == "published" %}selected{% endif %}>Опубликована</option>
                         </select>
                     </label>
                     <label class="field">
-                        <span class="label">Түрі</span>
+                        <span class="label">Тип</span>
                         <select name="type" class="control">
-                            <option value="">Барлығы</option>
+                            <option value="">Все</option>
                             {% for t in pub_types %}
                                 <option value="{{ t.id }}" {% if request.GET.type == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
                             {% endfor %}
                         </select>
                     </label>
                     <label class="field">
-                            <span class="label">Журнал / конференция</span>
-                            <select name="venue" class="control">
-                                <option value="">Барлығы</option>
-                                {% for v in venues_top %}
-                                    <option value="{{ v.id }}" {% if request.GET.venue == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </label>
+                        <span class="label">Журнал / конференция</span>
+                        <select name="venue" class="control">
+                            <option value="">Все</option>
+                            {% for v in venues_top %}
+                                <option value="{{ v.id }}" {% if request.GET.venue == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
                 </div>
 
                 <div class="research-grid-2">
                     <label class="field">
-                        <span class="label">Жыл (бастап)</span>
+                        <span class="label">Год (от)</span>
                         <input class="control" type="number" name="y_min" min="1940" max="2100" value="{{ request.GET.y_min|default:year_min }}">
                     </label>
                     <label class="field">
-                        <span class="label">Жыл (дейін)</span>
+                        <span class="label">Год (до)</span>
                         <input class="control" type="number" name="y_max" min="1940" max="2100" value="{{ request.GET.y_max|default:year_max }}">
                     </label>
                 </div>
 
                 <a
-                    type=""
                     class="text btn-sm advanced-filter-toggle"
                     data-bs-toggle="collapse"
                     data-bs-target="#documentsExtraFilters"
@@ -79,48 +78,47 @@
                     aria-controls="documentsExtraFilters"
                     style="cursor: pointer; text-decoration: none; color: #5f5f5f;"
                 >
-                    Қосымша параметрлер
-               
+                    Дополнительные параметры
                 </a>
 
                 <div
                     id="documentsExtraFilters"
-                    class="collapse documents-advanced   {% if request.GET.lang or request.GET.oa or request.GET.db or request.GET.quartile or request.GET.area or request.GET.venue or selected_tags %}show{% endif %}"
+                    class="collapse documents-advanced {% if request.GET.lang or request.GET.oa or request.GET.db or request.GET.quartile or request.GET.area or request.GET.venue or selected_tags %}show{% endif %}"
                 >
-                    <div class="research-grid-2">
+                    <div class="research-grid-2 d-none">
                         <label class="field">
-                            <span class="label">Тіл</span>
+                            <span class="label">Язык</span>
                             <select name="lang" class="control">
-                                <option value="">Барлығы</option>
+                                <option value="">Все</option>
                                 {% for l in languages %}
                                     <option value="{{ l.id }}" {% if request.GET.lang == l.id|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>
                                 {% endfor %}
                             </select>
                         </label>
-                         <label class="field">
-                            <span class="label">Сала</span>
+                        <label class="field">
+                            <span class="label">Область</span>
                             <select name="area" class="control">
-                                <option value="">Барлығы</option>
+                                <option value="">Все</option>
                                 {% for a in areas %}
                                     <option value="{{ a.id }}" {% if request.GET.area == a.id|stringformat:"s" %}selected{% endif %}>{{ a.name }}</option>
                                 {% endfor %}
                             </select>
                         </label>
                         <label class="field d-none">
-                            <span class="label">Ашық қолжетімділік</span>
+                            <span class="label">Открытый доступ</span>
                             <select name="oa" class="control">
-                                <option value="">Барлығы</option>
-                                <option value="1" {% if request.GET.oa == "1" %}selected{% endif %}>Иә</option>
-                                <option value="0" {% if request.GET.oa == "0" %}selected{% endif %}>Жоқ</option>
+                                <option value="">Все</option>
+                                <option value="1" {% if request.GET.oa == "1" %}selected{% endif %}>Да</option>
+                                <option value="0" {% if request.GET.oa == "0" %}selected{% endif %}>Нет</option>
                             </select>
                         </label>
                     </div>
 
                     <div class="research-grid-2">
                         <label class="field">
-                            <span class="label">Индекстеу базасы</span>
+                            <span class="label">База индексации</span>
                             <select name="db" class="control">
-                                <option value="">Барлығы</option>
+                                <option value="">Все</option>
                                 {% for db in indexing_dbs %}
                                     <option value="{{ db.id }}" {% if request.GET.db == db.id|stringformat:"s" %}selected{% endif %}>
                                         {{ db.name }}
@@ -131,7 +129,7 @@
                         <label class="field">
                             <span class="label">Квартиль</span>
                             <select name="quartile" class="control">
-                                <option value="">Кез келген</option>
+                                <option value="">Любой</option>
                                 <option value="Q1" {% if request.GET.quartile == "Q1" %}selected{% endif %}>Q1</option>
                                 <option value="Q2" {% if request.GET.quartile == "Q2" %}selected{% endif %}>Q2</option>
                                 <option value="Q3" {% if request.GET.quartile == "Q3" %}selected{% endif %}>Q3</option>
@@ -142,9 +140,9 @@
 
                     <div class="research-grid-2">
                         <label class="field d-none">
-                            <span class="label">Сала</span>
+                            <span class="label">Область</span>
                             <select name="area" class="control">
-                                <option value="">Барлығы</option>
+                                <option value="">Все</option>
                                 {% for a in areas %}
                                     <option value="{{ a.id }}" {% if request.GET.area == a.id|stringformat:"s" %}selected{% endif %}>{{ a.name }}</option>
                                 {% endfor %}
@@ -153,7 +151,7 @@
                         <label class="field d-none">
                             <span class="label">Журнал / конференция</span>
                             <select name="venue" class="control">
-                                <option value="">Барлығы</option>
+                                <option value="">Все</option>
                                 {% for v in venues_top %}
                                     <option value="{{ v.id }}" {% if request.GET.venue == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
                                 {% endfor %}
@@ -162,7 +160,7 @@
                     </div>
 
                     <div class="field">
-                        <span class="label">Тегтер</span>
+                        <span class="label">Теги</span>
                         <div class="pill-list">
                             {% for t in tags_top %}
                                 <label class="pill">
@@ -175,8 +173,8 @@
                 </div>
 
                 <div class="research-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'advanced_search' %}?tab=documents">Тазарту</a>
-                    <button class="btn btn-primary" type="submit">Іздеу</button>
+                    <a class="btn btn-outline-secondary" href="{% url 'advanced_search' %}?tab=documents">Сбросить</a>
+                    <button class="btn btn-primary" type="submit">Найти</button>
                 </div>
             </form>
         </div>
@@ -184,16 +182,16 @@
         {% if show_results %}
             <div class="result-container mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-3 results-header">
-                    <p class="m-0 text-muted">Жарияланымдар</p>
+                    <p class="m-0 text-muted">Публикации</p>
                     <div class="result-meta-tools">
-                        <span class="text-muted">Табылды: {{ total_count }}</span>
+                        <span class="text-muted">Найдено: {{ total_count }}</span>
                         <div class="resultShowOptionBtns" data-view-group="documents-home" data-default-view="list">
-                            <button type="button" class="result-view-btn" data-view-target="list" aria-pressed="true" title="Кесте">
+                            <button type="button" class="result-view-btn" data-view-target="list" aria-pressed="true" title="Таблица">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path fill-rule="evenodd" d="M0 2.5A1.5 1.5 0 0 1 1.5 1h13A1.5 1.5 0 0 1 16 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5zM1.5 2a.5.5 0 0 0-.5.5V5h14V2.5a.5.5 0 0 0-.5-.5zm13.5 4H1v7.5a.5.5 0 0 0 .5.5H15z"/>
                                 </svg>
                             </button>
-                            <button type="button" class="result-view-btn" data-view-target="grid" aria-pressed="false" title="Карточкалар">
+                            <button type="button" class="result-view-btn" data-view-target="grid" aria-pressed="false" title="Карточки">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M1 2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm0 1h4v4H1zm7-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm0 1h7v4H8zM1 9a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zm0 1h7v3H1zm10-1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zm0 1h4v3h-4z"/>
                                 </svg>
@@ -204,7 +202,7 @@
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h2 class="h6 mb-2 text-muted" style="opacity: 0.7;">Ағымдағы сүзгі нәтижелері бойынша есеп жасаңыз.</h2>
+                        <h2 class="h6 mb-2 text-muted" style="opacity: 0.7;">Сформируйте отчет по текущим результатам фильтрации.</h2>
                         {% if report_templates %}
                             <form method="post" action="{% url 'main_search' %}" class="row g-2 align-items-end">
                                 {% csrf_token %}
@@ -241,8 +239,8 @@
                                         type="submit"
                                         class="btn btn-primary"
                                         style="height: 37px;"
-                                        aria-label="Есепті жүктеу"
-                                        title="Есепті жүктеу"
+                                        aria-label="Скачать отчет"
+                                        title="Скачать отчет"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-docx" viewBox="0 0 16 16">
                                             <path fill-rule="evenodd" d="M14 4.5V11h-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zm-6.839 9.688v-.522a1.5 1.5 0 0 0-.117-.641.86.86 0 0 0-.322-.387.86.86 0 0 0-.469-.129.87.87 0 0 0-.471.13.87.87 0 0 0-.32.386 1.5 1.5 0 0 0-.117.641v.522q0 .384.117.641a.87.87 0 0 0 .32.387.9.9 0 0 0 .471.126.9.9 0 0 0 .469-.126.86.86 0 0 0 .322-.386 1.55 1.55 0 0 0 .117-.642m.803-.516v.513q0 .563-.205.973a1.47 1.47 0 0 1-.589.627q-.381.216-.917.216a1.86 1.86 0 0 1-.92-.216 1.46 1.46 0 0 1-.589-.627 2.15 2.15 0 0 1-.205-.973v-.513q0-.569.205-.975.205-.411.59-.627.386-.22.92-.22.535 0 .916.22.383.219.59.63.204.406.204.972M1 15.925v-3.999h1.459q.609 0 1.005.235.396.233.589.68.196.445.196 1.074 0 .634-.196 1.084-.197.451-.595.689-.396.237-.999.237zm1.354-3.354H1.79v2.707h.563q.277 0 .483-.082a.8.8 0 0 0 .334-.252q.132-.17.196-.422a2.3 2.3 0 0 0 .068-.592q0-.45-.118-.753a.9.9 0 0 0-.354-.454q-.237-.152-.61-.152Zm6.756 1.116q0-.373.103-.633a.87.87 0 0 1 .301-.398.8.8 0 0 1 .475-.138q.225 0 .398.097a.7.7 0 0 1 .273.26.85.85 0 0 1 .12.381h.765v-.073a1.33 1.33 0 0 0-.466-.964 1.4 1.4 0 0 0-.49-.272 1.8 1.8 0 0 0-.606-.097q-.534 0-.911.223-.375.222-.571.633-.197.41-.197.978v.498q0 .568.194.976.195.406.571.627.375.216.914.216.44 0 .785-.164t.551-.454a1.27 1.27 0 0 0 .226-.674v-.076h-.765a.8.8 0 0 1-.117.364.7.7 0 0 1-.273.248.9.9 0 0 1-.401.088.85.85 0 0 1-.478-.131.83.83 0 0 1-.298-.393 1.7 1.7 0 0 1-.103-.627zm5.092-1.76h.894l-1.275 2.006 1.254 1.992h-.908l-.85-1.415h-.035l-.852 1.415h-.862l1.24-2.015-1.228-1.984h.932l.832 1.439h.035z"/>
@@ -251,7 +249,7 @@
                                 </div>
                             </form>
                         {% else %}
-                            <div class="alert alert-light border mb-0">Есеп генерациялау үшін қолжетімді шаблон табылмады.</div>
+                            <div class="alert alert-light border mb-0">Нет доступного шаблона для формирования отчета.</div>
                         {% endif %}
                     </div>
                 </div>
@@ -261,11 +259,11 @@
                         <table class="table table-hover align-middle results-table">
                             <thead>
                                 <tr>
-                                    <th>Атауы</th>
-                                    <th>Жыл</th>
-                                    <th>Түрі</th>
-                                    <th>Дереккөз</th>
-                                    <th>Тіл</th>
+                                    <th>Название</th>
+                                    <th>Год</th>
+                                    <th>Тип</th>
+                                    <th>Источник</th>
+                                    <th>Язык</th>
                                     <th>Q</th>
                                     <th>OA</th>
                                     <th></th>
@@ -285,7 +283,7 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="alert alert-light border">Таңдалған шарттар бойынша ештеңе табылмады.</div>
+                    <div class="alert alert-light border">По выбранным условиям ничего не найдено.</div>
                 {% endif %}
 
                 {% if page_obj and page_obj.paginator.num_pages > 1 %}
@@ -293,20 +291,20 @@
                         <ul class="pagination justify-content-center">
                             {% if page_obj.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?{{ base_query }}{% if base_query %}&{% endif %}page={{ page_obj.previous_page_number }}">Артқа</a>
+                                    <a class="page-link" href="?{{ base_query }}{% if base_query %}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
                                 </li>
                             {% else %}
-                                <li class="page-item disabled"><span class="page-link">Артқа</span></li>
+                                <li class="page-item disabled"><span class="page-link">Назад</span></li>
                             {% endif %}
                             <li class="page-item disabled">
                                 <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
                             </li>
                             {% if page_obj.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?{{ base_query }}{% if base_query %}&{% endif %}page={{ page_obj.next_page_number }}">Келесі</a>
+                                    <a class="page-link" href="?{{ base_query }}{% if base_query %}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
                                 </li>
                             {% else %}
-                                <li class="page-item disabled"><span class="page-link">Келесі</span></li>
+                                <li class="page-item disabled"><span class="page-link">Вперед</span></li>
                             {% endif %}
                         </ul>
                     </nav>
@@ -314,38 +312,38 @@
             </div>
         {% else %}
             <div class="search-empty-state">
-                <p class="search-empty-title">Құжат іздеу шарттарын енгізіңіз</p>
-                <p class="search-empty-subtitle">Автор енгізсеңіз, сол автордың жұмыстары да көрсетіледі.</p>
+                <p class="search-empty-title">Введите условия поиска публикаций</p>
+                <p class="search-empty-subtitle">Можно искать по названию, автору, DOI, журналу и другим параметрам.</p>
             </div>
         {% endif %}
     </section>
 {% else %}
     <section class="research-shell">
         <div class="research-search-card">
-            <h1 class="h4 mb-3">Зерттеушілер іздеуі</h1>
+            <h1 class="h4 mb-3">Поиск исследователей</h1>
             <form method="get" action="{% url 'advanced_search' %}" class="research-search-form">
                 <input type="hidden" name="tab" value="researchers">
 
                 <div class="research-grid-2">
                     <label class="field">
-                        <span class="label">Тегі</span>
-                        <input class="control" type="text" name="researcher_last_name" value="{{ researcher_last_name|default:'' }}" placeholder="Мысалы: albanbay">
+                        <span class="label">Фамилия</span>
+                        <input class="control" type="text" name="researcher_last_name" value="{{ researcher_last_name|default:'' }}" placeholder="Например: Albanbay">
                     </label>
                     <label class="field">
-                        <span class="label">Аты</span>
-                        <input class="control" type="text" name="researcher_first_name" value="{{ researcher_first_name|default:'' }}" placeholder="Мысалы: nurtay">
+                        <span class="label">Имя</span>
+                        <input class="control" type="text" name="researcher_first_name" value="{{ researcher_first_name|default:'' }}" placeholder="Например: Nurtay">
                     </label>
                 </div>
 
                 <div class="research-grid-2">
                     <label class="field">
-                        <span class="label">Қосымша іздеу (username/email/ID)</span>
+                        <span class="label">Дополнительный поиск (username/email/ID)</span>
                         <input class="control" type="text" name="research_q" value="{{ research_q|default:'' }}" placeholder="username, email, ORCID, Scopus">
                     </label>
                     <label class="field">
                         <span class="label">Кафедра</span>
                         <select name="researcher_department" class="control">
-                            <option value="">Барлығы</option>
+                            <option value="">Все</option>
                             {% for dept in research_departments %}
                                 <option value="{{ dept.id }}" {% if researcher_department == dept.id %}selected{% endif %}>{{ dept.name }}</option>
                             {% endfor %}
@@ -354,37 +352,19 @@
                 </div>
 
                 <div class="research-grid-3">
-                    <label class="field">
-                        <span class="label">Санат</span>
-                        <select name="researcher_scope" class="control">
-                            <option value="" {% if not researcher_scope %}selected{% endif %}>Барлығы</option>
-                            <option value="staff" {% if researcher_scope == "staff" %}selected{% endif %}>Қызметкерлер</option>
-                            <option value="users" {% if researcher_scope == "users" %}selected{% endif %}>Пайдаланушылар</option>
-                        </select>
-                    </label>
-
-                    <label class="field">
-                        <span class="label">Жынысы</span>
-                        <select name="researcher_gender" class="control">
-                            <option value="" {% if not researcher_gender %}selected{% endif %}>Кез келген</option>
-                            <option value="male" {% if researcher_gender == "male" %}selected{% endif %}>Ер</option>
-                            <option value="female" {% if researcher_gender == "female" %}selected{% endif %}>Әйел</option>
-                        </select>
-                    </label>
-
                     <div class="field">
-                        <span class="label">Профиль белгілері</span>
+                        <span class="label">Идентификаторы профиля</span>
                         <div class="research-flag-list">
                             <label class="research-flag"><input type="checkbox" name="researcher_has_orcid" value="1" {% if researcher_has_orcid == "1" %}checked{% endif %}> ORCID</label>
                             <label class="research-flag"><input type="checkbox" name="researcher_has_scopus" value="1" {% if researcher_has_scopus == "1" %}checked{% endif %}> Scopus</label>
-                            <label class="research-flag"><input type="checkbox" name="researcher_has_scholar" value="1" {% if researcher_has_scholar == "1" %}checked{% endif %}> Scholar</label>
+                            <label class="research-flag"><input type="checkbox" name="researcher_has_scholar" value="1" {% if researcher_has_scholar == "1" %}checked{% endif %}> Google Scholar</label>
                         </div>
                     </div>
                 </div>
 
                 <div class="research-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'advanced_search' %}?tab=researchers">Тазарту</a>
-                    <button class="btn btn-primary" type="submit">Іздеу</button>
+                    <a class="btn btn-outline-secondary" href="{% url 'advanced_search' %}?tab=researchers">Сбросить</a>
+                    <button class="btn btn-primary" type="submit">Найти</button>
                 </div>
             </form>
         </div>
@@ -392,16 +372,16 @@
         {% if researcher_show_results %}
             <div class="result-container mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-3 results-header">
-                    <p class="m-0 text-muted">Зерттеушілер</p>
+                    <p class="m-0 text-muted">Исследователи</p>
                     <div class="result-meta-tools">
-                        <span class="text-muted">Табылды: {{ researcher_total_count }}</span>
+                        <span class="text-muted">Найдено: {{ researcher_total_count }}</span>
                         <div class="resultShowOptionBtns" data-view-group="researchers-home" data-default-view="list">
-                            <button type="button" class="result-view-btn" data-view-target="list" aria-pressed="true" title="Кесте">
+                            <button type="button" class="result-view-btn" data-view-target="list" aria-pressed="true" title="Таблица">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path fill-rule="evenodd" d="M0 2.5A1.5 1.5 0 0 1 1.5 1h13A1.5 1.5 0 0 1 16 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5zM1.5 2a.5.5 0 0 0-.5.5V5h14V2.5a.5.5 0 0 0-.5-.5zm13.5 4H1v7.5a.5.5 0 0 0 .5.5H15z"/>
                                 </svg>
                             </button>
-                            <button type="button" class="result-view-btn" data-view-target="grid" aria-pressed="false" title="Карточкалар">
+                            <button type="button" class="result-view-btn" data-view-target="grid" aria-pressed="false" title="Карточки">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M1 2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm0 1h4v4H1zm7-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm0 1h7v4H8zM1 9a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zm0 1h7v3H1zm10-1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zm0 1h4v3h-4z"/>
                                 </svg>
@@ -415,11 +395,9 @@
                         <table class="table table-hover align-middle results-table">
                             <thead>
                                 <tr>
-                                    <th>Аты-жөні</th>
-                                    <th>Username</th>
-                                    <th>Email</th>
+                                    <th>ФИО</th>
                                     <th>Кафедра</th>
-                                    <th>Жарияланым</th>
+                                    <th>Публикации</th>
                                     <th>ORCID</th>
                                     <th>Scopus</th>
                                     <th></th>
@@ -444,32 +422,32 @@
                             <ul class="pagination justify-content-center">
                                 {% if researcher_page_obj.has_previous %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?{{ researcher_base_query }}{% if researcher_base_query %}&{% endif %}page={{ researcher_page_obj.previous_page_number }}">Артқа</a>
+                                        <a class="page-link" href="?{{ researcher_base_query }}{% if researcher_base_query %}&{% endif %}page={{ researcher_page_obj.previous_page_number }}">Назад</a>
                                     </li>
                                 {% else %}
-                                    <li class="page-item disabled"><span class="page-link">Артқа</span></li>
+                                    <li class="page-item disabled"><span class="page-link">Назад</span></li>
                                 {% endif %}
                                 <li class="page-item disabled">
                                     <span class="page-link">{{ researcher_page_obj.number }} / {{ researcher_page_obj.paginator.num_pages }}</span>
                                 </li>
                                 {% if researcher_page_obj.has_next %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?{{ researcher_base_query }}{% if researcher_base_query %}&{% endif %}page={{ researcher_page_obj.next_page_number }}">Келесі</a>
+                                        <a class="page-link" href="?{{ researcher_base_query }}{% if researcher_base_query %}&{% endif %}page={{ researcher_page_obj.next_page_number }}">Вперед</a>
                                     </li>
                                 {% else %}
-                                    <li class="page-item disabled"><span class="page-link">Келесі</span></li>
+                                    <li class="page-item disabled"><span class="page-link">Вперед</span></li>
                                 {% endif %}
                             </ul>
                         </nav>
                     {% endif %}
                 {% else %}
-                    <div class="alert alert-light border">Сұрау бойынша зерттеушілер табылмады.</div>
+                    <div class="alert alert-light border">По заданным критериям исследователи не найдены.</div>
                 {% endif %}
             </div>
         {% else %}
             <div class="search-empty-state">
-                <p class="search-empty-title">Іздеу шарттарын енгізіңіз</p>
-                <p class="search-empty-subtitle">Тегі/аты немесе қосымша сүзгілер арқылы зерттеушілерді таба аласыз.</p>
+                <p class="search-empty-title">Введите параметры поиска</p>
+                <p class="search-empty-subtitle">Ищите исследователей по имени, фамилии, кафедре и идентификаторам.</p>
             </div>
         {% endif %}
     </section>

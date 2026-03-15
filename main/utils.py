@@ -736,8 +736,14 @@ def build_publication_detail_context(pk: int):
         ),
         pk=pk,
     )
+    author_links = [
+        link
+        for link in publication.publicationauthor_set.select_related("author").order_by("order", "id")
+        if link.author and (link.author.full_name or "").strip()
+    ]
+
     return {
         "publication": publication,
-        "author_links": publication.publicationauthor_set.all().order_by("order"),
+        "author_links": author_links,
         "project_links": publication.publicationproject_set.all(),
     }
