@@ -38,6 +38,7 @@ class FetchResult:
     source_bytes: int
     truncated: bool = False
     error: str = ""
+    raw_bytes: bytes = b""
 
 
 def _iter_resolved_ips(hostname: str) -> set[str]:
@@ -126,12 +127,14 @@ class SafeFetcher:
         timeout: int = 25,
         max_redirects: int = 5,
         max_bytes: int = MAX_HTML_BYTES,
+        max_pdf_bytes: int = 25_000_000,
         allowed_domains: Iterable[str] | None = None,
         retries: int = 2,
     ):
         self.timeout = timeout
         self.max_redirects = max_redirects
         self.max_bytes = max_bytes
+        self.max_pdf_bytes = max_pdf_bytes
         self.allowed_domains = set(allowed_domains or DEFAULT_ALLOWED_DOMAINS)
         self.session = requests.Session()
         self.session.headers.update(DEFAULT_HEADERS)
@@ -150,7 +153,13 @@ class SafeFetcher:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
-    def fetch_url(self, url: str, *, extra_allowed_hosts: Iterable[str] | None = None) -> FetchResult:
+    def fetch_url(
+        self,
+        url: str,
+        *,
+        extra_allowed_hosts: Iterable[str] | None = None,
+        publication_id: int | None = None,
+    ) -> FetchResult:
         requested_url = validate_url(
             url,
             allowed_domains=self.allowed_domains,
@@ -174,6 +183,8 @@ class SafeFetcher:
             final_url = validate_public_url_target(response.url)
 
         content_type = (response.headers.get("Content-Type") or "").lower()
+        is_pdf_target = "application/pdf" in content_type or final_url.lower().endswith(".pdf")
+        byte_limit = self.max_pdf_bytes if is_pdf_target else self.max_bytes
         raw_chunks = []
         source_bytes = 0
         truncated = False
@@ -182,8 +193,8 @@ class SafeFetcher:
             if not chunk:
                 continue
             source_bytes += len(chunk)
-            if source_bytes > self.max_bytes:
-                remaining = self.max_bytes - sum(len(item) for item in raw_chunks)
+            if source_bytes > byte_limit:
+                remaining = byte_limit - sum(len(item) for item in raw_chunks)
                 if remaining > 0:
                     raw_chunks.append(chunk[:remaining])
                 truncated = True
@@ -192,12 +203,13 @@ class SafeFetcher:
 
         raw_bytes = b"".join(raw_chunks)
         text = ""
-        if "application/pdf" not in content_type and not final_url.lower().endswith(".pdf"):
+        if not is_pdf_target:
             encoding = response.encoding or response.apparent_encoding or "utf-8"
             text = raw_bytes.decode(encoding, errors="replace")
 
         logger.info(
-            "Fetched source url=%s final_url=%s status=%s bytes=%s truncated=%s",
+            "Fetched source publication_id=%s url=%s final_url=%s status=%s bytes=%s truncated=%s",
+            publication_id or "",
             requested_url,
             final_url,
             response.status_code,
@@ -211,6 +223,7 @@ class SafeFetcher:
             status_code=response.status_code,
             content_type=content_type,
             text=text,
+            raw_bytes=raw_bytes,
             headers=dict(response.headers),
             elapsed_sec=elapsed_sec,
             source_bytes=source_bytes,
@@ -218,5 +231,5 @@ class SafeFetcher:
         )
 
 
-def fetch_url(url: str) -> FetchResult:
-    return SafeFetcher().fetch_url(url)
+def fetch_url(url: str, publication_id: int | None = None) -> FetchResult:
+    return SafeFetcher().fetch_url(url, publication_id=publication_id)

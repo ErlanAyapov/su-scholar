@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import time
@@ -8,8 +9,9 @@ from typing import Any
 
 import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
 
-from main.models import Publication
+from main.models import Publication, PublicationFile
 
 from .author_linking import AUTO_LINK_THRESHOLD, link_authors_to_users
 from .db_updater import _update_publication_from_payload_with_details
@@ -41,6 +43,7 @@ from .utils import (
     json_dumps,
     normalize_doi,
     normalize_quartile,
+    preview_text,
     normalize_title_key,
     normalize_url,
 )
@@ -133,10 +136,78 @@ class PublicationPipeline:
                 continue
             url = link.get("url", "")
             label = (link.get("label") or "").lower()
-            if any(token in label for token in ("publisher", "full text", "article", "pdf", "doi")):
+            url_lower = (url or "").lower()
+            if any(token in label for token in ("publisher", "full text", "article", "pdf", "doi")) or any(
+                token in url_lower for token in ("pdf", "download", "fulltext", "full-text")
+            ):
                 urls.append(url)
 
         return dedupe_urls(urls)
+
+    def _log_source_summary(self, publication_id: int, source_type: str, source_url: str, payload: dict[str, Any]) -> None:
+        publication_data = payload.get("publication", {})
+        title = preview_text(publication_data.get("title_original", ""), 140)
+        abstract = preview_text(publication_data.get("abstract", ""), 200)
+        quartile = publication_data.get("quartile", "")
+        logger.info(
+            "Publication pipeline source publication_id=%s source_type=%s source_url=%s title=%s abstract=%s quartile=%s",
+            publication_id,
+            source_type,
+            source_url,
+            title,
+            abstract,
+            quartile or "",
+        )
+
+    def _store_pdf_file(
+        self,
+        publication: Publication,
+        processed_source: ProcessedSource,
+        *,
+        force_refresh: bool,
+    ) -> dict[str, Any]:
+        fetch_result = processed_source.fetch
+        if not fetch_result or not fetch_result.raw_bytes:
+            return {"saved": False, "reason": "no_pdf_bytes"}
+
+        is_pdf = (
+            processed_source.source_type == "pdf_text"
+            or "application/pdf" in (fetch_result.content_type or "")
+            or fetch_result.final_url.lower().endswith(".pdf")
+        )
+        if not is_pdf:
+            return {"saved": False, "reason": "not_pdf"}
+
+        source_url = normalize_url(fetch_result.final_url) or fetch_result.final_url
+        if not source_url:
+            return {"saved": False, "reason": "missing_source_url"}
+
+        existing = publication.files.filter(kind="pdf", source_url=source_url).first()
+        if existing and not force_refresh:
+            return {"saved": False, "reason": "already_saved", "file_id": existing.id, "source_url": source_url}
+
+        filename_seed = hashlib.sha1(source_url.encode("utf-8")).hexdigest()[:12]
+        filename = f"publication_{publication.id}_{filename_seed}.pdf"
+        description = preview_text(
+            processed_source.structured.get("publication", {}).get("title_original", "") or processed_source.intermediate.get("page_title", ""),
+            180,
+        )
+
+        if existing:
+            existing.source_url = source_url
+            existing.description = description
+            existing.file.save(filename, ContentFile(fetch_result.raw_bytes), save=False)
+            existing.save(update_fields=["source_url", "description", "file"])
+            return {"saved": True, "file_id": existing.id, "source_url": source_url}
+
+        pdf_file = PublicationFile.objects.create(
+            publication=publication,
+            kind="pdf",
+            source_url=source_url,
+            description=description,
+        )
+        pdf_file.file.save(filename, ContentFile(fetch_result.raw_bytes), save=True)
+        return {"saved": True, "file_id": pdf_file.id, "source_url": source_url}
 
     def _candidate_score(self, url: str) -> tuple[int, int]:
         normalized = normalize_url(url)
@@ -373,6 +444,7 @@ class PublicationPipeline:
             "publication_id": publication.id,
             "sources": [],
             "total_sources_fetched": 0,
+            "pdf_files_saved": 0,
         }
         all_candidates: list[dict[str, Any]] = []
 
@@ -392,7 +464,11 @@ class PublicationPipeline:
                 allowed_hosts.add(hostname)
 
             try:
-                fetch_result = self.fetcher.fetch_url(current_url, extra_allowed_hosts=allowed_hosts)
+                fetch_result = self.fetcher.fetch_url(
+                    current_url,
+                    extra_allowed_hosts=allowed_hosts,
+                    publication_id=publication.id,
+                )
             except Exception as exc:
                 warnings.append(f"Failed to fetch {current_url}: {exc}")
                 metrics["sources"].append({"url": current_url, "fetch_error": str(exc)})
@@ -424,7 +500,7 @@ class PublicationPipeline:
                 source_warnings.append(f"Fetched PDF source without extracted text: {fetch_result.final_url}")
             else:
                 try:
-                    llm_result = self.llm_client.extract(intermediate)
+                    llm_result = self.llm_client.extract(intermediate, publication_id=publication.id)
                     structured_payload = ensure_payload_shape(llm_result.payload)
                 except Exception as exc:
                     source_warnings.append(f"LLM extraction failed for {fetch_result.final_url}: {exc}")
@@ -448,6 +524,24 @@ class PublicationPipeline:
             processed_sources.append(processed)
             processed_payloads.append(structured_payload)
             warnings.extend(source_warnings)
+
+            self._log_source_summary(publication.id, source_type, fetch_result.final_url, structured_payload)
+            pdf_result = self._store_pdf_file(publication, processed, force_refresh=self.force_refresh)
+            if pdf_result.get("saved"):
+                metrics["pdf_files_saved"] = metrics.get("pdf_files_saved", 0) + 1
+                logger.info(
+                    "Publication pipeline pdf saved publication_id=%s source_url=%s file_id=%s",
+                    publication.id,
+                    pdf_result.get("source_url", ""),
+                    pdf_result.get("file_id", ""),
+                )
+            elif pdf_result.get("reason") not in {"not_pdf", "no_pdf_bytes"}:
+                logger.info(
+                    "Publication pipeline pdf skipped publication_id=%s source_url=%s reason=%s",
+                    publication.id,
+                    fetch_result.final_url,
+                    pdf_result.get("reason", ""),
+                )
 
             if not processed_sources[:-1] and llm_result is not None:
                 self._write_debug_json(debug_dir / "04_llm_primary.json", structured_payload)
@@ -567,6 +661,16 @@ class PublicationPipeline:
         metrics["total_cleaned_text_chars"] = sum(len(item.intermediate.get("cleaned_text", "")) for item in processed_sources)
         metrics["total_pipeline_time_sec"] = round(time.perf_counter() - total_started, 3)
         self._write_debug_json(debug_dir / "09_metrics.json", metrics)
+
+        logger.info(
+            "Publication pipeline final publication_id=%s title=%s abstract=%s updated_fields=%s linked_users=%s pdf_files_saved=%s",
+            publication.id,
+            preview_text(final_payload.get("publication", {}).get("title_original", ""), 140),
+            preview_text(final_payload.get("publication", {}).get("abstract", ""), 200),
+            update_result.updated_fields,
+            sorted(set(update_result.linked_users)),
+            metrics.get("pdf_files_saved", 0),
+        )
 
         return {
             "success": True,

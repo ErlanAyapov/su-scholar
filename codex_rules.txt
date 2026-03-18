@@ -1,0 +1,16 @@
+
+Вот ещё **короткая жёсткая версия**, если нужен именно компактный rule-set для агента без воды:
+
+```md
+# Strict Encoding Rules
+
+- Use UTF-8 for all reads/writes by default.
+- Never save source files in CP1251/Win-1251 unless explicitly requested.
+- Before editing, check whether Cyrillic text is readable.
+- If text looks like `РџСѓР±Р»...` or `Ð¢ÐµÐºÑ...`, stop: this is encoding corruption.
+- Do not continue editing corrupted files until encoding is fixed.
+- Preserve Russian/Kazakh text exactly as readable Unicode.
+- For HTML always keep `<meta charset="utf-8">`.
+- Prefer minimal patches over full-file rewrites when non-ASCII text exists.
+- Inspect diffs before finish; do not commit mojibake.
+- If encoding confidence is low, warn and do not rewrite the file.

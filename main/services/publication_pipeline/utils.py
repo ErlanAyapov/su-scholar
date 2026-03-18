@@ -95,6 +95,11 @@ METRIC_PATTERNS = {
     "jif": re.compile(r"\b(?:jif|impact factor)\b[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE),
     "snip": re.compile(r"\bsnip\b[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE),
 }
+ABSTRACT_MAX_CHARS = 8000
+CITATION_ABSTRACT_HINT_RE = re.compile(
+    r"(?:\burl\s*:\s*https?://|//.+\b(?:19|20)\d{2}\.\s*\d+\(\d+\)|\bdoi\.org/)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 SCHEMA_TEMPLATE = {
     "publication": {
@@ -465,6 +470,37 @@ def normalize_metric_name(value: str) -> str:
         "snip": "snip",
     }
     return mapping.get(raw_value, raw_value if raw_value in VALID_METRICS else "")
+
+
+def preview_text(value: str, max_chars: int = 200) -> str:
+    text = normalize_whitespace(value)
+    if not text:
+        return ""
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 3].rstrip() + "..."
+
+
+def looks_like_citation_abstract(value: str) -> bool:
+    text = normalize_whitespace(value)
+    if not text:
+        return False
+    if CITATION_ABSTRACT_HINT_RE.search(text):
+        return True
+    if text.count(",") >= 2 and "//" in text and YEAR_RE.search(text):
+        return True
+    return False
+
+
+def sanitize_abstract_text(value: str) -> tuple[str, bool]:
+    text = normalize_whitespace(value)
+    if not text:
+        return "", False
+    if len(text) > ABSTRACT_MAX_CHARS:
+        text = text[:ABSTRACT_MAX_CHARS].strip()
+    if looks_like_citation_abstract(text):
+        return "", True
+    return text, False
 
 
 def is_scholar_url(url: str) -> bool:

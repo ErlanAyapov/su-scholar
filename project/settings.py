@@ -171,6 +171,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+DEFAULT_CHARSET = "utf-8"
+FILE_CHARSET = "utf-8"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
@@ -183,7 +186,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DOCK_EDITOR_URL = os.getenv('DOCK_EDITOR_URL', '')
 APP_PUBLIC_URL = os.getenv('APP_PUBLIC_URL', '')
 ONLYOFFICE_JWT_SECRET = os.getenv('ONLYOFFICE_JWT_SECRET', '')
-LLM_API = os.getenv('LLM_API', 'http://192.168.1.2:11434/v1')
+LLM_API = os.getenv('LLM_API', 'http://localhost:11434/v1')
 LLM_API_KEY = os.getenv('LLM_API_KEY', '')
 LLM_MODEL = os.getenv('LLM_MODEL', 'gpt-oss:20b')
 LLM_CONNECT_TIMEOUT = _as_float(os.getenv('LLM_CONNECT_TIMEOUT'), default=15.0)

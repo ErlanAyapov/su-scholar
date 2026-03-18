@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 from django.conf import settings
 
 
@@ -307,6 +307,7 @@ class PublicationFile(models.Model):
 
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="files")
     kind = models.CharField(max_length=20, choices=FILE_KIND_CHOICES, default="pdf")
+    source_url = models.URLField(blank=True, db_index=True, max_length=500)
     file = models.FileField(upload_to="publication_files/")
     description = models.CharField(max_length=200, blank=True)
 

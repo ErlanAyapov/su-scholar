@@ -1,5 +1,7 @@
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from main.models import Author, Language, Publication, PublicationAuthor, PublicationType, Venue
 from main.services.publication_pipeline import (
@@ -10,6 +12,8 @@ from main.services.publication_pipeline import (
     update_publication_from_payload,
     validate_payload,
 )
+from main.services.publication_pipeline.fetchers import FetchResult
+from main.services.publication_pipeline.pipeline import ProcessedSource, PublicationPipeline
 from main.services.publication_pipeline.utils import build_empty_payload, extract_quartile_data
 
 User = get_user_model()
@@ -89,6 +93,22 @@ class PipelineNormalizationTests(SimpleTestCase):
         metric_names = {item["metric"] for item in extracted["venue_metrics"]}
         self.assertIn("citescore", metric_names)
         self.assertIn("sjr", metric_names)
+
+    def test_citation_like_abstract_is_cleared(self):
+        payload = build_empty_payload()
+        payload["publication"]["title_original"] = "Example"
+        payload["publication"]["year"] = 2025
+        payload["publication"]["abstract"] = (
+            "Makhmut A.N., Ziro A., Alimseitova Zh. ANALYSIS THE IMPACT OF CODE DOCUMENTATION STYLES "
+            "ON COLLABORATIVE SOFTWARE DEVELOPMENT // Universum: технические науки : электрон. научн. журн. "
+            "2025. 5(134). URL: https://example.org/article"
+        )
+        payload["source_meta"]["source_type"] = "google_scholar"
+
+        normalized = normalize_payload(payload)
+
+        self.assertEqual(normalized["publication"]["abstract"], "")
+        self.assertTrue(normalized["publication"]["needs_review"])
 
 
 class PipelineUpdaterTests(TestCase):
@@ -185,3 +205,37 @@ class PipelineUpdaterTests(TestCase):
         self.assertEqual(linked_authors[0]["name_initials"], "n albanbay")
         self.assertGreaterEqual(linked_authors[1]["match_confidence"], 0.75)
         self.assertEqual(len(logs), 2)
+
+    def test_store_pdf_file_creates_publication_file(self):
+        pipeline = PublicationPipeline(force_refresh=False, base_url="http://localhost", api_key="test")
+        fetch_result = FetchResult(
+            requested_url="https://example.org/paper.pdf",
+            final_url="https://example.org/paper.pdf",
+            status_code=200,
+            content_type="application/pdf",
+            text="",
+            raw_bytes=b"%PDF-1.4 test pdf bytes",
+            headers={},
+            elapsed_sec=0.1,
+            source_bytes=24,
+        )
+        structured = build_empty_payload()
+        structured["publication"]["title_original"] = "PDF Article"
+        processed = ProcessedSource(
+            url="https://example.org/paper.pdf",
+            fetch=fetch_result,
+            source_type="pdf_text",
+            intermediate={"page_title": "PDF Article"},
+            structured=structured,
+            llm=None,
+            warnings=[],
+        )
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            result = pipeline._store_pdf_file(self.publication, processed, force_refresh=False)
+
+        self.assertTrue(result["saved"])
+        self.publication.refresh_from_db()
+        pdf_file = self.publication.files.get(kind="pdf")
+        self.assertEqual(pdf_file.source_url, "https://example.org/paper.pdf")
+        self.assertTrue(pdf_file.file.name.endswith(".pdf"))
