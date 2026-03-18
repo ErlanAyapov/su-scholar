@@ -6,16 +6,19 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
-from account.models import Department, Role, University, User
+from account.models import Department, Institute, Role, University, User
 from account.tasks import enqueue_satbayev_enrichment, enrich_user_profile_from_satbayev
 from core.models import CeleryTaskLog
 from core.services.celery_task_channels import serialize_task_log
 from main.tasks import (
+    backfill_author_normalization_task,
     enrich_publications_with_abstracts_task,
     import_publications_for_all_users_task,
     import_publications_from_google_scholar_for_all_users_task,
     import_publications_from_google_scholar_task,
     import_user_publications_task,
+    relink_authors_to_users_task,
+    run_publication_pipeline_batch_task,
 )
 
 
@@ -181,6 +184,30 @@ class UserAdmin(BaseUserAdmin):
                 "task_id": task.id,
             }
 
+        if operation == "run_publication_pipeline_batch":
+            task = run_publication_pipeline_batch_task.delay(limit=limit, force_refresh=force)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Publication pipeline queued. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "backfill_author_normalization":
+            task = backfill_author_normalization_task.delay(relink=True)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Author normalization backfill queued. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "relink_authors_to_users":
+            task = relink_authors_to_users_task.delay()
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Author-to-user relinking queued. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
         return {
             "level": messages.ERROR,
             "message": "Неизвестная операция.",
@@ -259,11 +286,24 @@ class UniversityAdmin(admin.ModelAdmin):
     search_fields = ("name", "country")
 
 
-@admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
+@admin.register(Institute)
+class InstituteAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "university")
     list_filter = ("university",)
     search_fields = ("name", "university__name")
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "institute", "university_name")
+    list_filter = ("institute", "institute__university")
+    search_fields = ("name", "institute__name", "institute__university__name")
+
+    @admin.display(description="University")
+    def university_name(self, obj: Department):
+        if not obj.institute_id:
+            return "-"
+        return obj.institute.university
 
 
 @admin.register(Role)

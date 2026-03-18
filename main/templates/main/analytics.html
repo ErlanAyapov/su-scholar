@@ -1,7 +1,7 @@
 {% extends "main/base.html" %}
 {% load static %}
 
-{% block title %}SU Science - Аналитика{% endblock %}
+{% block title %}SU Scholar - Аналитика{% endblock %}
 
 {% block styles %}
 <style>
@@ -24,18 +24,6 @@
     background: #f8fbff;
     border: 1px solid #dbe4ef;
     border-radius: 1.25rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .soft-tile:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.8rem 1.8rem rgba(13, 110, 253, 0.08);
-  }
-
-  .quick-tile-active {
-    background: linear-gradient(180deg, #ffffff 0%, #edf4ff 100%);
-    border-color: #9ec5fe;
-    font-weight: 600;
   }
 
   .metric-card {
@@ -55,18 +43,33 @@
     align-items: end;
     display: flex;
     gap: 0.65rem;
-    min-height: 10rem;
+    height: 12rem;
+    min-height: 12rem;
   }
 
   .mini-bars .bar-group {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    height: 100%;
+    justify-content: flex-end;
     text-align: center;
+  }
+
+  .mini-bars .bar-value {
+    color: #10243e;
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.35rem;
   }
 
   .mini-bars .bar {
     background: linear-gradient(180deg, #0d6efd 0%, #123f86 100%);
     border-radius: 1rem 1rem 0.45rem 0.45rem;
-    min-height: 1rem;
+    min-height: 0;
     width: 100%;
   }
 
@@ -76,12 +79,6 @@
     background: #f8fbff;
     color: #6c7a89;
     min-height: 10rem;
-  }
-
-  .dashboard-switch {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
   }
 
   .dashboard-switch-row {
@@ -108,10 +105,6 @@
     white-space: nowrap;
   }
 
-  .dashboard-switch-row .dashboard-switch-btn:hover {
-    border-color: #9ec5fe;
-  }
-
   .dashboard-switch-btn.is-active {
     background: #0d6efd;
     border-color: #0d6efd;
@@ -125,6 +118,89 @@
   .dashboard-section.is-active {
     display: block;
   }
+
+  .analytics-kpi-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  }
+
+  .analytics-card {
+    background: #f8fbff;
+    border: 1px solid #dbe4ef;
+    border-radius: 1.25rem;
+    padding: 1rem;
+  }
+
+  .analytics-card-title {
+    color: #1d3557;
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .analytics-table-wrap {
+    border: 1px solid #dbe4ef;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  .analytics-table-wrap .table {
+    margin-bottom: 0;
+  }
+
+  .analytics-table-wrap .table thead {
+    background: #f1f5fa;
+  }
+
+  .analytics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .analytics-list-item {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #dbe4ef;
+    border-radius: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .analytics-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .analytics-chip {
+    background: #ffffff;
+    border: 1px solid #dbe4ef;
+    border-radius: 999px;
+    color: #44566b;
+    font-size: 0.84rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  .placeholder-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    width: 100%;
+  }
+
+  .placeholder-metric {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #dbe4ef;
+    border-radius: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.45rem 0.65rem;
+    width: 100%;
+  }
 </style>
 {% endblock %}
 
@@ -132,57 +208,86 @@
 <section class="dashboard-home">
   <div class="row g-3 mb-4 dashboard-switch-row">
     <button class="btn btn-outline-primary btn-sm dashboard-switch-btn" type="button" data-dashboard-target="department" aria-pressed="false">
-          Dashboard кафедры
-        </button>
-        <button class="btn btn-outline-primary btn-sm dashboard-switch-btn" type="button" data-dashboard-target="institute" aria-pressed="false">
-          Dashboard института
-        </button>
-        <button class="btn btn-outline-primary btn-sm dashboard-switch-btn is-active" type="button" data-dashboard-target="university" aria-pressed="true">
-          Dashboard университета
-        </button> 
-  </div> 
+      Отчет кафедры
+    </button>
+    <button class="btn btn-outline-primary btn-sm dashboard-switch-btn" type="button" data-dashboard-target="institute" aria-pressed="false">
+      Отчет института
+    </button>
+    <button class="btn btn-outline-primary btn-sm dashboard-switch-btn is-active" type="button" data-dashboard-target="university" aria-pressed="true">
+      Отчет университета
+    </button>
+  </div>
 
   <section class="dashboard-section" data-dashboard-section="department">
     <div class="dashboard-panel p-4 mb-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h2 class="h4 mb-1">Dashboard кафедры</h2>
-          <p class="text-muted mb-0">Показатели по команде, динамике и лучшим сотрудникам.</p>
+          <h2 class="h4 mb-1">кафедра</h2>
+          <p class="text-muted mb-0">Результативность кафедры, динамика развития, качество публикаций и коллаборации.</p>
         </div>
-        <button class="btn btn-outline-secondary btn-sm" type="button">Экспорт отчета</button>
       </div>
 
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Исследователи</div><div class="metric-number fs-2">32</div><div class="small text-muted">2 новых профиля</div></div></div>
-        <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Публикации</div><div class="metric-number fs-2">46</div><div class="small text-muted">+12%</div></div></div>
-        <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Гранты</div><div class="metric-number fs-2">7</div><div class="small text-muted">+2</div></div></div>
-        <div class="col-6 col-xl-3"><div class="metric-card p-3 h-100"><div class="text-muted small">Финансирование</div><div class="metric-number fs-2">118 млн</div><div class="small text-muted">+15%</div></div></div>
+      <div class="analytics-kpi-grid mb-3">
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Исследователи</div><div class="metric-number fs-2">32</div><div class="small text-muted">2 новых профиля</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Публикации</div><div class="metric-number fs-2">46</div><div class="small text-muted">+12%</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Гранты</div><div class="metric-number fs-2">7</div><div class="small text-muted">+2</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Финансирование</div><div class="metric-number fs-2">₸ 118 млн</div><div class="small text-muted">+15%</div></div>
+      </div>
+
+      <div class="analytics-kpi-grid mb-4">
+        <div class="analytics-card"><div class="text-muted small">Q1/Q2 публикации</div><div class="metric-number fs-2">54%</div></div>
+        <div class="analytics-card"><div class="text-muted small">Активные исследователи</div><div class="metric-number fs-2">28</div></div>
+        <div class="analytics-card"><div class="text-muted small">Внешние партнеры</div><div class="metric-number fs-2">12</div></div>
+        <div class="analytics-card"><div class="text-muted small">Внутренние коллаборации</div><div class="metric-number fs-2">18</div></div>
       </div>
 
       <div class="row g-4">
-        <div class="col-lg-6">
-          <div class="soft-tile p-4 h-100">
-            <h3 class="h5 mb-3">Публикации по годам</h3>
-            <div class="mini-bars">
-              <div class="bar-group"><div class="bar" style="height: 47%;"></div><div class="small text-muted mt-2">2020</div></div>
-              <div class="bar-group"><div class="bar" style="height: 57%;"></div><div class="small text-muted mt-2">2021</div></div>
-              <div class="bar-group"><div class="bar" style="height: 64%;"></div><div class="small text-muted mt-2">2022</div></div>
-              <div class="bar-group"><div class="bar" style="height: 79%;"></div><div class="small text-muted mt-2">2023</div></div>
-              <div class="bar-group"><div class="bar" style="height: 93%;"></div><div class="small text-muted mt-2">2024</div></div>
+        <div class="col-xl-8">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <div class="analytics-card h-100"><h3 class="analytics-card-title">Динамика публикаций</h3><div class="mini-bars"><div class="bar-group"><span class="bar-value">24</span><div class="bar" style="height: 48%;"></div><div class="small text-muted mt-2">2020</div></div><div class="bar-group"><span class="bar-value">29</span><div class="bar" style="height: 58%;"></div><div class="small text-muted mt-2">2021</div></div><div class="bar-group"><span class="bar-value">34</span><div class="bar" style="height: 68%;"></div><div class="small text-muted mt-2">2022</div></div><div class="bar-group"><span class="bar-value">39</span><div class="bar" style="height: 78%;"></div><div class="small text-muted mt-2">2023</div></div><div class="bar-group"><span class="bar-value">46</span><div class="bar" style="height: 92%;"></div><div class="small text-muted mt-2">2024</div></div></div></div>
             </div>
+            <div class="col-md-4">
+              <div class="analytics-card h-100"><h3 class="analytics-card-title">Динамика грантов</h3><div class="mini-bars"><div class="bar-group"><span class="bar-value">2</span><div class="bar" style="height: 27%;"></div><div class="small text-muted mt-2">2020</div></div><div class="bar-group"><span class="bar-value">3</span><div class="bar" style="height: 40%;"></div><div class="small text-muted mt-2">2021</div></div><div class="bar-group"><span class="bar-value">4</span><div class="bar" style="height: 54%;"></div><div class="small text-muted mt-2">2022</div></div><div class="bar-group"><span class="bar-value">5</span><div class="bar" style="height: 68%;"></div><div class="small text-muted mt-2">2023</div></div><div class="bar-group"><span class="bar-value">7</span><div class="bar" style="height: 84%;"></div><div class="small text-muted mt-2">2024</div></div></div></div>
+            </div>
+            <div class="col-md-4">
+              <div class="analytics-card h-100"><h3 class="analytics-card-title">Динамика финансирования</h3><div class="mini-bars"><div class="bar-group"><span class="bar-value">₸ 38</span><div class="bar" style="height: 33%;"></div><div class="small text-muted mt-2">2020</div></div><div class="bar-group"><span class="bar-value">₸ 52</span><div class="bar" style="height: 46%;"></div><div class="small text-muted mt-2">2021</div></div><div class="bar-group"><span class="bar-value">₸ 67</span><div class="bar" style="height: 60%;"></div><div class="small text-muted mt-2">2022</div></div><div class="bar-group"><span class="bar-value">₸ 84</span><div class="bar" style="height: 76%;"></div><div class="small text-muted mt-2">2023</div></div><div class="bar-group"><span class="bar-value">₸ 118</span><div class="bar" style="height: 91%;"></div><div class="small text-muted mt-2">2024</div></div></div></div>
+            </div>
+          </div>
+
+          <div class="analytics-card mb-3">
+            <h3 class="analytics-card-title">Топ сотрудники кафедры</h3>
+            <div class="analytics-table-wrap">
+              <table class="table table-hover align-middle">
+                <thead><tr><th>Исследователь</th><th>Публикации</th><th>Цитирования</th><th>Гранты</th><th>Коллаборации</th></tr></thead>
+                <tbody>
+                  <tr><td>Н. Албанбай</td><td>18</td><td>420</td><td>3</td><td>12</td></tr>
+                  <tr><td>М. Алимова</td><td>14</td><td>310</td><td>2</td><td>8</td></tr>
+                  <tr><td>А. Жунусов</td><td>9</td><td>165</td><td>1</td><td>6</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Структура финансирования</h3><div class="analytics-list"><div class="analytics-list-item"><span>Гос. гранты</span><strong>49%</strong></div><div class="analytics-list-item"><span>Хоздоговорные проекты</span><strong>27%</strong></div><div class="analytics-list-item"><span>Внутренние конкурсы</span><strong>14%</strong></div><div class="analytics-list-item"><span>Партнерские НИР</span><strong>10%</strong></div></div></div></div>
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Качество и эффект</h3><div class="analytics-list"><div class="analytics-list-item"><span>Средняя цитируемость</span><strong>7.1</strong></div><div class="analytics-list-item"><span>Публикации в международных журналах</span><strong>41%</strong></div><div class="analytics-list-item"><span>Open Access</span><strong>68%</strong></div><div class="analytics-list-item"><span>h-index кафедры</span><strong>19</strong></div></div></div></div>
           </div>
         </div>
-        <div class="col-lg-6">
-          <div class="soft-tile p-4 h-100">
-            <h3 class="h5 mb-3">Финансирование по годам</h3>
-            <div class="mini-bars">
-              <div class="bar-group"><div class="bar" style="height: 40%;"></div><div class="small text-muted mt-2">2020</div></div>
-              <div class="bar-group"><div class="bar" style="height: 53%;"></div><div class="small text-muted mt-2">2021</div></div>
-              <div class="bar-group"><div class="bar" style="height: 61%;"></div><div class="small text-muted mt-2">2022</div></div>
-              <div class="bar-group"><div class="bar" style="height: 73%;"></div><div class="small text-muted mt-2">2023</div></div>
-              <div class="bar-group"><div class="bar" style="height: 88%;"></div><div class="small text-muted mt-2">2024</div></div>
+
+        <div class="col-xl-4">
+          <div class="analytics-card mb-3">
+            <h3 class="analytics-card-title">Коллаборации кафедры</h3>
+            <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-3 mb-3"><div class="placeholder-metrics"><div class="placeholder-metric"><span>Внутренние коллаборации (2024)</span><strong>18</strong></div><div class="placeholder-metric"><span>Внешние коллаборации (2024)</span><strong>12</strong></div><div class="placeholder-metric"><span>Совместные публикации</span><strong>26</strong></div></div></div>
+            <div class="analytics-kpi-grid">
+              <div class="soft-tile p-2 text-center"><div class="small text-muted">Внутренние связи</div><div class="fw-bold">18</div></div>
+              <div class="soft-tile p-2 text-center"><div class="small text-muted">Внешние партнеры</div><div class="fw-bold">12</div></div>
+              <div class="soft-tile p-2 text-center"><div class="small text-muted">Совместные публикации</div><div class="fw-bold">26</div></div>
+              <div class="soft-tile p-2 text-center"><div class="small text-muted">Совместные проекты</div><div class="fw-bold">7</div></div>
             </div>
           </div>
+          <div class="analytics-card mb-3"><h3 class="analytics-card-title">Сильные направления</h3><div class="analytics-chips"><span class="analytics-chip">Cybersecurity · 16</span><span class="analytics-chip">Industrial IoT · 12</span><span class="analytics-chip">Federated Learning · 9</span><span class="analytics-chip">LoRaWAN · 8</span><span class="analytics-chip">Energy Harvesting · 7</span></div></div>
+          <div class="analytics-card"><h3 class="analytics-card-title">Риски и возможности</h3><div class="vstack gap-2"><div class="soft-tile p-3">У 3 исследователей нет внешних коллабораций</div><div class="soft-tile p-3">Доля Q1/Q2 ниже целевого уровня по 1 направлению</div><div class="soft-tile p-3">1 грант завершается в следующем квартале</div><div class="soft-tile p-3">Есть резерв роста по Open Access публикациям</div></div></div>
         </div>
       </div>
     </div>
@@ -190,56 +295,115 @@
 
   <section class="dashboard-section" data-dashboard-section="institute">
     <div class="dashboard-panel p-4 mb-4">
-      <h2 class="h4 mb-3">Dashboard института</h2>
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead>
-            <tr>
-              <th>Кафедра</th>
-              <th>Публикации</th>
-              <th>Цитирования</th>
-              <th>Гранты</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>Кибербезопасность</td><td>46</td><td>812</td><td>7</td></tr>
-            <tr><td>Автоматизация</td><td>38</td><td>654</td><td>5</td></tr>
-            <tr><td>Информационные системы</td><td>31</td><td>521</td><td>4</td></tr>
-            <tr><td>Электроника</td><td>24</td><td>280</td><td>2</td></tr>
-          </tbody>
-        </table>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="h4 mb-1">институт</h2>
+          <p class="text-muted mb-0">Сравнение кафедр, динамика развития и качество научных результатов.</p>
+        </div>
       </div>
-      <div class="placeholder-box d-flex align-items-center justify-content-center text-center p-4 mt-3">
-        Карта межкафедральных коллабораций
+
+      <div class="analytics-kpi-grid mb-3">
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Кафедры</div><div class="metric-number fs-2">8</div><div class="small text-muted">в структуре института</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Публикации</div><div class="metric-number fs-2">139</div><div class="small text-muted">+10%</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Гранты</div><div class="metric-number fs-2">16</div><div class="small text-muted">+4</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Финансирование</div><div class="metric-number fs-2">₸ 330 млн</div><div class="small text-muted">+13%</div></div>
+      </div>
+
+      <div class="analytics-kpi-grid mb-4">
+        <div class="analytics-card"><div class="text-muted small">Q1/Q2 публикации</div><div class="metric-number fs-2">58%</div></div>
+        <div class="analytics-card"><div class="text-muted small">Активные исследователи</div><div class="metric-number fs-2">94</div></div>
+        <div class="analytics-card"><div class="text-muted small">Внешние партнеры</div><div class="metric-number fs-2">27</div></div>
+        <div class="analytics-card"><div class="text-muted small">Межкафедральные проекты</div><div class="metric-number fs-2">12</div></div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-xl-8">
+          <div class="analytics-card mb-3">
+            <h3 class="analytics-card-title">Сравнение кафедр</h3>
+            <div class="analytics-table-wrap">
+              <table class="table table-hover align-middle">
+                <thead><tr><th>Кафедра</th><th>Публикации</th><th>Цитирования</th><th>Гранты</th><th>Финансирование</th></tr></thead>
+                <tbody>
+                  <tr><td>Кибербезопасность</td><td>46</td><td>812</td><td>7</td><td>₸ 118 млн</td></tr>
+                  <tr><td>Автоматизация</td><td>38</td><td>654</td><td>5</td><td>₸ 92 млн</td></tr>
+                  <tr><td>Информационные системы</td><td>31</td><td>521</td><td>4</td><td>₸ 76 млн</td></tr>
+                  <tr><td>Электроника</td><td>24</td><td>280</td><td>2</td><td>₸ 44 млн</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Динамика публикаций</h3><div class="mini-bars"><div class="bar-group"><span class="bar-value">88</span><div class="bar" style="height: 59%;"></div><div class="small text-muted mt-2">2020</div></div><div class="bar-group"><span class="bar-value">96</span><div class="bar" style="height: 64%;"></div><div class="small text-muted mt-2">2021</div></div><div class="bar-group"><span class="bar-value">109</span><div class="bar" style="height: 72%;"></div><div class="small text-muted mt-2">2022</div></div><div class="bar-group"><span class="bar-value">123</span><div class="bar" style="height: 82%;"></div><div class="small text-muted mt-2">2023</div></div><div class="bar-group"><span class="bar-value">139</span><div class="bar" style="height: 93%;"></div><div class="small text-muted mt-2">2024</div></div></div></div></div>
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Динамика грантов</h3><div class="mini-bars"><div class="bar-group"><span class="bar-value">7</span><div class="bar" style="height: 38%;"></div><div class="small text-muted mt-2">2020</div></div><div class="bar-group"><span class="bar-value">9</span><div class="bar" style="height: 48%;"></div><div class="small text-muted mt-2">2021</div></div><div class="bar-group"><span class="bar-value">11</span><div class="bar" style="height: 60%;"></div><div class="small text-muted mt-2">2022</div></div><div class="bar-group"><span class="bar-value">13</span><div class="bar" style="height: 73%;"></div><div class="small text-muted mt-2">2023</div></div><div class="bar-group"><span class="bar-value">16</span><div class="bar" style="height: 88%;"></div><div class="small text-muted mt-2">2024</div></div></div></div></div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Структура финансирования</h3><div class="analytics-list"><div class="analytics-list-item"><span>Гос. гранты</span><strong>46%</strong></div><div class="analytics-list-item"><span>Хоздоговорные НИР</span><strong>28%</strong></div><div class="analytics-list-item"><span>Международные проекты</span><strong>16%</strong></div><div class="analytics-list-item"><span>Коммерциализация</span><strong>10%</strong></div></div></div></div>
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Топ исследователи института</h3><div class="analytics-table-wrap"><table class="table table-hover align-middle"><thead><tr><th>Исследователь</th><th>Публикации</th><th>Цитирования</th><th>Гранты</th></tr></thead><tbody><tr><td>Н. Албанбай</td><td>18</td><td>420</td><td>3</td></tr><tr><td>М. Алимова</td><td>14</td><td>310</td><td>2</td></tr><tr><td>А. Жунусов</td><td>11</td><td>228</td><td>2</td></tr></tbody></table></div></div></div>
+          </div>
+        </div>
+
+        <div class="col-xl-4">
+          <div class="analytics-card mb-3"><h3 class="analytics-card-title">Качество и эффект</h3><div class="analytics-list"><div class="analytics-list-item"><span>Средняя цитируемость</span><strong>6.4</strong></div><div class="analytics-list-item"><span>Публикации в международных журналах</span><strong>44%</strong></div><div class="analytics-list-item"><span>Open Access</span><strong>62%</strong></div><div class="analytics-list-item"><span>Внешние коллаборации</span><strong>31</strong></div></div></div>
+          <div class="analytics-card mb-3"><h3 class="analytics-card-title">Межкафедральные коллаборации</h3><div class="placeholder-box d-flex align-items-center justify-content-center text-center p-3 mb-3"><div class="placeholder-metrics"><div class="placeholder-metric"><span>Связи между кафедрами</span><strong>42</strong></div><div class="placeholder-metric"><span>Совместные публикации</span><strong>68</strong></div><div class="placeholder-metric"><span>Совместные проекты</span><strong>12</strong></div></div></div><div class="analytics-kpi-grid"><div class="soft-tile p-2 text-center"><div class="small text-muted">Внутренние связи</div><div class="fw-bold">42</div></div><div class="soft-tile p-2 text-center"><div class="small text-muted">Совместные публикации</div><div class="fw-bold">68</div></div><div class="soft-tile p-2 text-center"><div class="small text-muted">Совместные проекты</div><div class="fw-bold">12</div></div><div class="soft-tile p-2 text-center"><div class="small text-muted">Внешние партнеры</div><div class="fw-bold">27</div></div></div></div>
+          <div class="analytics-card mb-3"><h3 class="analytics-card-title">Сильные направления</h3><div class="analytics-chips"><span class="analytics-chip">Cybersecurity · 28</span><span class="analytics-chip">AI &amp; Data Science · 24</span><span class="analytics-chip">Industrial IoT · 19</span><span class="analytics-chip">Automation · 17</span><span class="analytics-chip">Smart Systems · 14</span></div></div>
+          <div class="analytics-card"><h3 class="analytics-card-title">Риски и возможности</h3><div class="vstack gap-2"><div class="soft-tile p-3">2 кафедры показывают снижение публикационной динамики</div><div class="soft-tile p-3">У 1 кафедры доля Q1/Q2 ниже целевого уровня</div><div class="soft-tile p-3">4 проекта завершаются в следующем квартале</div><div class="soft-tile p-3">Есть потенциал роста международных коллабораций</div></div></div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="dashboard-section is-active" data-dashboard-section="university">
     <div class="dashboard-panel p-4 mb-4">
-      <h2 class="h4 mb-3">Dashboard университета</h2>
-      <div class="table-responsive mb-3">
-        <table class="table align-middle">
-          <thead>
-            <tr>
-              <th>Институт</th>
-              <th>Публикации</th>
-              <th>Цитирования</th>
-              <th>Гранты</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>ИАИТ</td><td>139</td><td>2 843</td><td>16</td></tr>
-            <tr><td>Горно-металлургический</td><td>97</td><td>1 506</td><td>11</td></tr>
-            <tr><td>Энергетика и машиностроение</td><td>82</td><td>1 133</td><td>8</td></tr>
-          </tbody>
-        </table>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="h4 mb-1">университет</h2>
+          <p class="text-muted mb-0">Общая картина по науке, качеству публикаций, грантам, рискам и партнерской сети.</p>
+        </div>
       </div>
-      <div class="vstack gap-2">
-        <div class="soft-tile p-3">2 кафедры со снижением публикационной динамики</div>
-        <div class="soft-tile p-3">11 профилей без внешних коллабораций</div>
-        <div class="soft-tile p-3">Open Access ниже 50% в одном институте</div>
-        <div class="soft-tile p-3">3 гранта завершаются в этом квартале</div>
+
+      <div class="analytics-kpi-grid mb-3">
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Институты</div><div class="metric-number fs-2">6</div><div class="small text-muted">в аналитике</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Публикации</div><div class="metric-number fs-2">418</div><div class="small text-muted">+11%</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Финансирование</div><div class="metric-number fs-2">₸ 1.24 млрд</div><div class="small text-muted">+17%</div></div>
+        <div class="metric-card p-3 h-100"><div class="text-muted small">Международные партнеры</div><div class="metric-number fs-2">57</div><div class="small text-muted">+8</div></div>
+      </div>
+
+      <div class="analytics-kpi-grid mb-4">
+        <div class="analytics-card"><div class="text-muted small">h-index университета</div><div class="metric-number fs-2">63</div></div>
+        <div class="analytics-card"><div class="text-muted small">Q1/Q2 публикации</div><div class="metric-number fs-2">61%</div></div>
+        <div class="analytics-card"><div class="text-muted small">Open Access</div><div class="metric-number fs-2">68%</div></div>
+        <div class="analytics-card"><div class="text-muted small">Активные исследователи</div><div class="metric-number fs-2">426</div></div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-xl-8">
+          <div class="analytics-card mb-3">
+            <h3 class="analytics-card-title">Сравнение институтов</h3>
+            <div class="analytics-table-wrap">
+              <table class="table table-hover align-middle">
+                <thead><tr><th>Институт</th><th>Публикации</th><th>Цитирования</th><th>Гранты</th><th>Финансирование</th></tr></thead>
+                <tbody>
+                  <tr><td>ИАиИТ</td><td>139</td><td>2 843</td><td>16</td><td>₸ 330 млн</td></tr>
+                  <tr><td>Горно-металлургический</td><td>97</td><td>1 506</td><td>11</td><td>₸ 248 млн</td></tr>
+                  <tr><td>Энергетика и машиностроение</td><td>82</td><td>1 133</td><td>8</td><td>₸ 194 млн</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Качество публикаций</h3><div class="analytics-list"><div class="analytics-list-item"><span>Средняя цитируемость</span><strong>5.8</strong></div><div class="analytics-list-item"><span>Публикации в Q1</span><strong>28%</strong></div><div class="analytics-list-item"><span>Публикации в Q2</span><strong>33%</strong></div><div class="analytics-list-item"><span>Международные публикации</span><strong>44%</strong></div></div></div></div>
+            <div class="col-md-6"><div class="analytics-card h-100"><h3 class="analytics-card-title">Гранты и коммерциализация</h3><div class="analytics-list"><div class="analytics-list-item"><span>Активные гранты</span><strong>52</strong></div><div class="analytics-list-item"><span>Успешность заявок</span><strong>37%</strong></div><div class="analytics-list-item"><span>Патенты и свидетельства</span><strong>24</strong></div><div class="analytics-list-item"><span>Доход от НИОКР</span><strong>₸ 214 млн</strong></div></div></div></div>
+          </div>
+        </div>
+
+        <div class="col-xl-4">
+          <div class="analytics-card mb-3"><h3 class="analytics-card-title">Риск-зоны</h3><div class="vstack gap-2"><div class="soft-tile p-3">2 кафедры со снижением публикационной динамики</div><div class="soft-tile p-3">11 профилей без внешних коллабораций</div><div class="soft-tile p-3">Open Access ниже 50% в 1 институте</div><div class="soft-tile p-3">3 гранта завершаются в этом квартале</div><div class="soft-tile p-3">1 институт с низкой долей Q1/Q2 публикаций</div></div></div>
+          <div class="analytics-card mb-3"><h3 class="analytics-card-title">Партнерская сеть</h3><div class="placeholder-box d-flex align-items-center justify-content-center text-center p-3 mb-3"><div class="placeholder-metrics"><div class="placeholder-metric"><span>Внутренние коллаборации</span><strong>138</strong></div><div class="placeholder-metric"><span>Международные коллаборации</span><strong>57</strong></div><div class="placeholder-metric"><span>Топ партнерские проекты</span><strong>19</strong></div></div></div><div class="analytics-list"><div class="analytics-list-item"><span>Внутренние коллаборации</span><strong>138</strong></div><div class="analytics-list-item"><span>Международные коллаборации</span><strong>57</strong></div><div class="analytics-list-item"><span>Топ партнер</span><strong>University of Malaya</strong></div><div class="analytics-list-item"><span>Междисциплинарные проекты</span><strong>19</strong></div></div></div>
+          <div class="analytics-card"><h3 class="analytics-card-title">Управленческие индикаторы</h3><div class="analytics-list"><div class="analytics-list-item"><span>Исследователи без публикаций</span><strong>23</strong></div><div class="analytics-list-item"><span>Публикации на 1 исследователя</span><strong>3.4</strong></div><div class="analytics-list-item"><span>Финансирование на 1 проект</span><strong>₸ 23.8 млн</strong></div><div class="analytics-list-item"><span>Защищенные диссертации</span><strong>18</strong></div></div></div>
+        </div>
       </div>
     </div>
   </section>

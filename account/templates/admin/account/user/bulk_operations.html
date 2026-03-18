@@ -388,6 +388,58 @@
                 <button type="submit" class="bulk-submit">Запустить дополнение</button>
             </form>
         </article>
+        <article class="bulk-card">
+            <h2>Publication Pipeline</h2>
+            <p>
+                Runs the multi-source publication pipeline for records with DOI, publisher URL, OA URL,
+                or repository links. Best used after ORCID/OpenAlex and Google Scholar imports.
+            </p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="run_publication_pipeline_batch">
+                <div class="bulk-field-grid">
+                    <div class="bulk-field">
+                        <label for="pipeline-limit">Limit</label>
+                        <input id="pipeline-limit" class="bulk-input" type="number" name="limit" value="{{ default_limit }}" min="1" step="1">
+                    </div>
+                    <label class="bulk-checkbox">
+                        Force refresh
+                        <span class="bulk-checkbox-row">
+                            <input type="checkbox" name="force" value="1">
+                            <span>Re-parse records even if some fields are already filled</span>
+                        </span>
+                    </label>
+                </div>
+                <button type="submit" class="bulk-submit">Run pipeline</button>
+            </form>
+        </article>
+
+        <article class="bulk-card">
+            <h2>Author Normalization</h2>
+            <p>
+                Fills <code>name_normalized</code>, <code>name_translit</code>, and <code>name_initials</code>,
+                then tries to link authors with local users.
+            </p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="backfill_author_normalization">
+                <button type="submit" class="bulk-submit">Run backfill</button>
+            </form>
+        </article>
+
+        <article class="bulk-card">
+            <h2>Relink Authors to Users</h2>
+            <p>
+                Re-runs matching for existing <code>Author</code> records against local <code>User</code>
+                without re-running the full publication pipeline.
+            </p>
+            <form method="post" data-bulk-operation-form>
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="relink_authors_to_users">
+                <button type="submit" class="bulk-submit">Run relink</button>
+            </form>
+        </article>
+
     </section>
 
     <section class="bulk-log-card">

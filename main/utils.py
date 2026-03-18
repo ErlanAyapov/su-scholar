@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
-from account.models import Department
+from account.models import Department, Institute, University
 from document.models import Document, DocumentGenerator
 from main.models import DepartmentArea, IndexingDatabase, Language, NewsItem, Project, Publication, PublicationType, Tag, Venue
 from utils.document_generator import generate_document, generate_docx
@@ -56,6 +56,7 @@ def apply_staff_user_filter(queryset, staff_user_id):
             author_filter &= Q(authors__full_name__icontains=part)
 
     user_filter = Q(created_by=staff_user)
+    user_filter |= Q(authors__user=staff_user)
     if author_filter:
         user_filter |= author_filter
     if staff_user.orc_id:
@@ -504,9 +505,9 @@ def build_main_page_context(request):
     current_year = date.today().year
     quick_year_from = current_year - 5
     recent_publications = (
-        Publication.objects.select_related("pub_type", "venue")
+        Publication.objects.filter(created_by=40).select_related("pub_type", "venue")
         .prefetch_related("authors")
-        .order_by("-year", "-id")[:4]
+        .order_by("-year", "-id")[:5]
     )
     return {
         "pub_types": PublicationType.objects.annotate(c=Count("publication", distinct=True)).order_by("-c", "name"),
@@ -542,6 +543,8 @@ def build_researchers_page_context(request):
     last_name = (params.get("researcher_last_name") or "").strip()
     first_name = (params.get("researcher_first_name") or "").strip()
     keyword = (params.get("research_q") or "").strip()
+    university_id = parse_int(params.get("researcher_university"))
+    institute_id = parse_int(params.get("researcher_institute"))
     department_id = parse_int(params.get("researcher_department"))
     gender = (params.get("researcher_gender") or "").strip().lower()
     staff_scope = (params.get("researcher_scope") or "").strip().lower()
@@ -549,11 +552,35 @@ def build_researchers_page_context(request):
     has_scopus = (params.get("researcher_has_scopus") or "").strip()
     has_scholar = (params.get("researcher_has_scholar") or "").strip()
 
+    selected_department = None
+    if department_id:
+        selected_department = (
+            Department.objects.select_related("institute__university")
+            .filter(id=department_id)
+            .first()
+        )
+        if selected_department:
+            if not institute_id:
+                institute_id = selected_department.institute_id
+            if not university_id:
+                university_id = selected_department.institute.university_id
+
+    if institute_id and not university_id:
+        selected_institute = (
+            Institute.objects.select_related("university")
+            .filter(id=institute_id)
+            .first()
+        )
+        if selected_institute:
+            university_id = selected_institute.university_id
+
     show_results = any(
         [
             last_name,
             first_name,
             keyword,
+            university_id,
+            institute_id,
             department_id,
             gender in {"male", "female"},
             staff_scope in {"staff", "users"},
@@ -563,7 +590,7 @@ def build_researchers_page_context(request):
         ]
     )
 
-    queryset = User.objects.select_related("department").annotate(
+    queryset = User.objects.select_related("department__institute__university").annotate(
         publication_total=Count("created_publications", distinct=True)
     )
 
@@ -587,6 +614,12 @@ def build_researchers_page_context(request):
             | Q(scopus_id__icontains=keyword)
             | Q(wos_id__icontains=keyword)
         )
+
+    if university_id:
+        queryset = queryset.filter(department__institute__university_id=university_id)
+
+    if institute_id:
+        queryset = queryset.filter(department__institute_id=institute_id)
 
     if department_id:
         queryset = queryset.filter(department_id=department_id)
@@ -615,7 +648,9 @@ def build_researchers_page_context(request):
         page_obj = paginator.get_page(1)
 
     return {
-        "research_departments": Department.objects.order_by("name"),
+        "research_universities": University.objects.order_by("name"),
+        "research_institutes": Institute.objects.select_related("university").order_by("name"),
+        "research_departments": Department.objects.select_related("institute__university").order_by("name"),
         "researcher_results": page_obj.object_list,
         "researcher_page_obj": page_obj,
         "researcher_total_count": total_count,
@@ -624,6 +659,8 @@ def build_researchers_page_context(request):
         "researcher_last_name": last_name,
         "researcher_first_name": first_name,
         "research_q": keyword,
+        "researcher_university": university_id,
+        "researcher_institute": institute_id,
         "researcher_department": department_id,
         "researcher_gender": gender,
         "researcher_scope": staff_scope,
@@ -736,8 +773,88 @@ def build_publication_detail_context(pk: int):
         ),
         pk=pk,
     )
+    author_links = [
+        link
+        for link in publication.publicationauthor_set.select_related("author").order_by("order", "id")
+        if link.author and (link.author.full_name or "").strip()
+    ]
+
     return {
         "publication": publication,
-        "author_links": publication.publicationauthor_set.all().order_by("order"),
+        "author_links": author_links,
         "project_links": publication.publicationproject_set.all(),
     }
+
+def collect_preset_context_for_llm():
+    """
+    Build normalized preset context for LLM prompts.
+
+    The payload is intentionally JSON-serializable so it can be embedded
+    into a system prompt as-is.
+    """
+    context = {
+        "meta": {
+            "project": "SU Scholar",
+            "schema_version": "1.0",
+            "language": "ru"
+        },
+
+        "system_role": {
+            "name": "SU Scholar Assistant",
+            "description": (
+                "AI ассистент системы SU Scholar. "
+                "Помогает находить информацию о научных публикациях, "
+                "исследователях и проектах Satbayev University."
+            )
+        },
+
+        "instructions": [
+            "Всегда сначала используй внутренние данные системы.",
+            "Если информации нет — честно сообщи об этом.",
+            "Отвечай кратко и по делу.",
+            "При возможности указывай публикации, авторов и проекты."
+        ],
+        "publications": [],
+        "users": [],
+    }
+
+    publications = (
+        Publication.objects.select_related("created_by")
+        .prefetch_related("publicationauthor_set__author")
+        .all()
+    )
+    users = User.objects.all()
+
+    for publication in publications:
+        created_by_name = ""
+        if publication.created_by:
+            created_by_name = publication.created_by.full_name()
+
+        created_at_text = ""
+        if publication.created_at:
+            created_at_text = publication.created_at.strftime("%d/%m/%Y, %H:%M:%S")
+
+        context["publications"].append(
+            {
+                "id": publication.id,
+                "title": publication.title_original,
+                "abstract": publication.abstract,
+                "authors": publication.get_collaborators_str(),
+                "doi": publication.doi,
+                "url_publisher": publication.url_publisher,
+                "first_author": created_by_name,
+                "created_at": created_at_text,
+                "publication_page": f"/publications/{publication.id}/",
+            }
+        )
+
+    for user in users:
+        context["users"].append(
+            {
+                "id": user.id,
+                "name": user.full_name(),
+                "profile_page": f"/employees/{user.id}/",
+            }
+        )
+
+    return context

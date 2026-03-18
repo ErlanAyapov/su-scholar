@@ -396,7 +396,7 @@ def _build_minimal_docx_bytes(text: str) -> bytes:
     app_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
             xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
-  <Application>SU Science</Application>
+  <Application>SU Scholar</Application>
 </Properties>
 """
     core_xml = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -405,9 +405,9 @@ def _build_minimal_docx_bytes(text: str) -> bytes:
                    xmlns:dcterms="http://purl.org/dc/terms/"
                    xmlns:dcmitype="http://purl.org/dc/dcmitype/"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>SU Science Document</dc:title>
-  <dc:creator>SU Science</dc:creator>
-  <cp:lastModifiedBy>SU Science</cp:lastModifiedBy>
+  <dc:title>SU Scholar Document</dc:title>
+  <dc:creator>SU Scholar</dc:creator>
+  <cp:lastModifiedBy>SU Scholar</cp:lastModifiedBy>
   <dcterms:created xsi:type="dcterms:W3CDTF">{now}</dcterms:created>
   <dcterms:modified xsi:type="dcterms:W3CDTF">{now}</dcterms:modified>
 </cp:coreProperties>

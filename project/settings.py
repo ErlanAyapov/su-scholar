@@ -57,16 +57,17 @@ INSTALLED_APPS = [
     'main',
     'account',
     'document',
+    'llm',
 ]
 
 if importlib.util.find_spec('daphne') is not None:
     INSTALLED_APPS.insert(0, 'daphne')
 
 JAZZMIN_SETTINGS = {
-    "site_title": "SU Science Admin",
-    "site_header": "SU Science",
-    "site_brand": "SU Science",
-    "welcome_sign": "SU Science әкімшілік панелі",
+    "site_title": "SU Scholar Admin",
+    "site_header": "SU Scholar",
+    "site_brand": "SU Scholar",
+    "welcome_sign": "SU Scholar әкімшілік панелі",
 }
 
 MIDDLEWARE = [

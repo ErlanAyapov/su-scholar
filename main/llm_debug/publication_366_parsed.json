@@ -1,0 +1,161 @@
+{
+  "publication": {
+    "record_id": "",
+    "pub_type": "article",
+    "title_original": "Kinematic Analysis and Workspace Evaluation of a New Five-Axis 3D Printer Based on Hybrid Technologies",
+    "language": "en",
+    "year": 2026,
+    "publication_date": "2026/1/7",
+    "status": "published",
+    "accepted_date": "",
+    "volume": "15",
+    "issue": "1",
+    "pages": "16",
+    "article_number": "",
+    "total_pages": null,
+    "doi": "",
+    "abstract": "Additive manufacturing technologies for metals are developing rapidly. Among them, wire arc additive manufacturing (WAAM) has become widespread due to its accessibility. However, parts produced using WAAM require surface post-processing; therefore, hybrid technologies have emerged that combine additive and subtractive processes within a single compact manufacturing complex. Such systems make it possible to organize single-piece and small-batch production, including for the repair and restoration of equipment in remote areas. For this purpose, hybrid equipment must be lightweight, compact for transportation, provide sufficient workspace, and be capable of folding for transport. This paper proposes the concept of a multifunctional metal 3D printer based on hybrid technology, where WAAM is used for printing, and mechanical post-processing is applied to obtain finished parts. To ensure both rigidity and low mass, a 3-UPU parallel manipulator and a worktable with two rotational degrees of freedom are employed, enabling five-axis printing and machining. The printer housing is foldable for convenient transportation. The kinematics of the proposed 3D printer are investigated as an integrated system. Forward and inverse kinematics problems are solved, the velocities and accelerations of the moving platform center are calculated, singular configurations are analyzed, and the workspace of the printer is determined.",
+    "keywords": [],
+    "candidate_keywords": [
+      "Additive manufacturing",
+      "Wire arc additive manufacturing (WAAM)",
+      "Hybrid technologies",
+      "3D printing",
+      "Kinematics",
+      "Workspace evaluation"
+    ],
+    "quartile": "",
+    "quartile_year": null,
+    "citations_count": null,
+    "open_access": false,
+    "oa_type": "",
+    "report_period": "",
+    "needs_review": true
+  },
+  "venue": {
+    "name": "Robotics",
+    "kind": "journal",
+    "character": "scientific_journal",
+    "publisher": "MDPI",
+    "issn": "",
+    "isbn": "",
+    "conference_name": "",
+    "conference_country": "",
+    "conference_city": "",
+    "series": ""
+  },
+  "authors": [
+    {
+      "full_name": "Azamat Mustafa",
+      "raw_name": "A Mustafa",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Rustem Kaiyrov",
+      "raw_name": "R Kaiyrov",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Yerik Nugman",
+      "raw_name": "Y Nugman",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Mukhagali Sagyntay",
+      "raw_name": "M Sagyntay",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Nurtay Albanbay",
+      "raw_name": "N Albanbay",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Algazy Zhauyt",
+      "raw_name": "A Zhauyt",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Zharkynbek Turgunov",
+      "raw_name": "Z Turgunov",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Ilyas Dyussebayev",
+      "raw_name": "I Dyussebayev",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    },
+    {
+      "full_name": "Yang Lei",
+      "raw_name": "Y Lei",
+      "orcid": "",
+      "affiliations": "",
+      "is_department_staff": false,
+      "order": null,
+      "role": "coauthor"
+    }
+  ],
+  "indexing": [
+    "Google Scholar"
+  ],
+  "tags": [],
+  "area": "",
+  "identifiers": [],
+  "venue_metrics": [],
+  "projects": [],
+  "links": {
+    "url_publisher": "https://www.mdpi.com/2218-6581/15/1/16",
+    "url_open_access": "",
+    "doi_url": "",
+    "pdf_url": "",
+    "html_url": "https://scholar.google.com/citations?view_op=view_citation&hl=en&user=dX_HGR8AAAAJ&pagesize=100&citation_for_view=dX_HGR8AAAAJ:hqOjcs7Dif8C",
+    "scholar_url": "https://scholar.google.com/scholar?oi=bibs&cluster=8307819504772204199&btnI=1&hl=en",
+    "related_urls": [
+      "https://scholar.google.com/scholar?oi=bibs&hl=en&q=related:p0YCqNJNS3MJ:scholar.google.com/",
+      "https://scholar.google.com/scholar?oi=bibs&hl=en&cluster=8307819504772204199"
+    ],
+    "repository_links": [],
+    "supplementary_links": []
+  },
+  "source_meta": {
+    "source_type": "google_scholar",
+    "source_title": "",
+    "source_url": "https://scholar.google.com/citations?view_op=view_citation&hl=en&user=dX_HGR8AAAAJ&pagesize=100&citation_for_view=dX_HGR8AAAAJ:hqOjcs7Dif8C",
+    "raw_publication_date": "2026/1/7",
+    "raw_journal": "Robotics",
+    "raw_authors": "Azamat Mustafa, Rustem Kaiyrov, Yerik Nugman, Mukhagali Sagyntay, Nurtay Albanbay, Algazy Zhauyt, Zharkynbek Turgunov, Ilyas Dyussebayev, Yang Lei",
+    "raw_description": "Additive manufacturing technologies for metals are developing rapidly. Among them, wire arc additive manufacturing (WAAM) has become widespread due to its accessibility. However, parts produced using WAAM require surface post-processing; therefore, hybrid technologies have emerged that combine additive and subtractive processes within a single compact manufacturing complex. Such systems make it possible to organize single-piece and small-batch production, including for the repair and restoration of equipment in remote areas. For this purpose, hybrid equipment must be lightweight, compact for transportation, provide sufficient workspace, and be capable of folding for transport. This paper proposes the concept of a multifunctional metal 3D printer based on hybrid technology, where WAAM is used for printing, and mechanical post-processing is applied to obtain finished parts. To ensure both rigidity and low mass, a 3-UPU parallel manipulator and a worktable with two rotational degrees of freedom are employed, enabling five-axis printing and machining. The printer housing is foldable for convenient transportation. The kinematics of the proposed 3D printer are investigated as an integrated system. Forward and inverse kinematics problems are solved, the velocities and accelerations of the moving platform center are calculated, singular configurations are analyzed, and the workspace of the printer is determined."
+  }
+}

@@ -1,8 +1,8 @@
-from django.db import models
+﻿from django.db import models
 from django.conf import settings
 
 
-# ---------- Справочники ----------
+# ---------- РЎРїСЂР°РІРѕС‡РЅРёРєРё ----------
 
 class PublicationType(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -27,7 +27,7 @@ class IndexingDatabase(models.Model):
 
 
 class Tag(models.Model):
-    # IoT, ML, криптография, ...
+    # IoT, ML, РєСЂРёРїС‚РѕРіСЂР°С„РёСЏ, ...
     name = models.CharField(max_length=80, unique=True)
 
     def __str__(self):
@@ -35,18 +35,18 @@ class Tag(models.Model):
 
 
 class DepartmentArea(models.Model):
-    # внутренняя классификация кафедры
+    # РІРЅСѓС‚СЂРµРЅРЅСЏСЏ РєР»Р°СЃСЃРёС„РёРєР°С†РёСЏ РєР°С„РµРґСЂС‹
     name = models.CharField(max_length=120, unique=True)
 
     def __str__(self):
         return self.name
 
 
-# ---------- Источник/издание ----------
+# ---------- РСЃС‚РѕС‡РЅРёРє/РёР·РґР°РЅРёРµ ----------
 
 class Venue(models.Model):
     """
-    Журнал/конференция/книга (источник публикации).
+    Р–СѓСЂРЅР°Р»/РєРѕРЅС„РµСЂРµРЅС†РёСЏ/РєРЅРёРіР° (РёСЃС‚РѕС‡РЅРёРє РїСѓР±Р»РёРєР°С†РёРё).
     """
     VENUE_KIND_CHOICES = [
         ("journal", "Journal"),
@@ -70,7 +70,7 @@ class Venue(models.Model):
     issn = models.CharField(max_length=20, blank=True)
     isbn = models.CharField(max_length=20, blank=True)
 
-    # для конференций
+    # РґР»СЏ РєРѕРЅС„РµСЂРµРЅС†РёР№
     conference_name = models.CharField(max_length=300, blank=True)
     conference_country = models.CharField(max_length=100, blank=True)
     conference_city = models.CharField(max_length=100, blank=True)
@@ -81,12 +81,22 @@ class Venue(models.Model):
         return self.name
 
 
-# ---------- Авторы ----------
+# ---------- РђРІС‚РѕСЂС‹ ----------
 
 class Author(models.Model):
     full_name = models.CharField(max_length=200)            # "Ivanov Ivan Ivanovich"
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="linked_authors",
+    )
     orcid = models.CharField(max_length=30, blank=True)
-    affiliations = models.TextField(blank=True)             # можно позже нормализовать в отдельную таблицу
+    name_normalized = models.CharField(max_length=255, blank=True, db_index=True)
+    name_translit = models.CharField(max_length=255, blank=True, db_index=True)
+    name_initials = models.CharField(max_length=255, blank=True, db_index=True)
+    affiliations = models.TextField(blank=True)             # РјРѕР¶РЅРѕ РїРѕР·Р¶Рµ РЅРѕСЂРјР°Р»РёР·РѕРІР°С‚СЊ РІ РѕС‚РґРµР»СЊРЅСѓСЋ С‚Р°Р±Р»РёС†Сѓ
     is_department_staff = models.BooleanField(default=False)
 
     def __str__(self):
@@ -95,7 +105,7 @@ class Author(models.Model):
 
 class Publication(models.Model):
     """
-    Основная сущность
+    РћСЃРЅРѕРІРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ
     """
     STATUS_CHOICES = [
         ("submitted", "Submitted"),
@@ -111,7 +121,7 @@ class Publication(models.Model):
     ]
 
     # 1-7, 8
-    record_id = models.CharField(max_length=50, unique=True, blank=True)  # если нужно свой ID записи
+    record_id = models.CharField(max_length=50, unique=True, blank=True)  # РµСЃР»Рё РЅСѓР¶РЅРѕ СЃРІРѕР№ ID Р·Р°РїРёСЃРё
     pub_type = models.ForeignKey(PublicationType, on_delete=models.PROTECT)
     title_original = models.CharField(max_length=500)
     language = models.ForeignKey(Language, on_delete=models.PROTECT)
@@ -125,7 +135,7 @@ class Publication(models.Model):
     volume = models.CharField(max_length=30, blank=True)
     issue = models.CharField(max_length=30, blank=True)
     pages = models.CharField(max_length=50, blank=True)          # "pp. 12-19"
-    article_number = models.CharField(max_length=50, blank=True) # если нет страниц
+    article_number = models.CharField(max_length=50, blank=True) # РµСЃР»Рё РЅРµС‚ СЃС‚СЂР°РЅРёС†
     total_pages = models.PositiveIntegerField(null=True, blank=True)
 
     # 22-24
@@ -134,7 +144,7 @@ class Publication(models.Model):
     url_open_access = models.URLField(blank=True)
     abstract = models.TextField(blank=True)
 
-    # 25-36 (часть вынесем в отдельные таблицы, см. ниже)
+    # 25-36 (С‡Р°СЃС‚СЊ РІС‹РЅРµСЃРµРј РІ РѕС‚РґРµР»СЊРЅС‹Рµ С‚Р°Р±Р»РёС†С‹, СЃРј. РЅРёР¶Рµ)
     indexing = models.ManyToManyField(IndexingDatabase, blank=True)
     quartile = models.CharField(max_length=2, blank=True)        # Q1-Q4
     quartile_year = models.PositiveIntegerField(null=True, blank=True)
@@ -149,10 +159,10 @@ class Publication(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     area = models.ForeignKey(DepartmentArea, on_delete=models.SET_NULL, null=True, blank=True)
 
-    # 46-49 (свяжем через проекты)
+    # 46-49 (СЃРІСЏР¶РµРј С‡РµСЂРµР· РїСЂРѕРµРєС‚С‹)
     report_period = models.CharField(max_length=50, blank=True)
 
-    # кто создал запись
+    # РєС‚Рѕ СЃРѕР·РґР°Р» Р·Р°РїРёСЃСЊ
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -169,7 +179,7 @@ class Publication(models.Model):
         if len(links) <= 1:
             return ""
 
-        # Соавторы текущей публикации: все авторы после первого по порядку.
+        # РЎРѕР°РІС‚РѕСЂС‹ С‚РµРєСѓС‰РµР№ РїСѓР±Р»РёРєР°С†РёРё: РІСЃРµ Р°РІС‚РѕСЂС‹ РїРѕСЃР»Рµ РїРµСЂРІРѕРіРѕ РїРѕ РїРѕСЂСЏРґРєСѓ.
         seen = set()
         collaborators = []
         for link in links[1:]:
@@ -190,7 +200,7 @@ class Publication(models.Model):
 
 class PublicationAuthor(models.Model):
     """
-    Связь публикация-автор с порядком и ролью.
+    РЎРІСЏР·СЊ РїСѓР±Р»РёРєР°С†РёСЏ-Р°РІС‚РѕСЂ СЃ РїРѕСЂСЏРґРєРѕРј Рё СЂРѕР»СЊСЋ.
     """
     ROLE_CHOICES = [
         ("first", "First author"),
@@ -201,7 +211,7 @@ class PublicationAuthor(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
 
-    order = models.PositiveIntegerField()  # порядок как в статье
+    order = models.PositiveIntegerField()  # РїРѕСЂСЏРґРѕРє РєР°Рє РІ СЃС‚Р°С‚СЊРµ
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="coauthor")
 
     class Meta:
@@ -212,11 +222,11 @@ class PublicationAuthor(models.Model):
         return f"{self.publication_id} - {self.author} ({self.order})"
 
 
-# ---------- Идентификаторы в базах ----------
+# ---------- РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂС‹ РІ Р±Р°Р·Р°С… ----------
 
 class PublicationIdentifier(models.Model):
     """
-    Scopus EID, WoS Accession и т.п.
+    Scopus EID, WoS Accession Рё С‚.Рї.
     """
     ID_TYPE_CHOICES = [
         ("scopus_eid", "Scopus EID"),
@@ -237,7 +247,7 @@ class PublicationIdentifier(models.Model):
         return f"{self.id_type}: {self.value}"
 
 
-# ---------- Метрики источника (SJR/CiteScore/JIF/SNIP) ----------
+# ---------- РњРµС‚СЂРёРєРё РёСЃС‚РѕС‡РЅРёРєР° (SJR/CiteScore/JIF/SNIP) ----------
 
 class VenueMetric(models.Model):
     METRIC_CHOICES = [
@@ -259,7 +269,7 @@ class VenueMetric(models.Model):
         return f"{self.venue} {self.metric} {self.year} = {self.value}"
 
 
-# ---------- Проекты/финансирование ----------
+# ---------- РџСЂРѕРµРєС‚С‹/С„РёРЅР°РЅСЃРёСЂРѕРІР°РЅРёРµ ----------
 
 class Project(models.Model):
     PROJECT_TYPE_CHOICES = [
@@ -286,7 +296,7 @@ class PublicationProject(models.Model):
         unique_together = ("publication", "project")
 
 
-# ---------- Файлы/подтверждения ----------
+# ---------- Р¤Р°Р№Р»С‹/РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ ----------
 
 class PublicationFile(models.Model):
     FILE_KIND_CHOICES = [
@@ -305,7 +315,7 @@ class PublicationFile(models.Model):
 
 
 class RepositoryLink(models.Model):
-    # Zenodo / arXiv / университетский репозиторий и т.п.
+    # Zenodo / arXiv / СѓРЅРёРІРµСЂСЃРёС‚РµС‚СЃРєРёР№ СЂРµРїРѕР·РёС‚РѕСЂРёР№ Рё С‚.Рї.
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="repo_links")
     url = models.URLField()
     label = models.CharField(max_length=100, blank=True)
@@ -339,3 +349,6 @@ class NewsMedia(models.Model):
 
     def __str__(self):
         return f"{self.news_item_id} media"
+
+
+

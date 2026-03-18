@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('main.urls')),
     path('', include('account.urls')),
     path('', include('document.urls')),
+    path('llm/', include('llm.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,52 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="chat-page" id="llmChatPage">
+    <aside class="chat-sidebar">
+        <div class="chat-sidebar-header">
+            <h3 class="chat-sidebar-title">History</h3>
+            <div class="chat-sidebar-actions">
+                <button class="chat-icon-btn chat-delete-btn" type="button" id="llmDeleteChatButton" title="Delete active chat" aria-label="Delete active chat">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <button class="new-chat-btn" type="button" id="llmNewChatButton" title="New chat" aria-label="New chat">+</button>
+            </div>
+        </div>
+
+        <div class="chat-history" id="llmChatHistory"></div>
+    </aside>
+
+    <section class="chat-main">
+        <div class="chat-header">
+            <h2 class="chat-header-title">Satbayev AI</h2>
+            <p class="chat-header-subtitle">Можете спросить о авторах, работах и проектах университета</p>
+        </div>
+
+        <div class="chat-messages" id="llmChatMessages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+
+        <div class="chat-input-wrap">
+            <form method="post" class="chat-form" id="llmChatForm">
+                {% csrf_token %}
+                <textarea
+                    name="message"
+                    class="chat-textarea"
+                    id="llmChatInput"
+                    placeholder="Спросите о чем-нибудь..."
+                    rows="1"
+                ></textarea>
+                <div class="chat-form-actions">
+                    <button type="button" class="stop-btn" id="llmStopButton" title="Stop generation" aria-label="Stop generation" disabled>
+                        <i class="bi bi-stop-circle"></i>
+                    </button>
+                    <button type="submit" class="send-btn" id="llmChatSendButton"><i class="bi bi-send"></i></button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'llm/scripts/llm_chat_page.js' %}"></script>
+{% endblock %}

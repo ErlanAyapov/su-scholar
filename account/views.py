@@ -84,6 +84,7 @@ def _employee_publications_queryset(profile_user):
             author_filter &= Q(authors__full_name__icontains=part)
 
     publication_filter = Q(created_by=profile_user)
+    publication_filter |= Q(authors__user=profile_user)
     if author_filter:
         publication_filter |= author_filter
     if profile_user.orc_id:
@@ -140,7 +141,7 @@ def employees_list_chunk(request):
 
 def employee_profile(request, user_id: int):
     profile_user = get_object_or_404(
-        User.objects.select_related("department").prefetch_related("universities", "roles"),
+        User.objects.select_related("department__institute__university").prefetch_related("universities", "roles"),
         pk=user_id,
     )
     can_edit_profile = bool(request.user.is_authenticated and request.user.id == profile_user.id)
@@ -436,10 +437,10 @@ def register_send_activation_email(request):
     referral_url = _build_public_url(request, referral_path)
 
     display_name = f"{user.first_name} {user.last_name}".strip() or user.username or "әріптес"
-    subject = "SU Science: аккаунтты белсендіру"
+    subject = "SU Scholar: аккаунтты белсендіру"
     message = (
         f"Сәлеметсіз бе, {display_name}!\n\n"
-        "SU Science платформасына қосылғаныңызға рақмет.\n"
+        "SU Scholar платформасына қосылғаныңызға рақмет.\n"
         "Аккаунтты белсендіру үшін төмендегі сілтеме бойынша өтіңіз:\n"
         f"{activation_url}\n\n"
         "Сізге жеке реферальды сілтеме:\n"
