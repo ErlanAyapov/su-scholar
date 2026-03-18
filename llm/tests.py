@@ -1,3 +1,4 @@
+import httpx
 import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -5,7 +6,8 @@ from unittest.mock import AsyncMock, patch
 from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from openai import APITimeoutError
 
 from llm.consumers import LlmChatConsumer
 from llm.models import ChatSession, Message
@@ -81,6 +83,21 @@ class _SlowStopCompletions:
 class _SlowStopClient:
     def __init__(self, *args, **kwargs):
         self.chat = SimpleNamespace(completions=_SlowStopCompletions())
+
+    async def close(self):
+        return None
+
+
+class _TimeoutCompletions:
+    async def create(self, **kwargs):
+        raise APITimeoutError(
+            request=httpx.Request("POST", "http://192.168.1.2:11434/v1/chat/completions")
+        )
+
+
+class _TimeoutClient:
+    def __init__(self, *args, **kwargs):
+        self.chat = SimpleNamespace(completions=_TimeoutCompletions())
 
     async def close(self):
         return None
@@ -365,6 +382,103 @@ class LlmSessionConsumerTests(TestCase):
             self.assertIsNotNone(done_payload)
             self.assertTrue(done_payload.get("stopped"))
             self.assertIn("Generation stopped", done_payload.get("stop_reason", ""))
+
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()
+
+    @override_settings(
+        LLM_CONNECT_TIMEOUT=11.5,
+        LLM_READ_TIMEOUT=90.0,
+        LLM_WRITE_TIMEOUT=25.0,
+        LLM_POOL_TIMEOUT=7.0,
+        LLM_MAX_RETRIES=4,
+    )
+    @patch("llm.consumers.AsyncOpenAI")
+    def test_ask_uses_configured_openai_timeout_and_retries(self, mock_openai):
+        mock_openai.return_value = _FakeClient()
+
+        async def scenario():
+            communicator = WebsocketCommunicator(LlmChatConsumer.as_asgi(), "/ws/llm/")
+            communicator.scope["user"] = self.user
+            connected, _ = await communicator.connect()
+
+            self.assertTrue(connected)
+            await communicator.receive_json_from()  # llm_ready
+
+            await communicator.send_json_to({"action": "session_create", "title": "Timeout config"})
+            created = await communicator.receive_json_from()
+            session_id = created["session"]["id"]
+
+            await communicator.send_json_to(
+                {
+                    "action": "ask",
+                    "session_id": session_id,
+                    "prompt": "Check timeout settings",
+                }
+            )
+
+            await communicator.receive_json_from()  # llm_started
+            while True:
+                payload = await communicator.receive_json_from()
+                if payload.get("type") == "llm_done":
+                    break
+
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()
+
+        kwargs = mock_openai.call_args.kwargs
+        timeout = kwargs["timeout"]
+        self.assertAlmostEqual(timeout.connect, 11.5)
+        self.assertAlmostEqual(timeout.read, 90.0)
+        self.assertAlmostEqual(timeout.write, 25.0)
+        self.assertAlmostEqual(timeout.pool, 7.0)
+        self.assertEqual(kwargs["max_retries"], 4)
+
+    @patch("llm.consumers.AsyncOpenAI", side_effect=lambda *args, **kwargs: _TimeoutClient())
+    def test_ask_reports_llm_timeout_and_resets_state(self, _mock_openai):
+        async def scenario():
+            communicator = WebsocketCommunicator(LlmChatConsumer.as_asgi(), "/ws/llm/")
+            communicator.scope["user"] = self.user
+            connected, _ = await communicator.connect()
+
+            self.assertTrue(connected)
+            await communicator.receive_json_from()  # llm_ready
+
+            await communicator.send_json_to({"action": "session_create", "title": "Timeout test"})
+            created = await communicator.receive_json_from()
+            session_id = created["session"]["id"]
+
+            await communicator.send_json_to(
+                {
+                    "action": "ask",
+                    "session_id": session_id,
+                    "prompt": "Trigger timeout",
+                }
+            )
+
+            started = await communicator.receive_json_from()
+            self.assertEqual(started.get("type"), "llm_started")
+
+            payload = await communicator.receive_json_from()
+            self.assertEqual(payload.get("type"), "llm_error")
+            self.assertIn("timed out", payload.get("message", "").lower())
+
+            await communicator.send_json_to(
+                {
+                    "action": "ask",
+                    "session_id": session_id,
+                    "prompt": "Trigger timeout again",
+                }
+            )
+
+            started_again = await communicator.receive_json_from()
+            self.assertEqual(started_again.get("type"), "llm_started")
+
+            payload_again = await communicator.receive_json_from()
+            self.assertEqual(payload_again.get("type"), "llm_error")
+            self.assertIn("timed out", payload_again.get("message", "").lower())
 
             await communicator.disconnect()
 

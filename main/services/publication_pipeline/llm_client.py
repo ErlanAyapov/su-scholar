@@ -6,6 +6,7 @@ from typing import Any
 
 from django.conf import settings
 from openai import OpenAI
+from utils.openai_client import build_openai_client_kwargs
 
 from .utils import (
     MAX_CLEANED_TEXT_CHARS,
@@ -96,7 +97,7 @@ class PublicationLLMClient:
         self.api_key = (api_key or getattr(settings, "LLM_API_KEY", "")).strip() or "ollama"
         if not self.base_url:
             raise ValueError("LLM_API is not configured")
-        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key, **build_openai_client_kwargs())
         self.system_prompt = load_system_prompt()
 
     def extract(self, intermediate_payload: dict[str, Any]) -> LlmExtractionResult:
