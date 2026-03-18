@@ -90,10 +90,17 @@ class PublicationPipeline:
         base_url: str | None = None,
         api_key: str | None = None,
         max_sources: int = MAX_FETCHED_SOURCES,
+        stop_after_core_metadata: bool = True,
+        allow_all_public_hosts: bool = True,
     ):
         self.force_refresh = force_refresh
         self.max_sources = max_sources
-        self.fetcher = SafeFetcher(allowed_domains=DEFAULT_ALLOWED_DOMAINS)
+        self.stop_after_core_metadata = stop_after_core_metadata
+        self.allow_all_public_hosts = allow_all_public_hosts
+        self.fetcher = SafeFetcher(
+            allowed_domains=DEFAULT_ALLOWED_DOMAINS,
+            allow_all_public_hosts=allow_all_public_hosts,
+        )
         self.llm_client = PublicationLLMClient(model=model, base_url=base_url, api_key=api_key)
 
     def _build_seed_urls(self, publication: Publication) -> list[str]:
@@ -238,6 +245,9 @@ class PublicationPipeline:
         if not hostname:
             return False
 
+        if self.allow_all_public_hosts:
+            return True
+
         if any(domain_matches(hostname, domain) for domain in DEFAULT_ALLOWED_DOMAINS):
             return True
         if hostname in seed_hosts:
@@ -247,6 +257,17 @@ class PublicationPipeline:
         if is_publisher_like_url(normalized) or is_repository_url(normalized):
             return True
         return False
+
+    def _has_core_metadata(self, payload: dict[str, Any]) -> bool:
+        publication = payload.get("publication", {})
+        abstract = (publication.get("abstract") or "").strip()
+        if not abstract:
+            return False
+
+        keywords = publication.get("keywords") or []
+        candidate_keywords = publication.get("candidate_keywords") or []
+        tags = payload.get("tags") or []
+        return bool(keywords or candidate_keywords or tags)
 
     def _prioritize_candidates(self, urls: list[str]) -> list[str]:
         return [
@@ -546,6 +567,17 @@ class PublicationPipeline:
             if not processed_sources[:-1] and llm_result is not None:
                 self._write_debug_json(debug_dir / "04_llm_primary.json", structured_payload)
 
+            if self.stop_after_core_metadata and self._has_core_metadata(structured_payload):
+                metrics["stopped_early"] = True
+                metrics["stop_reason"] = "core_metadata_found"
+                logger.info(
+                    "Publication pipeline stopped early publication_id=%s source_type=%s source_url=%s",
+                    publication.id,
+                    source_type,
+                    fetch_result.final_url,
+                )
+                break
+
             candidate_urls = discover_additional_sources(structured_payload)
             candidate_urls.extend(self._discover_from_intermediate(intermediate))
             prioritized = self._prioritize_candidates(candidate_urls)
@@ -688,10 +720,20 @@ class PublicationPipeline:
         }
 
 
-def run_publication_pipeline(publication_id: int, force_refresh: bool = False) -> dict[str, Any]:
+def run_publication_pipeline(
+    publication_id: int,
+    force_refresh: bool = False,
+    *,
+    stop_after_core_metadata: bool = True,
+    allow_all_public_hosts: bool = True,
+) -> dict[str, Any]:
     publication = (
         Publication.objects.select_related("language", "pub_type", "venue")
         .prefetch_related("repo_links", "publicationauthor_set__author", "identifiers", "indexing", "tags")
         .get(id=publication_id)
     )
-    return PublicationPipeline(force_refresh=force_refresh).run(publication)
+    return PublicationPipeline(
+        force_refresh=force_refresh,
+        stop_after_core_metadata=stop_after_core_metadata,
+        allow_all_public_hosts=allow_all_public_hosts,
+    ).run(publication)

@@ -268,6 +268,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_WORKER_CONCURRENCY = _as_int(os.getenv('CELERY_WORKER_CONCURRENCY'), default=15)
+CELERY_WORKER_PREFETCH_MULTIPLIER = _as_int(os.getenv('CELERY_WORKER_PREFETCH_MULTIPLIER'), default=1)
 
 # WebSockets (Django Channels)
 CHANNELS_USE_REDIS = _as_bool(os.getenv('CHANNELS_USE_REDIS'), default=True)

@@ -69,7 +69,13 @@ def _is_private_or_blocked_ip(ip_value: str) -> bool:
     )
 
 
-def validate_url(url: str, *, allowed_domains: Iterable[str] | None = None, extra_allowed_hosts: Iterable[str] | None = None) -> str:
+def validate_url(
+    url: str,
+    *,
+    allowed_domains: Iterable[str] | None = None,
+    extra_allowed_hosts: Iterable[str] | None = None,
+    allow_all_public_hosts: bool = False,
+) -> str:
     normalized = normalize_url(url)
     if not normalized:
         raise ValueError(f"Unsupported URL: {url!r}")
@@ -85,10 +91,11 @@ def validate_url(url: str, *, allowed_domains: Iterable[str] | None = None, extr
         if "does not appear to be an IPv4 or IPv6 address" not in str(exc):
             raise
 
-    allowed = {item.lower() for item in (allowed_domains or DEFAULT_ALLOWED_DOMAINS)}
-    dynamic = {item.lower() for item in (extra_allowed_hosts or [])}
-    if not any(domain_matches(hostname, domain) for domain in allowed | dynamic):
-        raise ValueError(f"Hostname is not allowlisted: {hostname}")
+    if not allow_all_public_hosts:
+        allowed = {item.lower() for item in (allowed_domains or DEFAULT_ALLOWED_DOMAINS)}
+        dynamic = {item.lower() for item in (extra_allowed_hosts or [])}
+        if not any(domain_matches(hostname, domain) for domain in allowed | dynamic):
+            raise ValueError(f"Hostname is not allowlisted: {hostname}")
 
     for ip_value in _iter_resolved_ips(hostname):
         if _is_private_or_blocked_ip(ip_value):
@@ -97,7 +104,7 @@ def validate_url(url: str, *, allowed_domains: Iterable[str] | None = None, extr
     return normalized
 
 
-def validate_public_url_target(url: str) -> str:
+def validate_public_url_target(url: str, *, allow_all_public_hosts: bool = False) -> str:
     normalized = normalize_url(url)
     if not normalized:
         raise ValueError(f"Unsupported URL: {url!r}")
@@ -117,7 +124,7 @@ def validate_public_url_target(url: str) -> str:
         if _is_private_or_blocked_ip(ip_value):
             raise ValueError(f"Resolved private or blocked IP for hostname {hostname}")
 
-    return normalized
+    return validate_url(url, allow_all_public_hosts=allow_all_public_hosts)
 
 
 class SafeFetcher:
@@ -129,6 +136,7 @@ class SafeFetcher:
         max_bytes: int = MAX_HTML_BYTES,
         max_pdf_bytes: int = 25_000_000,
         allowed_domains: Iterable[str] | None = None,
+        allow_all_public_hosts: bool = False,
         retries: int = 2,
     ):
         self.timeout = timeout
@@ -136,6 +144,7 @@ class SafeFetcher:
         self.max_bytes = max_bytes
         self.max_pdf_bytes = max_pdf_bytes
         self.allowed_domains = set(allowed_domains or DEFAULT_ALLOWED_DOMAINS)
+        self.allow_all_public_hosts = allow_all_public_hosts
         self.session = requests.Session()
         self.session.headers.update(DEFAULT_HEADERS)
         self.session.max_redirects = max_redirects
@@ -164,6 +173,7 @@ class SafeFetcher:
             url,
             allowed_domains=self.allowed_domains,
             extra_allowed_hosts=extra_allowed_hosts,
+            allow_all_public_hosts=self.allow_all_public_hosts,
         )
 
         started = time.perf_counter()
@@ -176,11 +186,15 @@ class SafeFetcher:
                 response.url,
                 allowed_domains=self.allowed_domains,
                 extra_allowed_hosts=extra_allowed_hosts,
+                allow_all_public_hosts=self.allow_all_public_hosts,
             )
         except ValueError as exc:
             if "allowlisted" not in str(exc):
                 raise
-            final_url = validate_public_url_target(response.url)
+            final_url = validate_public_url_target(
+                response.url,
+                allow_all_public_hosts=self.allow_all_public_hosts,
+            )
 
         content_type = (response.headers.get("Content-Type") or "").lower()
         is_pdf_target = "application/pdf" in content_type or final_url.lower().endswith(".pdf")

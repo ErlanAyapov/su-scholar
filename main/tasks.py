@@ -1,4 +1,4 @@
-from celery import shared_task
+from celery import group, shared_task
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
@@ -356,11 +356,16 @@ def run_publication_pipeline_batch_task(
     self,
     limit: int = 100,
     force_refresh: bool = False,
+    parallelism: int = 15,
 ) -> dict:
+    try:
+        normalized_parallelism = max(1, int(parallelism or 1))
+    except (TypeError, ValueError):
+        normalized_parallelism = 1
     self.log_info(
         "Publication pipeline batch started",
-        object_type="publication",
-        meta={"limit": limit, "force_refresh": force_refresh},
+        object_type="publication_batch",
+        meta={"limit": limit, "force_refresh": force_refresh, "parallelism": normalized_parallelism},
     )
 
     queryset = (
@@ -379,81 +384,143 @@ def run_publication_pipeline_batch_task(
         self.log_warning("No publications with usable sources found", object_type="publication", meta=result)
         return result
 
-    summary = {
-        "status": "ok",
-        "queued_limit": limit,
-        "processed": 0,
-        "succeeded": 0,
-        "failed": 0,
-        "warnings": 0,
-        "updated_fields": 0,
-        "linked_users": 0,
-        "errors": [],
-    }
     total = len(publication_ids)
+    task_ids: list[str] = []
+    group_ids: list[str] = []
 
-    for index, publication_id in enumerate(publication_ids, start=1):
+    for offset in range(0, total, normalized_parallelism):
+        chunk = publication_ids[offset : offset + normalized_parallelism]
+        signatures = [
+            run_publication_pipeline_single_task.s(
+                publication_id=publication_id,
+                force_refresh=force_refresh,
+            )
+            for publication_id in chunk
+        ]
+        queued_group = group(signatures).apply_async()
+        if queued_group.id:
+            group_ids.append(queued_group.id)
+        task_ids.extend(result.id for result in queued_group.results if getattr(result, "id", ""))
+
+        queued_count = min(offset + len(chunk), total)
         self.log_progress(
-            message=f"Running publication pipeline ({index}/{total})",
-            current=index,
+            message=f"Queued publication pipeline tasks ({queued_count}/{total})",
+            current=queued_count,
             total=total,
-            object_type="publication",
-            object_id=str(publication_id),
-            meta={"force_refresh": force_refresh},
+            object_type="publication_batch",
+            meta={
+                "force_refresh": force_refresh,
+                "parallelism": normalized_parallelism,
+                "group_id": queued_group.id,
+            },
         )
-        try:
-            result = run_publication_pipeline(publication_id, force_refresh=force_refresh)
-        except Exception as exc:  # noqa: BLE001
-            summary["processed"] += 1
-            summary["failed"] += 1
-            summary["errors"].append(f"{publication_id}:{exc}")
-            self.log_error(
-                f"Publication pipeline failed: {exc}",
-                object_type="publication",
-                object_id=str(publication_id),
-                meta={"publication_id": publication_id},
-            )
-            continue
 
-        summary["processed"] += 1
-        summary["warnings"] += len(result.get("warnings") or [])
-        summary["updated_fields"] += len(result.get("updated_fields") or [])
-        summary["linked_users"] += len(result.get("linked_user_ids") or [])
-
-        if result.get("success"):
-            summary["succeeded"] += 1
-            self.log_info(
-                f"Pipeline completed: sources={result.get('sources_processed', 0)}, updated_fields={len(result.get('updated_fields') or [])}",
-                object_type="publication",
-                object_id=str(publication_id),
-                meta={
-                    "source_types": result.get("source_types") or [],
-                    "warnings": result.get("warnings") or [],
-                },
-            )
-        else:
-            summary["failed"] += 1
-            summary["errors"].extend(str(item) for item in (result.get("errors") or []))
-            self.log_warning(
-                "Pipeline finished with warnings/errors",
-                object_type="publication",
-                object_id=str(publication_id),
-                meta={
-                    "warnings": result.get("warnings") or [],
-                    "errors": result.get("errors") or [],
-                },
-            )
+    summary = {
+        "status": "queued",
+        "queued_limit": limit,
+        "parallelism": normalized_parallelism,
+        "queued": total,
+        "group_task_ids": group_ids,
+        "publication_task_ids": task_ids,
+    }
 
     notify_public(
-        "Publication pipeline batch completed",
+        "Publication pipeline batch queued",
         source="publication_pipeline",
-        processed=summary["processed"],
-        succeeded=summary["succeeded"],
-        failed=summary["failed"],
-        warnings=summary["warnings"],
+        queued=summary["queued"],
+        parallelism=summary["parallelism"],
         force_refresh=force_refresh,
     )
     return summary
+
+
+@shared_task(bind=True, base=LoggedTask)
+def run_publication_pipeline_single_task(
+    self,
+    publication_id: int,
+    force_refresh: bool = True,
+) -> dict:
+    self.log_info(
+        "Publication pipeline started",
+        object_type="publication",
+        object_id=str(publication_id),
+        meta={"publication_id": publication_id, "force_refresh": force_refresh},
+    )
+
+    if not Publication.objects.filter(id=publication_id).exists():
+        result = {"status": "not_found", "publication_id": publication_id}
+        self.log_warning(
+            "Publication not found",
+            object_type="publication",
+            object_id=str(publication_id),
+            meta=result,
+        )
+        return result
+
+    try:
+        pipeline_result = run_publication_pipeline(
+            publication_id,
+            force_refresh=force_refresh,
+            stop_after_core_metadata=True,
+            allow_all_public_hosts=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        error_message = str(exc)
+        self.log_error(
+            f"Publication pipeline failed: {error_message}",
+            object_type="publication",
+            object_id=str(publication_id),
+            meta={"publication_id": publication_id},
+        )
+        return {
+            "status": "failed",
+            "publication_id": publication_id,
+            "success": False,
+            "errors": [error_message],
+        }
+
+    updated_fields = pipeline_result.get("updated_fields") or []
+    linked_user_ids = pipeline_result.get("linked_user_ids") or []
+    warnings = pipeline_result.get("warnings") or []
+    errors = pipeline_result.get("errors") or []
+    success = bool(pipeline_result.get("success"))
+
+    if success:
+        self.log_info(
+            "Publication pipeline completed",
+            object_type="publication",
+            object_id=str(publication_id),
+            meta={
+                "publication_id": publication_id,
+                "sources_processed": pipeline_result.get("sources_processed", 0),
+                "updated_fields": updated_fields,
+                "warnings": len(warnings),
+            },
+        )
+    else:
+        self.log_warning(
+            "Publication pipeline finished with warnings/errors",
+            object_type="publication",
+            object_id=str(publication_id),
+            meta={
+                "publication_id": publication_id,
+                "warnings": warnings,
+                "errors": errors,
+            },
+        )
+
+    return {
+        "status": "ok" if success else "failed",
+        "publication_id": publication_id,
+        "success": success,
+        "sources_processed": int(pipeline_result.get("sources_processed") or 0),
+        "source_types": pipeline_result.get("source_types") or [],
+        "updated_fields": updated_fields,
+        "linked_user_ids": linked_user_ids,
+        "warnings": warnings,
+        "errors": errors,
+        "metrics": pipeline_result.get("metrics") or {},
+    }
 
 
 @shared_task(bind=True, base=LoggedTask)
