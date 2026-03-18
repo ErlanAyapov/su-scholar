@@ -14,11 +14,12 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import Count, Max, Q
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI
 
 from llm.models import ChatSession, Message
 from main.models import Project, Publication
 from main.utils import collect_preset_context_for_llm
+from utils.openai_client import build_openai_client_kwargs
 
 logger = logging.getLogger(__name__)
 USER_MODEL = get_user_model()
@@ -536,6 +537,12 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
                 }
             )
 
+    def _reset_generation_state(self):
+        self.is_busy = False
+        self._generation_task = None
+        self._generation_stop_requested = False
+        self._generation_stop_reason = ""
+
     async def _run_generation(
         self,
         *,
@@ -546,12 +553,13 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
         session_id: int | None,
         active_session_payload: dict | None,
     ):
-        client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        client: AsyncOpenAI | None = None
         collected_chunks: list[str] = []
         stopped = False
         stop_reason = ""
 
         try:
+            client = AsyncOpenAI(base_url=base_url, api_key=api_key, **build_openai_client_kwargs())
             stream = await client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -578,6 +586,36 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
         except asyncio.CancelledError:
             stopped = True
             stop_reason = self._generation_stop_reason or "Generation stopped"
+        except APITimeoutError as exc:
+            logger.warning(
+                "LLM websocket stream timed out: base_url=%s model=%s error=%s",
+                base_url,
+                model,
+                exc,
+            )
+            await self._safe_send_json(
+                {
+                    "type": "llm_error",
+                    "message": "LLM backend timed out. Check that the configured endpoint is reachable.",
+                }
+            )
+            self._reset_generation_state()
+            return
+        except APIConnectionError as exc:
+            logger.warning(
+                "LLM websocket stream connection failed: base_url=%s model=%s error=%s",
+                base_url,
+                model,
+                exc,
+            )
+            await self._safe_send_json(
+                {
+                    "type": "llm_error",
+                    "message": "LLM backend connection failed. Check the configured endpoint and network access.",
+                }
+            )
+            self._reset_generation_state()
+            return
         except Exception as exc:
             logger.exception("LLM websocket stream failed: %s", exc)
             await self._safe_send_json(
@@ -586,13 +624,14 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
                     "message": str(exc),
                 }
             )
-            self.is_busy = False
-            self._generation_task = None
-            self._generation_stop_requested = False
-            self._generation_stop_reason = ""
+            self._reset_generation_state()
             return
         finally:
-            await client.close()
+            if client is not None:
+                try:
+                    await client.close()
+                except Exception:
+                    logger.debug("Failed to close OpenAI client", exc_info=True)
 
         full_text = "".join(collected_chunks).strip()
         if session_id and full_text:
@@ -611,10 +650,7 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
             done_payload["stop_reason"] = stop_reason
 
         await self._safe_send_json(done_payload)
-        self.is_busy = False
-        self._generation_task = None
-        self._generation_stop_requested = False
-        self._generation_stop_reason = ""
+        self._reset_generation_state()
 
     async def _handle_agent_run(self, payload):
         if not self._is_authenticated:

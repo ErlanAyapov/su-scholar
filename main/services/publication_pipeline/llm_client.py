@@ -6,6 +6,7 @@ from typing import Any
 
 from django.conf import settings
 from openai import OpenAI
+from utils.openai_client import build_openai_client_kwargs
 
 from .utils import (
     MAX_CLEANED_TEXT_CHARS,
@@ -13,6 +14,7 @@ from .utils import (
     estimate_tokens,
     json_dumps,
     parse_json_loose,
+    preview_text,
     smart_truncate,
     truncate_text,
 )
@@ -74,6 +76,8 @@ def build_messages(intermediate_payload: dict[str, Any], system_prompt: str) -> 
     user_prompt = (
         "Extract publication metadata from the provided source payload.\n"
         "Return valid JSON only.\n"
+        "Do not invent an abstract from citation lines, bibliographic references, author/title/journal blocks, or URL lines.\n"
+        "If only a citation snippet is visible, set abstract to an empty string and mark needs_review=true.\n"
         f"{json_dumps(prompt_payload, indent=2)}"
     )
 
@@ -96,10 +100,10 @@ class PublicationLLMClient:
         self.api_key = (api_key or getattr(settings, "LLM_API_KEY", "")).strip() or "ollama"
         if not self.base_url:
             raise ValueError("LLM_API is not configured")
-        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key, **build_openai_client_kwargs())
         self.system_prompt = load_system_prompt()
 
-    def extract(self, intermediate_payload: dict[str, Any]) -> LlmExtractionResult:
+    def extract(self, intermediate_payload: dict[str, Any], publication_id: int | None = None) -> LlmExtractionResult:
         messages = build_messages(intermediate_payload, self.system_prompt)
         prompt_tokens_est = estimate_tokens(json_dumps(messages, indent=2))
 
@@ -120,10 +124,14 @@ class PublicationLLMClient:
             "total_tokens": getattr(response.usage, "total_tokens", None),
         }
 
+        payload_publication = payload.get("publication", {}) if isinstance(payload, dict) else {}
         logger.info(
-            "LLM extracted source_type=%s source_url=%s model=%s",
+            "LLM extracted publication_id=%s source_type=%s source_url=%s title=%s abstract=%s model=%s",
+            publication_id or "",
             intermediate_payload.get("source_type", ""),
             intermediate_payload.get("source_url", ""),
+            preview_text(payload_publication.get("title_original", ""), 140),
+            preview_text(payload_publication.get("abstract", ""), 200),
             self.model,
         )
 
@@ -137,5 +145,5 @@ class PublicationLLMClient:
         )
 
 
-def extract_structured_with_llm(intermediate_payload: dict[str, Any]) -> dict[str, Any]:
-    return PublicationLLMClient().extract(intermediate_payload).payload
+def extract_structured_with_llm(intermediate_payload: dict[str, Any], publication_id: int | None = None) -> dict[str, Any]:
+    return PublicationLLMClient().extract(intermediate_payload, publication_id=publication_id).payload

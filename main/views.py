@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
+from main.models import Publication
 from main.utils import (
     build_main_page_context,
     build_search_page_context,
@@ -52,6 +53,36 @@ class PublicationDetailView(View):
     def get(self, request, pk: int):
         context = build_publication_detail_context(pk)
         return render(request, self.template_name, context)
+
+
+class PublicationPipelineRunView(View):
+    http_method_names = ["post"]
+
+    def post(self, request, pk: int):
+        if not Publication.objects.filter(id=pk).exists():
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "status": "not_found",
+                    "publication_id": pk,
+                },
+                status=404,
+            )
+
+        from main.tasks import run_publication_pipeline_single_task
+
+        task = run_publication_pipeline_single_task.delay(
+            publication_id=pk,
+            force_refresh=True,
+        )
+        return JsonResponse(
+            {
+                "ok": True,
+                "status": "queued",
+                "publication_id": pk,
+                "task_id": task.id,
+            }
+        )
 
 
 class ProjectsGrantsDemoView(View):

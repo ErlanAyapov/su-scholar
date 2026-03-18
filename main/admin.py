@@ -1,4 +1,4 @@
-﻿import re
+import re
 
 from django.contrib import admin, messages
 
@@ -232,9 +232,9 @@ class PublicationProjectAdmin(admin.ModelAdmin):
 
 @admin.register(PublicationFile)
 class PublicationFileAdmin(admin.ModelAdmin):
-    list_display = ("id", "publication", "kind", "description")
+    list_display = ("id", "publication", "kind", "source_url", "description")
     list_filter = ("kind",)
-    search_fields = ("publication__title_original", "description")
+    search_fields = ("publication__title_original", "description", "source_url")
 
 
 @admin.register(RepositoryLink)

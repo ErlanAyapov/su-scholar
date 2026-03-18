@@ -32,6 +32,7 @@ from .utils import (
     normalize_pub_type,
     normalize_quartile,
     parse_date_to_iso,
+    sanitize_abstract_text,
 )
 
 
@@ -50,6 +51,8 @@ def _normalize_publication(publication: dict[str, Any], source_meta: dict[str, A
     )
     normalized["status"] = normalized.get("status") if normalized.get("status") in VALID_STATUSES else "published"
     normalized["doi"] = normalize_doi(normalized.get("doi", ""))
+    abstract_text, abstract_rejected = sanitize_abstract_text(normalized.get("abstract", ""))
+    normalized["abstract"] = abstract_text
     normalized["keywords"] = ensure_list_of_strings(normalized.get("keywords"))
     normalized["candidate_keywords"] = ensure_list_of_strings(normalized.get("candidate_keywords"))
     normalized["quartile"] = normalize_quartile(normalized.get("quartile", ""))
@@ -71,6 +74,9 @@ def _normalize_publication(publication: dict[str, Any], source_meta: dict[str, A
 
     if normalized["doi"] and not links.get("doi_url"):
         links["doi_url"] = f"https://doi.org/{normalized['doi']}"
+
+    if abstract_rejected:
+        normalized["needs_review"] = True
 
     if source_meta.get("source_type") == "google_scholar" and normalized.get("abstract"):
         normalized["needs_review"] = True

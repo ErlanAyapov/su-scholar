@@ -29,6 +29,26 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
     return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
 
 
+def _as_int(value: str | None, default: int = 0) -> int:
+    if value is None:
+        return default
+    try:
+        parsed = int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed >= 0 else default
+
+
+def _as_float(value: str | None, default: float = 0.0) -> float:
+    if value is None:
+        return default
+    try:
+        parsed = float(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -151,6 +171,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+DEFAULT_CHARSET = "utf-8"
+FILE_CHARSET = "utf-8"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
@@ -166,6 +189,11 @@ ONLYOFFICE_JWT_SECRET = os.getenv('ONLYOFFICE_JWT_SECRET', '')
 LLM_API = os.getenv('LLM_API', 'http://localhost:11434/v1')
 LLM_API_KEY = os.getenv('LLM_API_KEY', '')
 LLM_MODEL = os.getenv('LLM_MODEL', 'gpt-oss:20b')
+LLM_CONNECT_TIMEOUT = _as_float(os.getenv('LLM_CONNECT_TIMEOUT'), default=15.0)
+LLM_READ_TIMEOUT = _as_float(os.getenv('LLM_READ_TIMEOUT'), default=120.0)
+LLM_WRITE_TIMEOUT = _as_float(os.getenv('LLM_WRITE_TIMEOUT'), default=30.0)
+LLM_POOL_TIMEOUT = _as_float(os.getenv('LLM_POOL_TIMEOUT'), default=30.0)
+LLM_MAX_RETRIES = _as_int(os.getenv('LLM_MAX_RETRIES'), default=2)
 
 # Email (SMTP)
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
@@ -240,6 +268,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_WORKER_CONCURRENCY = _as_int(os.getenv('CELERY_WORKER_CONCURRENCY'), default=15)
+CELERY_WORKER_PREFETCH_MULTIPLIER = _as_int(os.getenv('CELERY_WORKER_PREFETCH_MULTIPLIER'), default=1)
 
 # WebSockets (Django Channels)
 CHANNELS_USE_REDIS = _as_bool(os.getenv('CHANNELS_USE_REDIS'), default=True)

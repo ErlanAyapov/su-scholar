@@ -775,7 +775,7 @@ def build_publication_detail_context(pk: int):
     )
     author_links = [
         link
-        for link in publication.publicationauthor_set.select_related("author").order_by("order", "id")
+        for link in publication.publicationauthor_set.select_related("author__user").order_by("order", "id")
         if link.author and (link.author.full_name or "").strip()
     ]
 

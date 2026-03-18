@@ -11,8 +11,20 @@
                 {{ publication.year }} &bull; {{ publication.pub_type.name }} &bull; {{ publication.venue.name }}
             </p>
         </div>
-        <a href="{% url 'advanced_search' %}" id="backToSearchBtn" class="btn btn-outline-secondary btn-sm">Вернуться к поиску</a>
+        <div class="d-flex align-items-center gap-2">
+            <button
+                type="button"
+                id="runPublicationPipelineBtn"
+                class="btn btn-outline-primary btn-sm"
+                data-run-url="{% url 'publication_pipeline_run' publication.id %}"
+                title="Refresh abstract and keywords"
+            >
+                <i class="bi bi-arrow-repeat"></i>
+            </button>
+            <a href="{% url 'advanced_search' %}" id="backToSearchBtn" class="btn btn-outline-secondary btn-sm">Вернуться к поиску</a>
+        </div>
     </div>
+    <p id="runPublicationPipelineStatus" class="small text-muted mb-3 d-none"></p>
 
     {% if publication.abstract %}
     <section class="result-card mb-3">
@@ -39,6 +51,7 @@
                             <th>Роль</th>
                             <th>ORCID</th>
                             <th>Сотрудник</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -57,6 +70,13 @@
                                 </td>
                                 <td>{{ link.author.orcid|default:"-" }}</td>
                                 <td>{% if link.author.is_department_staff %}Да{% else %}Нет{% endif %}</td>
+                                <td>
+                                    {% if link.author.user_id %}
+                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'employee_profile' link.author.user_id %}"><i class="bi bi-arrow-up-right"></i></a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -216,19 +236,82 @@
 {% block scripts %}
 <script>
     (function () {
+        function getCookie(name) {
+            const cookieValue = document.cookie
+                .split(";")
+                .map((item) => item.trim())
+                .find((item) => item.startsWith(name + "="));
+            if (!cookieValue) {
+                return "";
+            }
+            return decodeURIComponent(cookieValue.split("=").slice(1).join("="));
+        }
+
         const backButton = document.getElementById("backToSearchBtn");
-        if (!backButton) {
+        if (backButton) {
+            try {
+                const savedQuery = localStorage.getItem("su_science_main_filters");
+                if (savedQuery !== null) {
+                    backButton.href = `{% url 'advanced_search' %}${savedQuery}`;
+                }
+            } catch (error) {
+                // Ignore localStorage failures and keep default link.
+            }
+        }
+
+        const runButton = document.getElementById("runPublicationPipelineBtn");
+        const statusNode = document.getElementById("runPublicationPipelineStatus");
+        if (!runButton || !statusNode) {
             return;
         }
 
-        try {
-            const savedQuery = localStorage.getItem("su_science_main_filters");
-            if (savedQuery !== null) {
-                backButton.href = `{% url 'advanced_search' %}${savedQuery}`;
+        const setStatus = function (text, levelClass) {
+            statusNode.textContent = text;
+            statusNode.classList.remove("d-none", "text-muted", "text-success", "text-danger");
+            statusNode.classList.add(levelClass);
+        };
+
+        runButton.addEventListener("click", async function () {
+            const runUrl = runButton.dataset.runUrl || "";
+            if (!runUrl) {
+                setStatus("Run URL is missing.", "text-danger");
+                return;
             }
-        } catch (error) {
-            // Ignore localStorage failures and keep default link.
-        }
+
+            runButton.disabled = true;
+            setStatus("Queuing publication pipeline task...", "text-muted");
+
+            try {
+                const headers = {
+                    "X-Requested-With": "XMLHttpRequest",
+                };
+                const csrfToken = getCookie("csrftoken");
+                if (csrfToken) {
+                    headers["X-CSRFToken"] = csrfToken;
+                }
+
+                const response = await fetch(runUrl, {
+                    method: "POST",
+                    headers: headers,
+                    credentials: "same-origin",
+                });
+                const payload = await response.json().catch(function () {
+                    return {};
+                });
+                if (!response.ok || !payload.ok) {
+                    const errorText = payload.status || "request_failed";
+                    setStatus("Failed to queue task: " + errorText, "text-danger");
+                    return;
+                }
+
+                const taskId = payload.task_id || "";
+                setStatus("Task queued" + (taskId ? " (id: " + taskId + ")." : "."), "text-success");
+            } catch (error) {
+                setStatus("Failed to queue task: network error.", "text-danger");
+            } finally {
+                runButton.disabled = false;
+            }
+        });
     })();
 </script>
 {% endblock %}

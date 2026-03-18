@@ -7,6 +7,7 @@ from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.http import QueryDict
 from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.urls import reverse
 
 from account.models import Department, Institute, University
 from main.context_processors import layout_navigation
@@ -310,6 +311,45 @@ class ScholarImportTests(TestCase):
         self.assertEqual(publication.year, 2015)
         self.assertEqual(result["created"], 0)
         self.assertEqual(result["updated"], 1)
+
+
+class PublicationPipelineRunViewTests(TestCase):
+    def setUp(self):
+        self.language = Language.objects.create(code="en", name="English")
+        self.pub_type = PublicationType.objects.create(name="Journal Article")
+        self.venue = Venue.objects.create(name="Test Venue", kind="journal", character="scientific_journal")
+        self.publication = Publication.objects.create(
+            record_id="pipeline-run-view-test-1",
+            pub_type=self.pub_type,
+            title_original="Test Publication",
+            language=self.language,
+            year=date.today().year,
+            venue=self.venue,
+        )
+
+    @patch("main.tasks.run_publication_pipeline_single_task.delay")
+    def test_post_queues_single_publication_pipeline_task(self, mock_delay):
+        mock_delay.return_value = SimpleNamespace(id="task-publication-pipeline-1")
+
+        response = self.client.post(
+            reverse("publication_pipeline_run", kwargs={"pk": self.publication.id}),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["status"], "queued")
+        self.assertEqual(payload["task_id"], "task-publication-pipeline-1")
+        mock_delay.assert_called_once_with(publication_id=self.publication.id, force_refresh=True)
+
+    def test_post_returns_404_for_missing_publication(self):
+        response = self.client.post(reverse("publication_pipeline_run", kwargs={"pk": 999999}))
+
+        self.assertEqual(response.status_code, 404)
+        payload = response.json()
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["status"], "not_found")
 
 
 class LlmWebSocketTests(SimpleTestCase):
