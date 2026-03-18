@@ -1,9 +1,11 @@
 from celery import shared_task
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 from requests import RequestException
 
 from core.tasks.logged_task import LoggedTask
+from main.models import Author, Publication
 from main.realtime import notify_public, notify_user
 from main.services.publication_importer import (
     enrich_publications_with_abstracts,
@@ -11,6 +13,8 @@ from main.services.publication_importer import (
     import_scholar_works_for_all_users,
     import_works_from_scholar,
 )
+from main.services.publication_pipeline import run_publication_pipeline
+from main.services.publication_pipeline.author_linking import populate_author_identity, relink_author_instance
 
 User = get_user_model()
 SYNC_SOURCE_LABELS = {
@@ -345,6 +349,224 @@ def import_publications_from_google_scholar_for_all_users_task(force: bool = Fal
         force=force,
     )
     return {"status": "ok", **summary, "force": force}
+
+
+@shared_task(bind=True, base=LoggedTask)
+def run_publication_pipeline_batch_task(
+    self,
+    limit: int = 100,
+    force_refresh: bool = False,
+) -> dict:
+    self.log_info(
+        "Publication pipeline batch started",
+        object_type="publication",
+        meta={"limit": limit, "force_refresh": force_refresh},
+    )
+
+    queryset = (
+        Publication.objects.filter(
+            Q(url_publisher__gt="")
+            | Q(url_open_access__gt="")
+            | Q(doi__gt="")
+            | Q(repo_links__isnull=False)
+        )
+        .distinct()
+        .order_by("id")
+    )
+    publication_ids = list(queryset.values_list("id", flat=True)[:limit])
+    if not publication_ids:
+        result = {"status": "skipped", "reason": "no_publications_with_sources", "count": 0}
+        self.log_warning("No publications with usable sources found", object_type="publication", meta=result)
+        return result
+
+    summary = {
+        "status": "ok",
+        "queued_limit": limit,
+        "processed": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "warnings": 0,
+        "updated_fields": 0,
+        "linked_users": 0,
+        "errors": [],
+    }
+    total = len(publication_ids)
+
+    for index, publication_id in enumerate(publication_ids, start=1):
+        self.log_progress(
+            message=f"Running publication pipeline ({index}/{total})",
+            current=index,
+            total=total,
+            object_type="publication",
+            object_id=str(publication_id),
+            meta={"force_refresh": force_refresh},
+        )
+        try:
+            result = run_publication_pipeline(publication_id, force_refresh=force_refresh)
+        except Exception as exc:  # noqa: BLE001
+            summary["processed"] += 1
+            summary["failed"] += 1
+            summary["errors"].append(f"{publication_id}:{exc}")
+            self.log_error(
+                f"Publication pipeline failed: {exc}",
+                object_type="publication",
+                object_id=str(publication_id),
+                meta={"publication_id": publication_id},
+            )
+            continue
+
+        summary["processed"] += 1
+        summary["warnings"] += len(result.get("warnings") or [])
+        summary["updated_fields"] += len(result.get("updated_fields") or [])
+        summary["linked_users"] += len(result.get("linked_user_ids") or [])
+
+        if result.get("success"):
+            summary["succeeded"] += 1
+            self.log_info(
+                f"Pipeline completed: sources={result.get('sources_processed', 0)}, updated_fields={len(result.get('updated_fields') or [])}",
+                object_type="publication",
+                object_id=str(publication_id),
+                meta={
+                    "source_types": result.get("source_types") or [],
+                    "warnings": result.get("warnings") or [],
+                },
+            )
+        else:
+            summary["failed"] += 1
+            summary["errors"].extend(str(item) for item in (result.get("errors") or []))
+            self.log_warning(
+                "Pipeline finished with warnings/errors",
+                object_type="publication",
+                object_id=str(publication_id),
+                meta={
+                    "warnings": result.get("warnings") or [],
+                    "errors": result.get("errors") or [],
+                },
+            )
+
+    notify_public(
+        "Publication pipeline batch completed",
+        source="publication_pipeline",
+        processed=summary["processed"],
+        succeeded=summary["succeeded"],
+        failed=summary["failed"],
+        warnings=summary["warnings"],
+        force_refresh=force_refresh,
+    )
+    return summary
+
+
+@shared_task(bind=True, base=LoggedTask)
+def backfill_author_normalization_task(self, relink: bool = True) -> dict:
+    self.log_info(
+        "Author normalization backfill started",
+        object_type="author",
+        meta={"relink": relink},
+    )
+
+    author_ids = list(Author.objects.order_by("id").values_list("id", flat=True))
+    if not author_ids:
+        result = {"status": "skipped", "reason": "no_authors", "count": 0}
+        self.log_warning("No authors found for normalization", object_type="author", meta=result)
+        return result
+
+    summary = {
+        "status": "ok",
+        "processed": 0,
+        "normalized": 0,
+        "linked": 0,
+        "review_linked": 0,
+        "updated": 0,
+    }
+    total = len(author_ids)
+
+    for index, author_id in enumerate(author_ids, start=1):
+        author = Author.objects.select_related("user").get(id=author_id)
+        self.log_progress(
+            message=f"Normalizing authors ({index}/{total})",
+            current=index,
+            total=total,
+            object_type="author",
+            object_id=str(author.id),
+            meta={"full_name": author.full_name, "relink": relink},
+        )
+
+        summary["processed"] += 1
+        changed = populate_author_identity(author, save=True)
+        if changed:
+            summary["normalized"] += 1
+            summary["updated"] += 1
+
+        if not relink:
+            continue
+
+        relink_result = relink_author_instance(author, save=True)
+        if relink_result.get("matched_user_id"):
+            summary["linked"] += 1
+            if not relink_result.get("auto_link"):
+                summary["review_linked"] += 1
+        if relink_result.get("updated_fields"):
+            summary["updated"] += 1
+
+    notify_public(
+        "Author normalization backfill completed",
+        source="author_linking",
+        processed=summary["processed"],
+        normalized=summary["normalized"],
+        linked=summary["linked"],
+        review_linked=summary["review_linked"],
+        relink=relink,
+    )
+    return summary
+
+
+@shared_task(bind=True, base=LoggedTask)
+def relink_authors_to_users_task(self) -> dict:
+    self.log_info("Author relinking started", object_type="author")
+
+    author_ids = list(Author.objects.order_by("id").values_list("id", flat=True))
+    if not author_ids:
+        result = {"status": "skipped", "reason": "no_authors", "count": 0}
+        self.log_warning("No authors found for relinking", object_type="author", meta=result)
+        return result
+
+    summary = {
+        "status": "ok",
+        "processed": 0,
+        "linked": 0,
+        "review_linked": 0,
+        "updated": 0,
+    }
+    total = len(author_ids)
+
+    for index, author_id in enumerate(author_ids, start=1):
+        author = Author.objects.select_related("user").get(id=author_id)
+        self.log_progress(
+            message=f"Relinking authors to users ({index}/{total})",
+            current=index,
+            total=total,
+            object_type="author",
+            object_id=str(author.id),
+            meta={"full_name": author.full_name},
+        )
+
+        result = relink_author_instance(author, save=True)
+        summary["processed"] += 1
+        if result.get("updated_fields"):
+            summary["updated"] += 1
+        if result.get("matched_user_id"):
+            summary["linked"] += 1
+            if not result.get("auto_link"):
+                summary["review_linked"] += 1
+
+    notify_public(
+        "Author relinking completed",
+        source="author_linking",
+        processed=summary["processed"],
+        linked=summary["linked"],
+        review_linked=summary["review_linked"],
+    )
+    return summary
 
 
 @shared_task(bind=True, base=LoggedTask)

@@ -111,3 +111,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username}"
+    
+    def full_name(self):
+        return f"{self.last_name} {self.first_name} {self.father_name}"

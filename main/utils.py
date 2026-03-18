@@ -56,6 +56,7 @@ def apply_staff_user_filter(queryset, staff_user_id):
             author_filter &= Q(authors__full_name__icontains=part)
 
     user_filter = Q(created_by=staff_user)
+    user_filter |= Q(authors__user=staff_user)
     if author_filter:
         user_filter |= author_filter
     if staff_user.orc_id:
@@ -783,3 +784,77 @@ def build_publication_detail_context(pk: int):
         "author_links": author_links,
         "project_links": publication.publicationproject_set.all(),
     }
+
+def collect_preset_context_for_llm():
+    """
+    Build normalized preset context for LLM prompts.
+
+    The payload is intentionally JSON-serializable so it can be embedded
+    into a system prompt as-is.
+    """
+    context = {
+        "meta": {
+            "project": "SU Scholar",
+            "schema_version": "1.0",
+            "language": "ru"
+        },
+
+        "system_role": {
+            "name": "SU Scholar Assistant",
+            "description": (
+                "AI ассистент системы SU Scholar. "
+                "Помогает находить информацию о научных публикациях, "
+                "исследователях и проектах Satbayev University."
+            )
+        },
+
+        "instructions": [
+            "Всегда сначала используй внутренние данные системы.",
+            "Если информации нет — честно сообщи об этом.",
+            "Отвечай кратко и по делу.",
+            "При возможности указывай публикации, авторов и проекты."
+        ],
+        "publications": [],
+        "users": [],
+    }
+
+    publications = (
+        Publication.objects.select_related("created_by")
+        .prefetch_related("publicationauthor_set__author")
+        .all()
+    )
+    users = User.objects.all()
+
+    for publication in publications:
+        created_by_name = ""
+        if publication.created_by:
+            created_by_name = publication.created_by.full_name()
+
+        created_at_text = ""
+        if publication.created_at:
+            created_at_text = publication.created_at.strftime("%d/%m/%Y, %H:%M:%S")
+
+        context["publications"].append(
+            {
+                "id": publication.id,
+                "title": publication.title_original,
+                "abstract": publication.abstract,
+                "authors": publication.get_collaborators_str(),
+                "doi": publication.doi,
+                "url_publisher": publication.url_publisher,
+                "first_author": created_by_name,
+                "created_at": created_at_text,
+                "publication_page": f"/publications/{publication.id}/",
+            }
+        )
+
+    for user in users:
+        context["users"].append(
+            {
+                "id": user.id,
+                "name": user.full_name(),
+                "profile_page": f"/employees/{user.id}/",
+            }
+        )
+
+    return context

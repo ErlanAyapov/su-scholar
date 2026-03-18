@@ -11,11 +11,14 @@ from account.tasks import enqueue_satbayev_enrichment, enrich_user_profile_from_
 from core.models import CeleryTaskLog
 from core.services.celery_task_channels import serialize_task_log
 from main.tasks import (
+    backfill_author_normalization_task,
     enrich_publications_with_abstracts_task,
     import_publications_for_all_users_task,
     import_publications_from_google_scholar_for_all_users_task,
     import_publications_from_google_scholar_task,
     import_user_publications_task,
+    relink_authors_to_users_task,
+    run_publication_pipeline_batch_task,
 )
 
 
@@ -178,6 +181,30 @@ class UserAdmin(BaseUserAdmin):
             return {
                 "level": messages.SUCCESS,
                 "message": f"Дополнить данные доступных работ (кол-во) поставлено в очередь. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "run_publication_pipeline_batch":
+            task = run_publication_pipeline_batch_task.delay(limit=limit, force_refresh=force)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Publication pipeline queued. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "backfill_author_normalization":
+            task = backfill_author_normalization_task.delay(relink=True)
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Author normalization backfill queued. Task ID: {task.id}",
+                "task_id": task.id,
+            }
+
+        if operation == "relink_authors_to_users":
+            task = relink_authors_to_users_task.delay()
+            return {
+                "level": messages.SUCCESS,
+                "message": f"Author-to-user relinking queued. Task ID: {task.id}",
                 "task_id": task.id,
             }
 

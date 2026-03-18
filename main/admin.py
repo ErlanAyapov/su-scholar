@@ -1,4 +1,4 @@
-import re
+﻿import re
 
 from django.contrib import admin, messages
 
@@ -191,9 +191,9 @@ class VenueAdmin(admin.ModelAdmin):
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ("id", "full_name", "orcid", "is_department_staff")
+    list_display = ("id", "full_name", "user", "orcid", "is_department_staff")
     list_filter = ("is_department_staff",)
-    search_fields = ("full_name", "orcid")
+    search_fields = ("full_name", "name_normalized", "name_translit", "name_initials", "orcid", "user__username")
 
 
 @admin.register(PublicationAuthor)
@@ -244,3 +244,4 @@ class RepositoryLinkAdmin(admin.ModelAdmin):
 
 admin.site.register(NewsItem)
 admin.site.register(NewsMedia)
+

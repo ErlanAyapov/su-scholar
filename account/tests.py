@@ -34,6 +34,9 @@ class BulkOperationsAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Массовые операции")
         self.assertContains(response, "Live-логи")
+        self.assertContains(response, "Publication Pipeline")
+        self.assertContains(response, "Author Normalization")
+        self.assertContains(response, "Relink Authors to Users")
 
     def test_changelist_contains_bulk_operations_button(self):
         response = self.client.get(self.changelist_url)
@@ -72,6 +75,55 @@ class BulkOperationsAdminTests(TestCase):
         self.assertEqual(payload["task_id"], "task-abstracts-1")
         self.assertTrue(payload["ok"])
         mock_delay.assert_called_once_with(limit=25, force=True)
+
+
+    @patch("account.admin.run_publication_pipeline_batch_task.delay")
+    def test_bulk_operations_ajax_queues_publication_pipeline_batch(self, mock_delay):
+        mock_delay.return_value = SimpleNamespace(id="task-pipeline-1")
+
+        response = self.client.post(
+            self.url,
+            {"operation": "run_publication_pipeline_batch", "limit": "30", "force": "1"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["task_id"], "task-pipeline-1")
+        self.assertTrue(payload["ok"])
+        mock_delay.assert_called_once_with(limit=30, force_refresh=True)
+
+    @patch("account.admin.backfill_author_normalization_task.delay")
+    def test_bulk_operations_ajax_queues_author_normalization_backfill(self, mock_delay):
+        mock_delay.return_value = SimpleNamespace(id="task-authors-1")
+
+        response = self.client.post(
+            self.url,
+            {"operation": "backfill_author_normalization"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["task_id"], "task-authors-1")
+        self.assertTrue(payload["ok"])
+        mock_delay.assert_called_once_with(relink=True)
+
+    @patch("account.admin.relink_authors_to_users_task.delay")
+    def test_bulk_operations_ajax_queues_author_relink(self, mock_delay):
+        mock_delay.return_value = SimpleNamespace(id="task-relink-1")
+
+        response = self.client.post(
+            self.url,
+            {"operation": "relink_authors_to_users"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["task_id"], "task-relink-1")
+        self.assertTrue(payload["ok"])
+        mock_delay.assert_called_once_with()
 
 
 class RegistrationActivationFlowTests(TestCase):

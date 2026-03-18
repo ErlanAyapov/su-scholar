@@ -44,7 +44,9 @@ ACCOUNT_NAV_URLS = {
     "login",
     "register",
 }
-
+LLM_NAV_URLS = {
+    "llm_page",
+}
 
 def layout_navigation(request):
     resolver_match = getattr(request, "resolver_match", None)
@@ -60,6 +62,7 @@ def layout_navigation(request):
         "publications": url_name in PUBLICATIONS_NAV_URLS or publications_search_active,
         "analytics": url_name in ANALYTICS_NAV_URLS,
         "account": url_name in ACCOUNT_NAV_URLS,
+        "llm_page": url_name in LLM_NAV_URLS,
     }
 
     return {

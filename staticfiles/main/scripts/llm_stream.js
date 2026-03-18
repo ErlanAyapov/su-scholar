@@ -32,6 +32,212 @@
     ? initialTextElement.textContent
     : "Задавайте любые вопросы! Я помогу...").trim();
 
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderInlineMarkdown(value) {
+    return escapeHtml(value).replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+  }
+
+  function isPipeRow(line) {
+    const raw = String(line || "").trim();
+    if (!raw || !raw.includes("|")) {
+      return false;
+    }
+    const normalized = raw.replace(/^\|/, "").replace(/\|$/, "");
+    return normalized.includes("|");
+  }
+
+  function isTableSeparatorRow(line) {
+    const raw = String(line || "").trim();
+    if (!raw) {
+      return false;
+    }
+    const normalized = raw.replace(/^\|/, "").replace(/\|$/, "");
+    const columns = normalized.split("|").map((item) => item.trim());
+    if (!columns.length) {
+      return false;
+    }
+    return columns.every((item) => /^:?-{3,}:?$/.test(item));
+  }
+
+  function splitTableRow(line) {
+    const normalized = String(line || "")
+      .trim()
+      .replace(/^\|/, "")
+      .replace(/\|$/, "");
+    return normalized.split("|").map((item) => item.trim());
+  }
+
+  function parseHeadingLine(line) {
+    const match = String(line || "").match(/^\s{0,3}(#{1,6})\s+(.+)$/);
+    if (!match) {
+      return null;
+    }
+    return {
+      level: Math.min(match[1].length, 6),
+      text: match[2].trim(),
+    };
+  }
+
+  function parseUnorderedListItem(line) {
+    const match = String(line || "").match(/^\s*[-*]\s+(.+)$/);
+    if (!match) {
+      return null;
+    }
+    return match[1].trim();
+  }
+
+  function parseOrderedListItem(line) {
+    const match = String(line || "").match(/^\s*\d+\.\s+(.+)$/);
+    if (!match) {
+      return null;
+    }
+    return match[1].trim();
+  }
+
+  function isHorizontalRuleLine(line) {
+    return /^\s*([-*_])(?:\s*\1){2,}\s*$/.test(String(line || ""));
+  }
+
+  function renderTable(tableLines) {
+    const headerCells = splitTableRow(tableLines[0]);
+    if (!headerCells.length) {
+      return `<p>${renderInlineMarkdown(tableLines.join("\n")).replace(/\n/g, "<br>")}</p>`;
+    }
+
+    const columnCount = headerCells.length;
+    const rows = tableLines.slice(2).map(splitTableRow);
+    let html = '<div class="chat-md-table"><table><thead><tr>';
+    headerCells.forEach((cell) => {
+      html += `<th>${renderInlineMarkdown(cell)}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    rows.forEach((cells) => {
+      const normalized = cells.slice(0, columnCount);
+      while (normalized.length < columnCount) {
+        normalized.push("");
+      }
+      html += "<tr>";
+      normalized.forEach((cell) => {
+        html += `<td>${renderInlineMarkdown(cell)}</td>`;
+      });
+      html += "</tr>";
+    });
+
+    html += "</tbody></table></div>";
+    return html;
+  }
+
+  function renderMessageHtml(text) {
+    const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+    const parts = [];
+    let index = 0;
+
+    while (index < lines.length) {
+      if (!String(lines[index] || "").trim()) {
+        index += 1;
+        continue;
+      }
+
+      if (isHorizontalRuleLine(lines[index])) {
+        parts.push('<hr class="chat-md-hr">');
+        index += 1;
+        continue;
+      }
+
+      if (isPipeRow(lines[index]) && index + 1 < lines.length && isTableSeparatorRow(lines[index + 1])) {
+        const tableLines = [lines[index], lines[index + 1]];
+        index += 2;
+        while (index < lines.length && lines[index].trim() && isPipeRow(lines[index])) {
+          tableLines.push(lines[index]);
+          index += 1;
+        }
+        parts.push(renderTable(tableLines));
+        continue;
+      }
+
+      const heading = parseHeadingLine(lines[index]);
+      if (heading) {
+        parts.push(
+          `<h${heading.level} class="chat-md-heading chat-md-h${heading.level}">${renderInlineMarkdown(heading.text)}</h${heading.level}>`
+        );
+        index += 1;
+        continue;
+      }
+
+      const firstUnorderedItem = parseUnorderedListItem(lines[index]);
+      if (firstUnorderedItem !== null) {
+        const items = [];
+        while (index < lines.length) {
+          const item = parseUnorderedListItem(lines[index]);
+          if (item === null) {
+            break;
+          }
+          items.push(item);
+          index += 1;
+        }
+        const listHtml = items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("");
+        parts.push(`<ul class="chat-md-list">${listHtml}</ul>`);
+        continue;
+      }
+
+      const firstOrderedItem = parseOrderedListItem(lines[index]);
+      if (firstOrderedItem !== null) {
+        const items = [];
+        while (index < lines.length) {
+          const item = parseOrderedListItem(lines[index]);
+          if (item === null) {
+            break;
+          }
+          items.push(item);
+          index += 1;
+        }
+        const listHtml = items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("");
+        parts.push(`<ol class="chat-md-list chat-md-list-ordered">${listHtml}</ol>`);
+        continue;
+      }
+
+      const textLines = [];
+      while (index < lines.length) {
+        if (!String(lines[index] || "").trim()) {
+          break;
+        }
+        if (isHorizontalRuleLine(lines[index])) {
+          break;
+        }
+        if (isPipeRow(lines[index]) && index + 1 < lines.length && isTableSeparatorRow(lines[index + 1])) {
+          break;
+        }
+        if (parseHeadingLine(lines[index])) {
+          break;
+        }
+        if (parseUnorderedListItem(lines[index]) !== null || parseOrderedListItem(lines[index]) !== null) {
+          break;
+        }
+        textLines.push(lines[index]);
+        index += 1;
+      }
+      const paragraph = textLines.map((line) => renderInlineMarkdown(line)).join("<br>");
+      if (paragraph) {
+        parts.push(`<p>${paragraph}</p>`);
+      }
+    }
+
+    return parts.join("") || "<p></p>";
+  }
+
+  function setMessageContent(node, text) {
+    node.innerHTML = renderMessageHtml(text);
+  }
+
   function sanitizeMessage(item) {
     if (!item || typeof item !== "object") return null;
     const role = String(item.role || "").trim().toLowerCase();
@@ -121,7 +327,7 @@
 
     const textNode = document.createElement("div");
     textNode.className = "llm-message-text";
-    textNode.textContent = text || "";
+    setMessageContent(textNode, text || "");
 
     wrapper.appendChild(roleNode);
     wrapper.appendChild(textNode);
@@ -164,7 +370,7 @@
     if (!streamingAssistantNode) {
       beginAssistantStream();
     }
-    streamingAssistantNode.textContent = streamingAssistantText;
+    setMessageContent(streamingAssistantNode, streamingAssistantText);
     scrollConversation();
   }
 
