@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -7,10 +8,12 @@ from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from openai import APITimeoutError
 
 from llm.consumers import LlmChatConsumer
-from llm.models import ChatSession, Message
+from llm.models import ChatSession, ChatShareImport, ChatShareLink, Message
+from main.models import Language, Publication, PublicationType, Venue
 
 User = get_user_model()
 
@@ -109,6 +112,15 @@ class LlmSessionConsumerTests(TestCase):
             username="llm-user",
             password="testpass123",
         )
+
+    def _create_chat_with_messages(self, user, *, title="Shared chat sample") -> ChatSession:
+        session = ChatSession.objects.create(
+            user=user,
+            title=title,
+        )
+        Message.objects.create(chat=session, body="User question", sended_from=Message.Sender.USER)
+        Message.objects.create(chat=session, body="Assistant answer", sended_from=Message.Sender.BOT)
+        return session
 
     def test_session_create_and_open(self):
         async def scenario():
@@ -506,9 +518,10 @@ class LlmSessionConsumerTests(TestCase):
     def test_select_agent_scripts_by_prompt(self):
         scripts = LlmChatConsumer._select_agent_scripts("Какие проекты есть на тему IoT")
 
-        self.assertIn("dataset_stats", scripts)
-        self.assertIn("search_projects", scripts)
-        self.assertIn("request_emulator", scripts)
+        self.assertEqual(
+            scripts,
+            ["dataset_stats", "search_publications", "search_projects", "request_emulator"],
+        )
 
     def test_select_agent_scripts_for_identity_prompt(self):
         scripts = LlmChatConsumer._select_agent_scripts("Ты кто?")
@@ -525,7 +538,72 @@ class LlmSessionConsumerTests(TestCase):
 
         self.assertEqual(route["intent"], "projects")
         self.assertIn("search_projects", route["scripts"])
+        self.assertIn("search_publications", route["scripts"])
         self.assertTrue(route["fallback_publications_on_empty_projects"])
+
+    def test_resolve_agent_prompt_uses_previous_user_query_for_short_follow_up(self):
+        messages = [
+            {"role": "user", "content": "Какие исследователи есть в области iot?"},
+            {"role": "assistant", "content": "Вот список..."},
+            {"role": "user", "content": "2"},
+        ]
+
+        resolved = LlmChatConsumer._resolve_agent_prompt("2", messages)
+
+        self.assertIn("iot", resolved.casefold())
+        self.assertIn("Follow-up: 2", resolved)
+
+    def test_resolve_agent_prompt_keeps_regular_prompt_unchanged(self):
+        prompt = "Покажи публикации по blockchain за 2025"
+        messages = [
+            {"role": "user", "content": "Привет"},
+            {"role": "assistant", "content": "Здравствуйте"},
+            {"role": "user", "content": prompt},
+        ]
+
+        resolved = LlmChatConsumer._resolve_agent_prompt(prompt, messages)
+
+        self.assertEqual(resolved, prompt)
+
+    def test_core_system_message_enforces_response_template(self):
+        message = LlmChatConsumer._build_core_system_message()
+        content = message.get("content", "")
+
+        self.assertIn("Response format is mandatory.", content)
+        self.assertIn("Always return exactly 4 short sections", content)
+        self.assertIn("Do not use literal headings like", content)
+        self.assertIn("Publication records first", content)
+
+    def test_script_search_publications_returns_latest_on_no_match(self):
+        pub_type = PublicationType.objects.create(name="Journal article")
+        lang = Language.objects.create(code="en", name="English")
+        venue = Venue.objects.create(name="Test Journal")
+        older = Publication.objects.create(
+            record_id="pub-fallback-1",
+            pub_type=pub_type,
+            title_original="Applied geochemistry baseline",
+            language=lang,
+            year=2022,
+            venue=venue,
+            abstract="Baseline study for geochemistry.",
+        )
+        newer = Publication.objects.create(
+            record_id="pub-fallback-2",
+            pub_type=pub_type,
+            title_original="AI-assisted ore body prediction",
+            language=lang,
+            year=2025,
+            venue=venue,
+            abstract="Abstract with ML approach for ore body prediction.",
+        )
+
+        consumer = LlmChatConsumer()
+        result = async_to_sync(consumer._script_search_publications)(["term-without-match"], 5)
+
+        self.assertGreaterEqual(len(result), 2)
+        self.assertEqual(result[0]["id"], newer.id)
+        self.assertEqual(result[1]["id"], older.id)
+        self.assertIn("abstract", result[0])
 
     def test_compact_preset_context_limits_payload(self):
         preset = {
@@ -593,3 +671,83 @@ class LlmSessionConsumerTests(TestCase):
         self.assertLessEqual(len(raw_json), 2500)
         self.assertLessEqual(fitted["stats"]["publications_in_prompt"], 200)
         self.assertLessEqual(fitted["stats"]["users_in_prompt"], 200)
+
+    def test_share_create_returns_referral_link_for_owned_session(self):
+        session = self._create_chat_with_messages(self.user)
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("llm_share_create"),
+            data=json.dumps({"session_id": session.id}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("/llm/share/", payload.get("share_url", ""))
+        self.assertTrue(ChatShareLink.objects.filter(session=session, created_by=self.user).exists())
+
+    def test_share_create_blocks_foreign_session(self):
+        owner = User.objects.create_user(username="owner", password="pass123")
+        foreign_session = self._create_chat_with_messages(owner)
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("llm_share_create"),
+            data=json.dumps({"session_id": foreign_session.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_shared_chat_is_readonly_for_guests(self):
+        session = self._create_chat_with_messages(self.user)
+        share_link = ChatShareLink.objects.create(
+            session=session,
+            created_by=self.user,
+        )
+
+        response = self.client.get(reverse("llm_shared_chat", kwargs={"token": share_link.token}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Read-only mode")
+        self.assertContains(response, "User question")
+        self.assertContains(response, "Assistant answer")
+
+    def test_shared_chat_imports_once_for_authenticated_viewer(self):
+        session = self._create_chat_with_messages(self.user)
+        share_link = ChatShareLink.objects.create(
+            session=session,
+            created_by=self.user,
+        )
+        viewer = User.objects.create_user(username="viewer", password="viewer-pass")
+        self.client.force_login(viewer)
+
+        first = self.client.get(reverse("llm_shared_chat", kwargs={"token": share_link.token}))
+        self.assertEqual(first.status_code, 302)
+
+        import_row = ChatShareImport.objects.get(share_link=share_link, user=viewer)
+        self.assertIn(f"/llm/?session={import_row.session_id}", first.headers.get("Location", ""))
+        self.assertEqual(import_row.session.user_id, viewer.id)
+        self.assertEqual(import_row.session.messages.count(), session.messages.count())
+
+        second = self.client.get(reverse("llm_shared_chat", kwargs={"token": share_link.token}))
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(ChatShareImport.objects.filter(share_link=share_link, user=viewer).count(), 1)
+
+    def test_shared_chat_owner_redirects_without_copy(self):
+        session = self._create_chat_with_messages(self.user)
+        share_link = ChatShareLink.objects.create(
+            session=session,
+            created_by=self.user,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("llm_shared_chat", kwargs={"token": share_link.token}))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(f"/llm/?session={session.id}", response.headers.get("Location", ""))
+        self.assertFalse(ChatShareImport.objects.filter(share_link=share_link, user=self.user).exists())
+
+    def test_shared_chat_invalid_token_returns_404(self):
+        response = self.client.get(reverse("llm_shared_chat", kwargs={"token": "invalid-token-value"}))
+        self.assertEqual(response.status_code, 404)

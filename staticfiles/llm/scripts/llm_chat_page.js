@@ -3,6 +3,7 @@
     return;
   }
 
+  const chatPageElement = document.getElementById("llmChatPage");
   const historyElement = document.getElementById("llmChatHistory");
   const messagesElement = document.getElementById("llmChatMessages");
   const formElement = document.getElementById("llmChatForm");
@@ -11,6 +12,12 @@
   const newChatButton = document.getElementById("llmNewChatButton");
   const stopButton = document.getElementById("llmStopButton");
   const deleteChatButton = document.getElementById("llmDeleteChatButton");
+  const shareButton = document.getElementById("llmShareChatButton");
+  const shareStatusElement = document.getElementById("llmShareStatus");
+  const shareDialogElement = document.getElementById("llmShareDialog");
+  const shareDialogLinkInput = document.getElementById("llmShareDialogLink");
+  const shareDialogOpenButton = document.getElementById("llmShareDialogOpenButton");
+  const shareDialogCopyButton = document.getElementById("llmShareDialogCopyButton");
 
   if (
     !historyElement ||
@@ -27,6 +34,9 @@
 
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   const wsUrl = `${protocol}://${window.location.host}/ws/llm/`;
+  const shareCreateUrl = (chatPageElement && chatPageElement.dataset.shareCreateUrl) || "/llm/share/create/";
+  const initialSessionFromUrlRaw = Number(new URLSearchParams(window.location.search).get("session")) || null;
+  const initialSessionId = initialSessionFromUrlRaw && initialSessionFromUrlRaw > 0 ? initialSessionFromUrlRaw : null;
   const maxReconnectAttempts = 8;
   const reconnectBaseMs = 700;
   const defaultAssistantText = "Start a new conversation.";
@@ -38,11 +48,12 @@
   let isChatEnabled = true;
   let hasLoadedSessions = false;
   let sessions = [];
-  let activeSessionId = null;
+  let activeSessionId = initialSessionId;
   let promptAfterOpen = null;
   let pendingActions = [];
   let streamingTextNode = null;
   let streamingText = "";
+  let latestShareUrl = "";
 
   function escapeHtml(value) {
     return String(value || "")
@@ -53,8 +64,108 @@
       .replace(/'/g, "&#39;");
   }
 
+  const ALLOWED_INLINE_TAGS = new Set(["a", "strong", "em", "b", "i", "code", "br"]);
+  const BLOCKED_INLINE_TAGS = new Set(["script", "style", "iframe", "object", "embed", "link", "meta", "base"]);
+  const ALLOWED_INLINE_ATTRS = {
+    a: new Set(["href", "title"]),
+    strong: new Set([]),
+    em: new Set([]),
+    b: new Set([]),
+    i: new Set([]),
+    code: new Set([]),
+    br: new Set([]),
+  };
+
+  function applyInlineFormatting(value) {
+    let text = String(value || "");
+    text = text.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+    return text;
+  }
+
+  function isSafeHref(href) {
+    const normalized = String(href || "").trim();
+    if (!normalized) {
+      return false;
+    }
+    if (/^https?:\/\//i.test(normalized)) {
+      return true;
+    }
+    return normalized.startsWith("/");
+  }
+
+  function unwrapNode(node) {
+    const parent = node && node.parentNode;
+    if (!parent) {
+      return;
+    }
+    while (node.firstChild) {
+      parent.insertBefore(node.firstChild, node);
+    }
+    parent.removeChild(node);
+  }
+
+  function sanitizeInlineNode(rootNode) {
+    const children = Array.from(rootNode.childNodes || []);
+    children.forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        return;
+      }
+
+      if (child.nodeType !== Node.ELEMENT_NODE) {
+        child.parentNode?.removeChild(child);
+        return;
+      }
+
+      const tagName = String(child.tagName || "").toLowerCase();
+      if (BLOCKED_INLINE_TAGS.has(tagName)) {
+        child.parentNode?.removeChild(child);
+        return;
+      }
+
+      if (!ALLOWED_INLINE_TAGS.has(tagName)) {
+        unwrapNode(child);
+        return;
+      }
+
+      const allowedAttrs = ALLOWED_INLINE_ATTRS[tagName] || new Set();
+      Array.from(child.attributes || []).forEach((attr) => {
+        const attrName = String(attr.name || "").toLowerCase();
+        if (attrName.startsWith("on") || !allowedAttrs.has(attrName)) {
+          child.removeAttribute(attr.name);
+        }
+      });
+
+      if (tagName === "a") {
+        const href = String(child.getAttribute("href") || "").trim();
+        if (!isSafeHref(href)) {
+          unwrapNode(child);
+          return;
+        }
+        child.setAttribute("href", href);
+        if (/^https?:\/\//i.test(href)) {
+          child.setAttribute("target", "_blank");
+          child.setAttribute("rel", "noopener noreferrer");
+        } else {
+          child.removeAttribute("target");
+          child.removeAttribute("rel");
+        }
+      }
+
+      sanitizeInlineNode(child);
+    });
+  }
+
+  function sanitizeInlineHtml(value) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = String(value || "");
+    sanitizeInlineNode(wrapper);
+    return wrapper.innerHTML;
+  }
+
   function renderInlineMarkdown(value) {
-    return escapeHtml(value).replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+    const source = String(value || "");
+    const withMarkdown = applyInlineFormatting(source);
+    return sanitizeInlineHtml(withMarkdown);
   }
 
   function isPipeRow(line) {
@@ -250,6 +361,176 @@
     node.innerHTML = renderMessageHtml(text);
   }
 
+  function normalizeFollowUpLine(line) {
+    let value = String(line || "").trim();
+    value = value.replace(/^[-*•]\s+/, "");
+    value = value.replace(/^\d+[.)]\s+/, "");
+    return value.trim();
+  }
+
+  function isQuestionLikeLine(line) {
+    const normalized = normalizeFollowUpLine(line);
+    if (!normalized || normalized.length < 6 || normalized.length > 260) {
+      return false;
+    }
+    return /[?？]$/.test(normalized);
+  }
+
+  function isFollowUpHeadingLine(line) {
+    const normalized = String(line || "").trim().toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+    return (
+      normalized.includes("следующие вопросы") ||
+      normalized.includes("вопросы") ||
+      normalized.includes("что дальше") ||
+      normalized.includes("дальше")
+    );
+  }
+
+  function splitAssistantFollowUps(text) {
+    const rawLines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+    if (!rawLines.length) {
+      return { body: String(text || ""), followUps: [] };
+    }
+
+    let index = rawLines.length - 1;
+    while (index >= 0 && !String(rawLines[index] || "").trim()) {
+      index -= 1;
+    }
+    if (index < 0) {
+      return { body: "", followUps: [] };
+    }
+
+    const collected = [];
+    let firstQuestionIndex = -1;
+    while (index >= 0) {
+      const line = String(rawLines[index] || "");
+      if (isQuestionLikeLine(line)) {
+        collected.unshift(normalizeFollowUpLine(line));
+        firstQuestionIndex = index;
+        index -= 1;
+        continue;
+      }
+      if (!collected.length) {
+        index -= 1;
+        continue;
+      }
+      break;
+    }
+
+    if (collected.length < 2 || firstQuestionIndex < 0) {
+      return { body: String(text || ""), followUps: [] };
+    }
+
+    let bodyEndIndex = firstQuestionIndex;
+    let headingIndex = index;
+    while (headingIndex >= 0) {
+      const line = String(rawLines[headingIndex] || "").trim();
+      if (!line) {
+        bodyEndIndex = headingIndex;
+        headingIndex -= 1;
+        continue;
+      }
+      if (isFollowUpHeadingLine(line)) {
+        bodyEndIndex = headingIndex;
+      }
+      break;
+    }
+
+    const uniqueFollowUps = [];
+    for (const item of collected) {
+      if (!item) {
+        continue;
+      }
+      if (!uniqueFollowUps.includes(item)) {
+        uniqueFollowUps.push(item);
+      }
+      if (uniqueFollowUps.length >= 4) {
+        break;
+      }
+    }
+
+    const bodyText = rawLines.slice(0, bodyEndIndex).join("\n").trim();
+    return {
+      body: bodyText || String(text || "").trim(),
+      followUps: uniqueFollowUps,
+    };
+  }
+
+  function createFollowUpButtonsNode(questions) {
+    if (!Array.isArray(questions) || !questions.length) {
+      return null;
+    }
+
+    const container = document.createElement("div");
+    container.className = "chat-followup-buttons";
+    questions.forEach((question) => {
+      const text = String(question || "").trim();
+      if (!text) {
+        return;
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chat-followup-btn";
+      button.textContent = text;
+      button.addEventListener("click", function onFollowUpClick() {
+        if (!isChatEnabled || isBusy) {
+          return;
+        }
+        inputElement.value = text;
+        submitPrompt(text);
+      });
+      container.appendChild(button);
+    });
+
+    if (!container.childNodes.length) {
+      return null;
+    }
+    return container;
+  }
+
+  function setAssistantBubbleContent(textNode, text) {
+    const bubble = textNode && textNode.closest ? textNode.closest(".message-bubble") : null;
+    const parsed = splitAssistantFollowUps(text);
+    const bodyText = parsed.body || "";
+    const followUps = parsed.followUps || [];
+
+    setMessageContent(textNode, bodyText);
+    if (!bubble) {
+      return;
+    }
+
+    const oldFollowUps = bubble.querySelectorAll(".chat-followup-buttons");
+    oldFollowUps.forEach((item) => item.remove());
+
+    if (!followUps.length) {
+      return;
+    }
+
+    const followUpsNode = createFollowUpButtonsNode(followUps);
+    if (!followUpsNode) {
+      return;
+    }
+
+    const meta = bubble.querySelector(".message-meta");
+    if (meta) {
+      bubble.insertBefore(followUpsNode, meta);
+      return;
+    }
+    bubble.appendChild(followUpsNode);
+  }
+
+  function setBubbleContentByRole(textNode, text) {
+    const row = textNode && textNode.closest ? textNode.closest(".message-row") : null;
+    if (row && row.classList.contains("assistant")) {
+      setAssistantBubbleContent(textNode, text);
+      return;
+    }
+    setMessageContent(textNode, text);
+  }
+
   function sessionExists(sessionId) {
     return sessions.some((item) => item.id === sessionId);
   }
@@ -266,6 +547,141 @@
     });
   }
 
+  function getCookie(name) {
+    const cookieValue = document.cookie
+      .split(";")
+      .map((item) => item.trim())
+      .find((item) => item.startsWith(`${name}=`));
+    if (!cookieValue) {
+      return "";
+    }
+    return decodeURIComponent(cookieValue.split("=").slice(1).join("="));
+  }
+
+  function setShareStatus(text, isError) {
+    if (!shareStatusElement) {
+      return;
+    }
+    shareStatusElement.textContent = String(text || "");
+    shareStatusElement.classList.remove("is-success", "is-error");
+    if (!text) {
+      return;
+    }
+    shareStatusElement.classList.add(isError ? "is-error" : "is-success");
+  }
+
+  function openShareDialog(shareUrl) {
+    latestShareUrl = String(shareUrl || "").trim();
+    if (!latestShareUrl) {
+      return;
+    }
+    if (shareDialogLinkInput) {
+      shareDialogLinkInput.value = latestShareUrl;
+      shareDialogLinkInput.focus();
+      shareDialogLinkInput.select();
+    }
+    if (shareDialogElement && typeof shareDialogElement.showModal === "function") {
+      shareDialogElement.showModal();
+      return;
+    }
+    window.prompt("Share link", latestShareUrl);
+  }
+
+  async function tryNativeShare(shareUrl) {
+    if (!navigator.share || !window.isSecureContext) {
+      return false;
+    }
+    try {
+      await navigator.share({
+        title: "Satbayev AI chat",
+        text: "Shared chat from Satbayev AI",
+        url: shareUrl,
+      });
+      return true;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        return true;
+      }
+      return false;
+    }
+  }
+
+  async function copyTextToClipboard(text) {
+    if (!text) {
+      return false;
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (_error) {
+      // Fallback below.
+    }
+    const helper = document.createElement("textarea");
+    helper.value = text;
+    helper.setAttribute("readonly", "readonly");
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    document.body.appendChild(helper);
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (_error) {
+      copied = false;
+    }
+    document.body.removeChild(helper);
+    return copied;
+  }
+
+  async function createShareLink() {
+    if (!isChatEnabled || !activeSessionId || isBusy) {
+      return;
+    }
+
+    setShareStatus("Preparing share link...", false);
+    try {
+      const response = await fetch(shareCreateUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({ session_id: activeSessionId }),
+      });
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = {};
+      }
+
+      if (!response.ok) {
+        const errorText = String(payload.detail || "Failed to create share link.");
+        setShareStatus(errorText, true);
+        return;
+      }
+
+      const shareUrl = String(payload.share_url || "").trim();
+      if (!shareUrl) {
+        setShareStatus("Share URL is empty.", true);
+        return;
+      }
+
+      const nativeShared = await tryNativeShare(shareUrl);
+      if (!nativeShared) {
+        openShareDialog(shareUrl);
+      }
+      setShareStatus("", false);
+    } catch (_error) {
+      setShareStatus("Network error while creating share link.", true);
+    }
+  }
+
   function scrollMessagesToBottom() {
     messagesElement.scrollTop = messagesElement.scrollHeight;
   }
@@ -277,7 +693,12 @@
     sendButton.disabled = disabled;
     newChatButton.disabled = !isChatEnabled || isBusy;
     stopButton.disabled = !isChatEnabled || !isBusy;
+    sendButton.classList.toggle("d-none", isBusy);
+    stopButton.classList.toggle("d-none", !isBusy);
     deleteChatButton.disabled = !isChatEnabled || isBusy || !activeSessionId;
+    if (shareButton) {
+      shareButton.disabled = !isChatEnabled || isBusy || !activeSessionId;
+    }
   }
 
   function setChatEnabled(enabled) {
@@ -298,7 +719,6 @@
 
     const textNode = document.createElement("div");
     textNode.className = "message-content";
-    setMessageContent(textNode, text || "");
 
     const meta = document.createElement("div");
     meta.className = "message-meta";
@@ -308,6 +728,8 @@
     bubble.appendChild(meta);
     row.appendChild(bubble);
     messagesElement.appendChild(row);
+
+    setBubbleContentByRole(textNode, text || "");
 
     scrollMessagesToBottom();
     return textNode;
@@ -340,7 +762,7 @@
     if (!streamingTextNode) {
       beginAssistantStream();
     }
-    setMessageContent(streamingTextNode, streamingText);
+    setBubbleContentByRole(streamingTextNode, streamingText);
     scrollMessagesToBottom();
   }
 
@@ -468,6 +890,7 @@
   function openSession(sessionId) {
     if (!sessionId) return;
     activeSessionId = sessionId;
+    setShareStatus("", false);
     renderSessionList();
     sendAction({
       action: "session_open",
@@ -476,6 +899,7 @@
   }
 
   function createSession() {
+    setShareStatus("", false);
     sendAction({
       action: "session_create",
     });
@@ -751,6 +1175,49 @@
   deleteChatButton.addEventListener("click", function onDeleteClick() {
     deleteActiveSession();
   });
+
+  if (shareButton) {
+    shareButton.addEventListener("click", function onShareClick() {
+      createShareLink();
+    });
+  }
+
+  if (shareDialogOpenButton) {
+    shareDialogOpenButton.addEventListener("click", function onDialogOpenClick() {
+      if (!latestShareUrl) {
+        return;
+      }
+      window.open(latestShareUrl, "_blank", "noopener,noreferrer");
+    });
+  }
+
+  if (shareDialogCopyButton) {
+    shareDialogCopyButton.addEventListener("click", async function onDialogCopyClick() {
+      if (!latestShareUrl) {
+        return;
+      }
+      const copied = await copyTextToClipboard(latestShareUrl);
+      if (copied) {
+        setShareStatus("Link copied.", false);
+      } else {
+        setShareStatus("Copy failed. You can copy from the field.", true);
+      }
+    });
+  }
+
+  if (shareDialogElement) {
+    shareDialogElement.addEventListener("click", function onDialogBackdropClick(event) {
+      const rect = shareDialogElement.getBoundingClientRect();
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!inside) {
+        shareDialogElement.close();
+      }
+    });
+  }
 
   renderMessages([]);
   renderSessionList();

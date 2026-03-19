@@ -40,6 +40,37 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
     AGENT_CONTEXT_MARKER = "SU_SCIENCE_AGENT_CONTEXT_JSON"
     AGENT_CONTEXT_MAX_CHARS = 8000
     AGENT_RESULT_LIMIT = 8
+    FOLLOW_UP_NUMERIC_RE = re.compile(r"^\s*\d{1,3}[.)]?\s*$")
+    FOLLOW_UP_SHORT_TOKENS = {
+        "далее",
+        "дальше",
+        "еще",
+        "ещё",
+        "подробнее",
+        "детальнее",
+        "продолжай",
+        "продолжить",
+        "еще раз",
+        "ещё раз",
+        "continue",
+        "more",
+        "next",
+        "again",
+        "ok",
+        "okay",
+    }
+    RESPONSE_FORMAT_RULES = (
+        "Response format is mandatory.\n"
+        "Always return exactly 4 short sections and nothing outside them.\n"
+        "Use natural section titles (not rigid templates).\n"
+        "Do not use literal headings like 'Вопрос пользователя', 'Фактический ответ', 'Вопросы-поддержка'.\n"
+        "Section 1: 1-2 sentences on how you understood the request and what you will answer.\n"
+        "Section 2: the main answer in natural narrative style, grounded in SU Scholar DB facts.\n"
+        "Section 3: concise takeaway and practical recommendation.\n"
+        "Section 4: natural next-step offers as 2-4 short questions tied to the topic.\n"
+        "When referencing routes from DB context, output clickable HTML links in this form: "
+        "<a href=\"/publications/123/\">Open publication</a>."
+    )
     AGENT_SUPPORTED_SCRIPTS = (
         "dataset_stats",
         "search_publications",
@@ -460,7 +491,8 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
             messages = self._prepare_messages(payload.get("messages"), prompt)
 
         messages = self._inject_core_system_message(messages)
-        messages = await self._inject_agent_context(messages, prompt)
+        agent_prompt = self._resolve_agent_prompt(prompt, messages)
+        messages = await self._inject_agent_context(messages, agent_prompt)
         if not messages:
             await self.send_json(
                 {
@@ -824,6 +856,52 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
         return [*messages[:insert_at], agent_message, *messages[insert_at:]]
 
     @classmethod
+    def _looks_like_follow_up_prompt(cls, prompt: str) -> bool:
+        raw_prompt = str(prompt or "").strip()
+        if not raw_prompt:
+            return False
+        if cls.FOLLOW_UP_NUMERIC_RE.match(raw_prompt):
+            return True
+
+        normalized = re.sub(r"\s+", " ", raw_prompt.casefold()).strip(" \t\r\n.,:;!?")
+        if normalized in cls.FOLLOW_UP_SHORT_TOKENS:
+            return True
+
+        words = [word.strip(".,:;!?") for word in normalized.split() if word.strip(".,:;!?")]
+        if words and len(words) <= 3 and all(word in cls.FOLLOW_UP_SHORT_TOKENS for word in words):
+            return True
+        return False
+
+    @classmethod
+    def _resolve_agent_prompt(cls, prompt: str, messages: list[dict[str, str]]) -> str:
+        normalized_prompt = str(prompt or "").strip()
+        if not cls._looks_like_follow_up_prompt(normalized_prompt):
+            return normalized_prompt
+
+        if not isinstance(messages, list) or not messages:
+            return normalized_prompt
+
+        previous_user_query = ""
+        skipped_current_user_message = False
+        for item in reversed(messages):
+            if not isinstance(item, dict):
+                continue
+            role = str(item.get("role") or "").strip().lower()
+            content = str(item.get("content") or "").strip()
+            if role != "user" or not content:
+                continue
+            if not skipped_current_user_message:
+                skipped_current_user_message = True
+                continue
+            previous_user_query = content
+            break
+
+        if not previous_user_query:
+            return normalized_prompt
+
+        return f"{previous_user_query}\nFollow-up: {normalized_prompt}"
+
+    @classmethod
     def _inject_core_system_message(cls, messages: list[dict[str, str]]) -> list[dict[str, str]]:
         if not messages:
             return messages
@@ -850,8 +928,13 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
             "You are SU Scholar Assistant for Satbayev University.\n"
             "Never identify yourself as ChatGPT, OpenAI model, or third-party assistant.\n"
             "Use AGENT context as the primary data source.\n"
+            "Source priority for factual answers: Publication records first (title, abstract, DOI, venue, authors), "
+            "then researchers, then projects and other entities.\n"
+            "Always try to answer from DB records first, and only then add concise general guidance.\n"
+            "If project records are missing, explicitly say so and continue with relevant publications.\n"
             "If records are missing, explicitly say so and do not hallucinate.\n"
-            "Answer in the same language as the user."
+            "Answer in the same language as the user.\n"
+            f"{cls.RESPONSE_FORMAT_RULES}"
         )
         return {
             "role": "system",
@@ -1012,11 +1095,15 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
         if "search_projects" in scripts:
             results["search_projects"] = await self._script_search_projects(terms, self.AGENT_RESULT_LIMIT)
             if route.get("fallback_publications_on_empty_projects") and not results.get("search_projects"):
-                results["project_related_publications"] = await self._script_search_publications(
-                    terms,
-                    self.AGENT_RESULT_LIMIT,
-                )
-                route["fallback_used"] = bool(results["project_related_publications"])
+                fallback_publications = results.get("search_publications")
+                if not isinstance(fallback_publications, list):
+                    fallback_publications = await self._script_search_publications(
+                        terms,
+                        self.AGENT_RESULT_LIMIT,
+                    )
+                    results["search_publications"] = fallback_publications
+                results["project_related_publications"] = fallback_publications
+                route["fallback_used"] = bool(fallback_publications)
         if "request_emulator" in scripts:
             results["request_emulator"] = self._script_request_emulator(normalized_prompt, terms)
 
@@ -1056,7 +1143,7 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
         return {
             "intent": intent,
             "scripts": scripts,
-            "fallback_publications_on_empty_projects": bool(wants_projects and "search_publications" not in scripts),
+            "fallback_publications_on_empty_projects": bool(wants_projects),
             "fallback_used": False,
         }
 
@@ -1092,21 +1179,11 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
         prompt_cf = str(prompt or "").casefold()
         if any(keyword in prompt_cf for keyword in cls.AGENT_META_KEYWORDS):
             return ["dataset_stats", "request_emulator"]
-        scripts = ["dataset_stats"]
-        wants_any = False
-
-        if any(keyword in prompt_cf for keyword in cls.AGENT_PUBLICATION_KEYWORDS):
-            scripts.append("search_publications")
-            wants_any = True
+        scripts = ["dataset_stats", "search_publications"]
         if any(keyword in prompt_cf for keyword in cls.AGENT_RESEARCHER_KEYWORDS):
             scripts.append("search_researchers")
-            wants_any = True
         if any(keyword in prompt_cf for keyword in cls.AGENT_PROJECT_KEYWORDS):
             scripts.append("search_projects")
-            wants_any = True
-
-        if not wants_any:
-            scripts.append("search_publications")
 
         scripts.append("request_emulator")
         normalized: list[str] = []
@@ -1170,9 +1247,11 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
             "Agent mode is enabled for SU Scholar Assistant.\n"
             "The JSON below is generated by selective DB queries for the current question.\n"
             "Use these results as the freshest source of truth.\n"
+            "When choosing evidence, prioritize publication records first and actively use publication abstracts.\n"
             "If search_projects is empty but project_related_publications has items, explain that projects are not registered but related works exist.\n"
             "If result lists are empty, explicitly say that no records were found.\n"
-            "If records exist, prioritize exact names, years, and links from the tool data.\n\n"
+            "If records exist, prioritize exact names, years, and links from the tool data.\n"
+            f"{cls.RESPONSE_FORMAT_RULES}\n\n"
             f"{cls.AGENT_CONTEXT_MARKER}:\n{raw_json}"
         )
         return {
@@ -1250,11 +1329,17 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def _script_search_publications(self, terms: list[str], limit: int) -> list[dict]:
         queryset = Publication.objects.select_related("created_by", "venue").prefetch_related("authors")
-        queryset = self._apply_terms_with_fallback(queryset, terms, self._publication_term_filter).order_by("-year", "-id")
+        if terms:
+            queryset = self._apply_terms_with_fallback(queryset, terms, self._publication_term_filter)
+            if not queryset.exists():
+                # If query terms do not match, keep publication-first behavior with latest records.
+                queryset = Publication.objects.select_related("created_by", "venue").prefetch_related("authors")
+        queryset = queryset.order_by("-year", "-id")
 
         items: list[dict] = []
         for publication in queryset[:limit]:
             title = str(publication.title_original or "").strip()
+            abstract_text = str(publication.abstract or "").strip()
             author_names = [
                 str(author.full_name or "").strip()
                 for author in publication.authors.all()
@@ -1268,6 +1353,7 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
                     "id": publication.id,
                     "title": title[:240],
                     "year": publication.year,
+                    "abstract": abstract_text[:2000],
                     "doi": str(publication.doi or "")[:120],
                     "venue": str(publication.venue.name if publication.venue else "")[:180],
                     "authors": author_names,

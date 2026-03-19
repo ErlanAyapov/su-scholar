@@ -773,11 +773,20 @@ def build_publication_detail_context(pk: int):
         ),
         pk=pk,
     )
-    author_links = [
-        link
-        for link in publication.publicationauthor_set.select_related("author__user").order_by("order", "id")
-        if link.author and (link.author.full_name or "").strip()
-    ]
+    author_links = []
+    seen_user_ids: set[int] = set()
+    for link in publication.publicationauthor_set.select_related("author__user").order_by("order", "id"):
+        author = link.author
+        if not author or not (author.full_name or "").strip():
+            continue
+
+        # Keep only the first author link for each linked user.
+        if author.user_id is not None:
+            if author.user_id in seen_user_ids:
+                continue
+            seen_user_ids.add(author.user_id)
+
+        author_links.append(link)
 
     return {
         "publication": publication,

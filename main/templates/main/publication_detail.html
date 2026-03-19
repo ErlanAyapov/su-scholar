@@ -58,7 +58,7 @@
                         {% for link in author_links %}
                             <tr>
                                 <td>{{ link.order }}</td>
-                                <td>{{ link.author.full_name }}</td>
+                                <td>{% if link.author.user %}{{link.author.user.full_name}}{% else %}{{ link.author.full_name }}{% endif %}</td>
                                 <td>
                                     {% if link.role == "first" %}
                                         Первый автор
