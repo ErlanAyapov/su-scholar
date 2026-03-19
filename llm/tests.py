@@ -11,6 +11,7 @@ from openai import APITimeoutError
 
 from llm.consumers import LlmChatConsumer
 from llm.models import ChatSession, Message
+from main.models import Language, Publication, PublicationType, Venue
 
 User = get_user_model()
 
@@ -506,9 +507,10 @@ class LlmSessionConsumerTests(TestCase):
     def test_select_agent_scripts_by_prompt(self):
         scripts = LlmChatConsumer._select_agent_scripts("Какие проекты есть на тему IoT")
 
-        self.assertIn("dataset_stats", scripts)
-        self.assertIn("search_projects", scripts)
-        self.assertIn("request_emulator", scripts)
+        self.assertEqual(
+            scripts,
+            ["dataset_stats", "search_publications", "search_projects", "request_emulator"],
+        )
 
     def test_select_agent_scripts_for_identity_prompt(self):
         scripts = LlmChatConsumer._select_agent_scripts("Ты кто?")
@@ -525,7 +527,47 @@ class LlmSessionConsumerTests(TestCase):
 
         self.assertEqual(route["intent"], "projects")
         self.assertIn("search_projects", route["scripts"])
+        self.assertIn("search_publications", route["scripts"])
         self.assertTrue(route["fallback_publications_on_empty_projects"])
+
+    def test_core_system_message_enforces_response_template(self):
+        message = LlmChatConsumer._build_core_system_message()
+        content = message.get("content", "")
+
+        self.assertIn("Response format is mandatory.", content)
+        self.assertIn("Always return exactly 4 numbered sections", content)
+        self.assertIn("Publication records first", content)
+
+    def test_script_search_publications_returns_latest_on_no_match(self):
+        pub_type = PublicationType.objects.create(name="Journal article")
+        lang = Language.objects.create(code="en", name="English")
+        venue = Venue.objects.create(name="Test Journal")
+        older = Publication.objects.create(
+            record_id="pub-fallback-1",
+            pub_type=pub_type,
+            title_original="Applied geochemistry baseline",
+            language=lang,
+            year=2022,
+            venue=venue,
+            abstract="Baseline study for geochemistry.",
+        )
+        newer = Publication.objects.create(
+            record_id="pub-fallback-2",
+            pub_type=pub_type,
+            title_original="AI-assisted ore body prediction",
+            language=lang,
+            year=2025,
+            venue=venue,
+            abstract="Abstract with ML approach for ore body prediction.",
+        )
+
+        consumer = LlmChatConsumer()
+        result = async_to_sync(consumer._script_search_publications)(["term-without-match"], 5)
+
+        self.assertGreaterEqual(len(result), 2)
+        self.assertEqual(result[0]["id"], newer.id)
+        self.assertEqual(result[1]["id"], older.id)
+        self.assertIn("abstract", result[0])
 
     def test_compact_preset_context_limits_payload(self):
         preset = {
