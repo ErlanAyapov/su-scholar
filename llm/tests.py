@@ -541,6 +541,30 @@ class LlmSessionConsumerTests(TestCase):
         self.assertIn("search_publications", route["scripts"])
         self.assertTrue(route["fallback_publications_on_empty_projects"])
 
+    def test_resolve_agent_prompt_uses_previous_user_query_for_short_follow_up(self):
+        messages = [
+            {"role": "user", "content": "Какие исследователи есть в области iot?"},
+            {"role": "assistant", "content": "Вот список..."},
+            {"role": "user", "content": "2"},
+        ]
+
+        resolved = LlmChatConsumer._resolve_agent_prompt("2", messages)
+
+        self.assertIn("iot", resolved.casefold())
+        self.assertIn("Follow-up: 2", resolved)
+
+    def test_resolve_agent_prompt_keeps_regular_prompt_unchanged(self):
+        prompt = "Покажи публикации по blockchain за 2025"
+        messages = [
+            {"role": "user", "content": "Привет"},
+            {"role": "assistant", "content": "Здравствуйте"},
+            {"role": "user", "content": prompt},
+        ]
+
+        resolved = LlmChatConsumer._resolve_agent_prompt(prompt, messages)
+
+        self.assertEqual(resolved, prompt)
+
     def test_core_system_message_enforces_response_template(self):
         message = LlmChatConsumer._build_core_system_message()
         content = message.get("content", "")

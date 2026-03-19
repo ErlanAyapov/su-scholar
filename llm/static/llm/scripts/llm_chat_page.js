@@ -361,6 +361,176 @@
     node.innerHTML = renderMessageHtml(text);
   }
 
+  function normalizeFollowUpLine(line) {
+    let value = String(line || "").trim();
+    value = value.replace(/^[-*•]\s+/, "");
+    value = value.replace(/^\d+[.)]\s+/, "");
+    return value.trim();
+  }
+
+  function isQuestionLikeLine(line) {
+    const normalized = normalizeFollowUpLine(line);
+    if (!normalized || normalized.length < 6 || normalized.length > 260) {
+      return false;
+    }
+    return /[?？]$/.test(normalized);
+  }
+
+  function isFollowUpHeadingLine(line) {
+    const normalized = String(line || "").trim().toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+    return (
+      normalized.includes("следующие вопросы") ||
+      normalized.includes("вопросы") ||
+      normalized.includes("что дальше") ||
+      normalized.includes("дальше")
+    );
+  }
+
+  function splitAssistantFollowUps(text) {
+    const rawLines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+    if (!rawLines.length) {
+      return { body: String(text || ""), followUps: [] };
+    }
+
+    let index = rawLines.length - 1;
+    while (index >= 0 && !String(rawLines[index] || "").trim()) {
+      index -= 1;
+    }
+    if (index < 0) {
+      return { body: "", followUps: [] };
+    }
+
+    const collected = [];
+    let firstQuestionIndex = -1;
+    while (index >= 0) {
+      const line = String(rawLines[index] || "");
+      if (isQuestionLikeLine(line)) {
+        collected.unshift(normalizeFollowUpLine(line));
+        firstQuestionIndex = index;
+        index -= 1;
+        continue;
+      }
+      if (!collected.length) {
+        index -= 1;
+        continue;
+      }
+      break;
+    }
+
+    if (collected.length < 2 || firstQuestionIndex < 0) {
+      return { body: String(text || ""), followUps: [] };
+    }
+
+    let bodyEndIndex = firstQuestionIndex;
+    let headingIndex = index;
+    while (headingIndex >= 0) {
+      const line = String(rawLines[headingIndex] || "").trim();
+      if (!line) {
+        bodyEndIndex = headingIndex;
+        headingIndex -= 1;
+        continue;
+      }
+      if (isFollowUpHeadingLine(line)) {
+        bodyEndIndex = headingIndex;
+      }
+      break;
+    }
+
+    const uniqueFollowUps = [];
+    for (const item of collected) {
+      if (!item) {
+        continue;
+      }
+      if (!uniqueFollowUps.includes(item)) {
+        uniqueFollowUps.push(item);
+      }
+      if (uniqueFollowUps.length >= 4) {
+        break;
+      }
+    }
+
+    const bodyText = rawLines.slice(0, bodyEndIndex).join("\n").trim();
+    return {
+      body: bodyText || String(text || "").trim(),
+      followUps: uniqueFollowUps,
+    };
+  }
+
+  function createFollowUpButtonsNode(questions) {
+    if (!Array.isArray(questions) || !questions.length) {
+      return null;
+    }
+
+    const container = document.createElement("div");
+    container.className = "chat-followup-buttons";
+    questions.forEach((question) => {
+      const text = String(question || "").trim();
+      if (!text) {
+        return;
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chat-followup-btn";
+      button.textContent = text;
+      button.addEventListener("click", function onFollowUpClick() {
+        if (!isChatEnabled || isBusy) {
+          return;
+        }
+        inputElement.value = text;
+        submitPrompt(text);
+      });
+      container.appendChild(button);
+    });
+
+    if (!container.childNodes.length) {
+      return null;
+    }
+    return container;
+  }
+
+  function setAssistantBubbleContent(textNode, text) {
+    const bubble = textNode && textNode.closest ? textNode.closest(".message-bubble") : null;
+    const parsed = splitAssistantFollowUps(text);
+    const bodyText = parsed.body || "";
+    const followUps = parsed.followUps || [];
+
+    setMessageContent(textNode, bodyText);
+    if (!bubble) {
+      return;
+    }
+
+    const oldFollowUps = bubble.querySelectorAll(".chat-followup-buttons");
+    oldFollowUps.forEach((item) => item.remove());
+
+    if (!followUps.length) {
+      return;
+    }
+
+    const followUpsNode = createFollowUpButtonsNode(followUps);
+    if (!followUpsNode) {
+      return;
+    }
+
+    const meta = bubble.querySelector(".message-meta");
+    if (meta) {
+      bubble.insertBefore(followUpsNode, meta);
+      return;
+    }
+    bubble.appendChild(followUpsNode);
+  }
+
+  function setBubbleContentByRole(textNode, text) {
+    const row = textNode && textNode.closest ? textNode.closest(".message-row") : null;
+    if (row && row.classList.contains("assistant")) {
+      setAssistantBubbleContent(textNode, text);
+      return;
+    }
+    setMessageContent(textNode, text);
+  }
+
   function sessionExists(sessionId) {
     return sessions.some((item) => item.id === sessionId);
   }
@@ -523,6 +693,8 @@
     sendButton.disabled = disabled;
     newChatButton.disabled = !isChatEnabled || isBusy;
     stopButton.disabled = !isChatEnabled || !isBusy;
+    sendButton.classList.toggle("d-none", isBusy);
+    stopButton.classList.toggle("d-none", !isBusy);
     deleteChatButton.disabled = !isChatEnabled || isBusy || !activeSessionId;
     if (shareButton) {
       shareButton.disabled = !isChatEnabled || isBusy || !activeSessionId;
@@ -547,7 +719,6 @@
 
     const textNode = document.createElement("div");
     textNode.className = "message-content";
-    setMessageContent(textNode, text || "");
 
     const meta = document.createElement("div");
     meta.className = "message-meta";
@@ -557,6 +728,8 @@
     bubble.appendChild(meta);
     row.appendChild(bubble);
     messagesElement.appendChild(row);
+
+    setBubbleContentByRole(textNode, text || "");
 
     scrollMessagesToBottom();
     return textNode;
@@ -589,7 +762,7 @@
     if (!streamingTextNode) {
       beginAssistantStream();
     }
-    setMessageContent(streamingTextNode, streamingText);
+    setBubbleContentByRole(streamingTextNode, streamingText);
     scrollMessagesToBottom();
   }
 

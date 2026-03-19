@@ -40,6 +40,25 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
     AGENT_CONTEXT_MARKER = "SU_SCIENCE_AGENT_CONTEXT_JSON"
     AGENT_CONTEXT_MAX_CHARS = 8000
     AGENT_RESULT_LIMIT = 8
+    FOLLOW_UP_NUMERIC_RE = re.compile(r"^\s*\d{1,3}[.)]?\s*$")
+    FOLLOW_UP_SHORT_TOKENS = {
+        "далее",
+        "дальше",
+        "еще",
+        "ещё",
+        "подробнее",
+        "детальнее",
+        "продолжай",
+        "продолжить",
+        "еще раз",
+        "ещё раз",
+        "continue",
+        "more",
+        "next",
+        "again",
+        "ok",
+        "okay",
+    }
     RESPONSE_FORMAT_RULES = (
         "Response format is mandatory.\n"
         "Always return exactly 4 short sections and nothing outside them.\n"
@@ -472,7 +491,8 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
             messages = self._prepare_messages(payload.get("messages"), prompt)
 
         messages = self._inject_core_system_message(messages)
-        messages = await self._inject_agent_context(messages, prompt)
+        agent_prompt = self._resolve_agent_prompt(prompt, messages)
+        messages = await self._inject_agent_context(messages, agent_prompt)
         if not messages:
             await self.send_json(
                 {
@@ -834,6 +854,52 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
 
         insert_at = 1 if self._has_core_system_message(messages) else 0
         return [*messages[:insert_at], agent_message, *messages[insert_at:]]
+
+    @classmethod
+    def _looks_like_follow_up_prompt(cls, prompt: str) -> bool:
+        raw_prompt = str(prompt or "").strip()
+        if not raw_prompt:
+            return False
+        if cls.FOLLOW_UP_NUMERIC_RE.match(raw_prompt):
+            return True
+
+        normalized = re.sub(r"\s+", " ", raw_prompt.casefold()).strip(" \t\r\n.,:;!?")
+        if normalized in cls.FOLLOW_UP_SHORT_TOKENS:
+            return True
+
+        words = [word.strip(".,:;!?") for word in normalized.split() if word.strip(".,:;!?")]
+        if words and len(words) <= 3 and all(word in cls.FOLLOW_UP_SHORT_TOKENS for word in words):
+            return True
+        return False
+
+    @classmethod
+    def _resolve_agent_prompt(cls, prompt: str, messages: list[dict[str, str]]) -> str:
+        normalized_prompt = str(prompt or "").strip()
+        if not cls._looks_like_follow_up_prompt(normalized_prompt):
+            return normalized_prompt
+
+        if not isinstance(messages, list) or not messages:
+            return normalized_prompt
+
+        previous_user_query = ""
+        skipped_current_user_message = False
+        for item in reversed(messages):
+            if not isinstance(item, dict):
+                continue
+            role = str(item.get("role") or "").strip().lower()
+            content = str(item.get("content") or "").strip()
+            if role != "user" or not content:
+                continue
+            if not skipped_current_user_message:
+                skipped_current_user_message = True
+                continue
+            previous_user_query = content
+            break
+
+        if not previous_user_query:
+            return normalized_prompt
+
+        return f"{previous_user_query}\nFollow-up: {normalized_prompt}"
 
     @classmethod
     def _inject_core_system_message(cls, messages: list[dict[str, str]]) -> list[dict[str, str]]:
