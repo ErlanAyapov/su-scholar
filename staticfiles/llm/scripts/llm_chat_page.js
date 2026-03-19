@@ -53,8 +53,108 @@
       .replace(/'/g, "&#39;");
   }
 
+  const ALLOWED_INLINE_TAGS = new Set(["a", "strong", "em", "b", "i", "code", "br"]);
+  const BLOCKED_INLINE_TAGS = new Set(["script", "style", "iframe", "object", "embed", "link", "meta", "base"]);
+  const ALLOWED_INLINE_ATTRS = {
+    a: new Set(["href", "title"]),
+    strong: new Set([]),
+    em: new Set([]),
+    b: new Set([]),
+    i: new Set([]),
+    code: new Set([]),
+    br: new Set([]),
+  };
+
+  function applyInlineFormatting(value) {
+    let text = String(value || "");
+    text = text.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+    return text;
+  }
+
+  function isSafeHref(href) {
+    const normalized = String(href || "").trim();
+    if (!normalized) {
+      return false;
+    }
+    if (/^https?:\/\//i.test(normalized)) {
+      return true;
+    }
+    return normalized.startsWith("/");
+  }
+
+  function unwrapNode(node) {
+    const parent = node && node.parentNode;
+    if (!parent) {
+      return;
+    }
+    while (node.firstChild) {
+      parent.insertBefore(node.firstChild, node);
+    }
+    parent.removeChild(node);
+  }
+
+  function sanitizeInlineNode(rootNode) {
+    const children = Array.from(rootNode.childNodes || []);
+    children.forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        return;
+      }
+
+      if (child.nodeType !== Node.ELEMENT_NODE) {
+        child.parentNode?.removeChild(child);
+        return;
+      }
+
+      const tagName = String(child.tagName || "").toLowerCase();
+      if (BLOCKED_INLINE_TAGS.has(tagName)) {
+        child.parentNode?.removeChild(child);
+        return;
+      }
+
+      if (!ALLOWED_INLINE_TAGS.has(tagName)) {
+        unwrapNode(child);
+        return;
+      }
+
+      const allowedAttrs = ALLOWED_INLINE_ATTRS[tagName] || new Set();
+      Array.from(child.attributes || []).forEach((attr) => {
+        const attrName = String(attr.name || "").toLowerCase();
+        if (attrName.startsWith("on") || !allowedAttrs.has(attrName)) {
+          child.removeAttribute(attr.name);
+        }
+      });
+
+      if (tagName === "a") {
+        const href = String(child.getAttribute("href") || "").trim();
+        if (!isSafeHref(href)) {
+          unwrapNode(child);
+          return;
+        }
+        child.setAttribute("href", href);
+        if (/^https?:\/\//i.test(href)) {
+          child.setAttribute("target", "_blank");
+          child.setAttribute("rel", "noopener noreferrer");
+        } else {
+          child.removeAttribute("target");
+          child.removeAttribute("rel");
+        }
+      }
+
+      sanitizeInlineNode(child);
+    });
+  }
+
+  function sanitizeInlineHtml(value) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = String(value || "");
+    sanitizeInlineNode(wrapper);
+    return wrapper.innerHTML;
+  }
+
   function renderInlineMarkdown(value) {
-    return escapeHtml(value).replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+    const source = String(value || "");
+    const withMarkdown = applyInlineFormatting(source);
+    return sanitizeInlineHtml(withMarkdown);
   }
 
   function isPipeRow(line) {
