@@ -535,7 +535,8 @@ class LlmSessionConsumerTests(TestCase):
         content = message.get("content", "")
 
         self.assertIn("Response format is mandatory.", content)
-        self.assertIn("Always return exactly 4 numbered sections", content)
+        self.assertIn("Always return exactly 4 short sections", content)
+        self.assertIn("Do not use literal headings like", content)
         self.assertIn("Publication records first", content)
 
     def test_script_search_publications_returns_latest_on_no_match(self):

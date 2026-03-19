@@ -53,8 +53,47 @@
       .replace(/'/g, "&#39;");
   }
 
+  function applyInlineFormatting(value) {
+    return String(value || "").replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+  }
+
+  function isSafeHref(href) {
+    const normalized = String(href || "").trim();
+    if (!normalized) {
+      return false;
+    }
+    if (/^https?:\/\//i.test(normalized)) {
+      return true;
+    }
+    return normalized.startsWith("/");
+  }
+
   function renderInlineMarkdown(value) {
-    return escapeHtml(value).replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+    const source = String(value || "");
+    const anchorTagRe = /<a\s+href\s*=\s*("([^"]*)"|'([^']*)')\s*>([\s\S]*?)<\/a>/gi;
+    let result = "";
+    let lastIndex = 0;
+    let match = null;
+
+    while ((match = anchorTagRe.exec(source)) !== null) {
+      const [fullTag, , dblQuotedHref, sglQuotedHref, rawLabel] = match;
+      const rawHref = String(dblQuotedHref || sglQuotedHref || "").trim();
+
+      result += applyInlineFormatting(escapeHtml(source.slice(lastIndex, match.index)));
+      if (isSafeHref(rawHref)) {
+        const safeHref = escapeHtml(rawHref);
+        const safeLabel = applyInlineFormatting(escapeHtml(rawLabel || rawHref));
+        const external = /^https?:\/\//i.test(rawHref);
+        const attrs = external ? ' target="_blank" rel="noopener noreferrer"' : "";
+        result += `<a href="${safeHref}"${attrs}>${safeLabel}</a>`;
+      } else {
+        result += applyInlineFormatting(escapeHtml(fullTag));
+      }
+      lastIndex = anchorTagRe.lastIndex;
+    }
+
+    result += applyInlineFormatting(escapeHtml(source.slice(lastIndex)));
+    return result;
   }
 
   function isPipeRow(line) {

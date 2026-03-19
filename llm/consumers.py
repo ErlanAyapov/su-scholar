@@ -42,11 +42,15 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
     AGENT_RESULT_LIMIT = 8
     RESPONSE_FORMAT_RULES = (
         "Response format is mandatory.\n"
-        "Always return exactly 4 numbered sections and nothing outside them:\n"
-        "1) Restate the user's question and what you are answering.\n"
-        "2) Main answer based on SU Scholar DB facts.\n"
-        "3) Summary with practical recommendations.\n"
-        "4) 2-4 follow-up questions that naturally extend the topic."
+        "Always return exactly 4 short sections and nothing outside them.\n"
+        "Use natural section titles (not rigid templates).\n"
+        "Do not use literal headings like 'Вопрос пользователя', 'Фактический ответ', 'Вопросы-поддержка'.\n"
+        "Section 1: 1-2 sentences on how you understood the request and what you will answer.\n"
+        "Section 2: the main answer in natural narrative style, grounded in SU Scholar DB facts.\n"
+        "Section 3: concise takeaway and practical recommendation.\n"
+        "Section 4: natural next-step offers as 2-4 short questions tied to the topic.\n"
+        "When referencing routes from DB context, output clickable HTML links in this form: "
+        "<a href=\"/publications/123/\">Open publication</a>."
     )
     AGENT_SUPPORTED_SCRIPTS = (
         "dataset_stats",
