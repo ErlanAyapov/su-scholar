@@ -3849,6 +3849,35 @@ footer {
     margin-bottom: 0;
 }
 
+.chat-followup-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.chat-followup-btn {
+    border: 1px solid #cfe0f6;
+    background: #f4f8ff;
+    color: #2456a8;
+    border-radius: 999px;
+    padding: 6px 11px;
+    font-size: 12px;
+    line-height: 1.25;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+
+.chat-followup-btn:hover {
+    border-color: #b6d0f2;
+    background: #eaf2ff;
+}
+
+.chat-followup-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .message-content .chat-md-hr {
     margin: 10px 0 12px;
     border: 0;
