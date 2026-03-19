@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="chat-page" id="llmChatPage">
+<div class="chat-page" id="llmChatPage" data-share-create-url="{% url 'llm_share_create' %}">
     <aside class="chat-sidebar">
         <div class="chat-sidebar-header">
             <h3 class="chat-sidebar-title">History</h3>
@@ -19,8 +19,23 @@
 
     <section class="chat-main">
         <div class="chat-header">
-            <h2 class="chat-header-title">Satbayev AI</h2>
-            <p class="chat-header-subtitle">Можете спросить о авторах, работах и проектах университета</p>
+            <div class="chat-header-top">
+                <div class="chat-header-copy">
+                    <h2 class="chat-header-title">Satbayev AI</h2>
+                    <p class="chat-header-subtitle">Можете спросить о авторах, работах и проектах университета</p>
+                </div>
+                <button
+                    type="button"
+                    class="chat-share-btn"
+                    id="llmShareChatButton"
+                    title="Поделиться текущим чатом"
+                    aria-label="Поделиться текущим чатом"
+                >
+                    <i class="bi bi-share"></i>
+                    <span>Поделиться</span>
+                </button>
+            </div>
+            <p class="chat-share-status" id="llmShareStatus" aria-live="polite"></p>
         </div>
 
         <div class="chat-messages" id="llmChatMessages" role="log" aria-live="polite" aria-relevant="additions text"></div>
@@ -44,6 +59,34 @@
             </form>
         </div>
     </section>
+
+    <dialog class="chat-share-dialog" id="llmShareDialog">
+        <form method="dialog" class="chat-share-dialog-form" id="llmShareDialogForm">
+            <h3 class="chat-share-dialog-title">Поделиться чатом</h3>
+            <p class="chat-share-dialog-subtitle">Откройте ссылку или отправьте ее получателю.</p>
+            <input
+                type="text"
+                class="chat-share-dialog-input"
+                id="llmShareDialogLink"
+                readonly
+                aria-label="Share link"
+            >
+            <div class="chat-share-dialog-actions">
+                <button type="button" class="chat-share-btn" id="llmShareDialogOpenButton">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Открыть</span>
+                </button>
+                <button type="button" class="chat-share-btn" id="llmShareDialogCopyButton">
+                    <i class="bi bi-clipboard"></i>
+                    <span>Копировать</span>
+                </button>
+                <button type="submit" class="chat-share-btn">
+                    <i class="bi bi-x-lg"></i>
+                    <span>Закрыть</span>
+                </button>
+            </div>
+        </form>
+    </dialog>
 </div>
 {% endblock %}
 

@@ -1,0 +1,63 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+<div class="chat-page chat-page-shared">
+    <section class="chat-main">
+        <div class="chat-header">
+            <div class="chat-header-top">
+                <div class="chat-header-copy">
+                    <h2 class="chat-header-title">Shared Satbayev AI Chat</h2>
+                    <p class="chat-header-subtitle">
+                        Read-only mode. Sign in to copy this chat into your workspace.
+                    </p>
+                </div>
+                <a class="chat-share-btn" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Войти и импортировать</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="chat-messages" role="log" aria-live="polite" aria-relevant="additions text">
+            {% if messages %}
+                {% for item in messages %}
+                    <div class="message-row {% if item.sended_from == 'user' %}user{% else %}assistant{% endif %}">
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                {{ item.body|linebreaksbr }}
+                            </div>
+                            <div class="message-meta">
+                                {% if item.sended_from == "user" %}
+                                    User
+                                {% else %}
+                                    SU Scholar Assistant
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="message-row assistant">
+                    <div class="message-bubble">
+                        <div class="message-content">
+                            <p>Shared chat is empty.</p>
+                        </div>
+                        <div class="message-meta">SU Scholar Assistant</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="chat-input-wrap">
+            <div class="chat-form" aria-label="Read only">
+                <div class="chat-textarea">Read-only view. Editing is disabled for shared chat links.</div>
+                <div class="chat-form-actions">
+                    <a class="send-btn" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

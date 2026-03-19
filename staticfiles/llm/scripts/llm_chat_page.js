@@ -3,6 +3,7 @@
     return;
   }
 
+  const chatPageElement = document.getElementById("llmChatPage");
   const historyElement = document.getElementById("llmChatHistory");
   const messagesElement = document.getElementById("llmChatMessages");
   const formElement = document.getElementById("llmChatForm");
@@ -11,6 +12,12 @@
   const newChatButton = document.getElementById("llmNewChatButton");
   const stopButton = document.getElementById("llmStopButton");
   const deleteChatButton = document.getElementById("llmDeleteChatButton");
+  const shareButton = document.getElementById("llmShareChatButton");
+  const shareStatusElement = document.getElementById("llmShareStatus");
+  const shareDialogElement = document.getElementById("llmShareDialog");
+  const shareDialogLinkInput = document.getElementById("llmShareDialogLink");
+  const shareDialogOpenButton = document.getElementById("llmShareDialogOpenButton");
+  const shareDialogCopyButton = document.getElementById("llmShareDialogCopyButton");
 
   if (
     !historyElement ||
@@ -27,6 +34,9 @@
 
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   const wsUrl = `${protocol}://${window.location.host}/ws/llm/`;
+  const shareCreateUrl = (chatPageElement && chatPageElement.dataset.shareCreateUrl) || "/llm/share/create/";
+  const initialSessionFromUrlRaw = Number(new URLSearchParams(window.location.search).get("session")) || null;
+  const initialSessionId = initialSessionFromUrlRaw && initialSessionFromUrlRaw > 0 ? initialSessionFromUrlRaw : null;
   const maxReconnectAttempts = 8;
   const reconnectBaseMs = 700;
   const defaultAssistantText = "Start a new conversation.";
@@ -38,11 +48,12 @@
   let isChatEnabled = true;
   let hasLoadedSessions = false;
   let sessions = [];
-  let activeSessionId = null;
+  let activeSessionId = initialSessionId;
   let promptAfterOpen = null;
   let pendingActions = [];
   let streamingTextNode = null;
   let streamingText = "";
+  let latestShareUrl = "";
 
   function escapeHtml(value) {
     return String(value || "")
@@ -366,6 +377,141 @@
     });
   }
 
+  function getCookie(name) {
+    const cookieValue = document.cookie
+      .split(";")
+      .map((item) => item.trim())
+      .find((item) => item.startsWith(`${name}=`));
+    if (!cookieValue) {
+      return "";
+    }
+    return decodeURIComponent(cookieValue.split("=").slice(1).join("="));
+  }
+
+  function setShareStatus(text, isError) {
+    if (!shareStatusElement) {
+      return;
+    }
+    shareStatusElement.textContent = String(text || "");
+    shareStatusElement.classList.remove("is-success", "is-error");
+    if (!text) {
+      return;
+    }
+    shareStatusElement.classList.add(isError ? "is-error" : "is-success");
+  }
+
+  function openShareDialog(shareUrl) {
+    latestShareUrl = String(shareUrl || "").trim();
+    if (!latestShareUrl) {
+      return;
+    }
+    if (shareDialogLinkInput) {
+      shareDialogLinkInput.value = latestShareUrl;
+      shareDialogLinkInput.focus();
+      shareDialogLinkInput.select();
+    }
+    if (shareDialogElement && typeof shareDialogElement.showModal === "function") {
+      shareDialogElement.showModal();
+      return;
+    }
+    window.prompt("Share link", latestShareUrl);
+  }
+
+  async function tryNativeShare(shareUrl) {
+    if (!navigator.share || !window.isSecureContext) {
+      return false;
+    }
+    try {
+      await navigator.share({
+        title: "Satbayev AI chat",
+        text: "Shared chat from Satbayev AI",
+        url: shareUrl,
+      });
+      return true;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        return true;
+      }
+      return false;
+    }
+  }
+
+  async function copyTextToClipboard(text) {
+    if (!text) {
+      return false;
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (_error) {
+      // Fallback below.
+    }
+    const helper = document.createElement("textarea");
+    helper.value = text;
+    helper.setAttribute("readonly", "readonly");
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    document.body.appendChild(helper);
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (_error) {
+      copied = false;
+    }
+    document.body.removeChild(helper);
+    return copied;
+  }
+
+  async function createShareLink() {
+    if (!isChatEnabled || !activeSessionId || isBusy) {
+      return;
+    }
+
+    setShareStatus("Preparing share link...", false);
+    try {
+      const response = await fetch(shareCreateUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({ session_id: activeSessionId }),
+      });
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = {};
+      }
+
+      if (!response.ok) {
+        const errorText = String(payload.detail || "Failed to create share link.");
+        setShareStatus(errorText, true);
+        return;
+      }
+
+      const shareUrl = String(payload.share_url || "").trim();
+      if (!shareUrl) {
+        setShareStatus("Share URL is empty.", true);
+        return;
+      }
+
+      const nativeShared = await tryNativeShare(shareUrl);
+      if (!nativeShared) {
+        openShareDialog(shareUrl);
+      }
+      setShareStatus("", false);
+    } catch (_error) {
+      setShareStatus("Network error while creating share link.", true);
+    }
+  }
+
   function scrollMessagesToBottom() {
     messagesElement.scrollTop = messagesElement.scrollHeight;
   }
@@ -378,6 +524,9 @@
     newChatButton.disabled = !isChatEnabled || isBusy;
     stopButton.disabled = !isChatEnabled || !isBusy;
     deleteChatButton.disabled = !isChatEnabled || isBusy || !activeSessionId;
+    if (shareButton) {
+      shareButton.disabled = !isChatEnabled || isBusy || !activeSessionId;
+    }
   }
 
   function setChatEnabled(enabled) {
@@ -568,6 +717,7 @@
   function openSession(sessionId) {
     if (!sessionId) return;
     activeSessionId = sessionId;
+    setShareStatus("", false);
     renderSessionList();
     sendAction({
       action: "session_open",
@@ -576,6 +726,7 @@
   }
 
   function createSession() {
+    setShareStatus("", false);
     sendAction({
       action: "session_create",
     });
@@ -851,6 +1002,49 @@
   deleteChatButton.addEventListener("click", function onDeleteClick() {
     deleteActiveSession();
   });
+
+  if (shareButton) {
+    shareButton.addEventListener("click", function onShareClick() {
+      createShareLink();
+    });
+  }
+
+  if (shareDialogOpenButton) {
+    shareDialogOpenButton.addEventListener("click", function onDialogOpenClick() {
+      if (!latestShareUrl) {
+        return;
+      }
+      window.open(latestShareUrl, "_blank", "noopener,noreferrer");
+    });
+  }
+
+  if (shareDialogCopyButton) {
+    shareDialogCopyButton.addEventListener("click", async function onDialogCopyClick() {
+      if (!latestShareUrl) {
+        return;
+      }
+      const copied = await copyTextToClipboard(latestShareUrl);
+      if (copied) {
+        setShareStatus("Link copied.", false);
+      } else {
+        setShareStatus("Copy failed. You can copy from the field.", true);
+      }
+    });
+  }
+
+  if (shareDialogElement) {
+    shareDialogElement.addEventListener("click", function onDialogBackdropClick(event) {
+      const rect = shareDialogElement.getBoundingClientRect();
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!inside) {
+        shareDialogElement.close();
+      }
+    });
+  }
 
   renderMessages([]);
   renderSessionList();
