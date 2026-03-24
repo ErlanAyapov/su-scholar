@@ -1,13 +1,13 @@
 {% extends "main/base.html" %}
 
-{% block title %}SU Scholar - Кіру{% endblock %}
+{% block title %}SU Scholar - Login{% endblock %}
 
 {% block content %}
 <section class="auth-shell auth-shell-narrow">
     <div class="auth-card">
         <div class="auth-card-head">
-            <h1>Аккаунтқа кіру</h1>
-            <p>Пайдаланушы аты мен құпиясөзді енгізіңіз.</p>
+            <h1>Вход в аккаунт</h1>
+            <p>Введите username или email и пароль.</p>
         </div>
 
         <form method="post" novalidate class="auth-form">
@@ -16,7 +16,7 @@
 
             {% if activated %}
                 <div class="auth-alert auth-alert-success">
-                    Құпиясөз орнатылды. Енді аккаунтқа кіре аласыз.
+                    Пароль установлен. Теперь вы можете войти в аккаунт.
                 </div>
             {% endif %}
 
@@ -36,12 +36,12 @@
                 </div>
             {% endfor %}
 
-            <button type="submit" class="auth-btn auth-btn-primary auth-btn-wide">Кіру</button>
+            <button type="submit" class="auth-btn auth-btn-primary auth-btn-wide">Войти</button>
         </form>
 
         <div class="auth-links">
-            <span>Аккаунтыңыз жоқ па?</span>
-            <a href="{% url 'account_register' %}">Тіркелу</a>
+            <span>Нет аккаунта?</span>
+            <a href="{% url 'account_register' %}">Регистрация</a>
         </div>
     </div>
 </section>

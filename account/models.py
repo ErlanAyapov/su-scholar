@@ -70,8 +70,8 @@ class User(AbstractUser):
     ]
 
     father_name = models.CharField(max_length=100, blank=True)
-    phone_number = models.CharField(max_length=20, blank=True)
-    inn = models.CharField(max_length=20, blank=True)
+    phone_number = models.CharField(max_length=200, blank=True)
+    inn = models.CharField(max_length=200, blank=True)
 
     photo = models.ImageField(upload_to="user_photos/", blank=True, null=True)
 
@@ -99,15 +99,15 @@ class User(AbstractUser):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    orc_id = models.CharField(max_length=20, blank=True)
-    scopus_id = models.CharField(max_length=20, blank=True)
-    wos_id = models.CharField(max_length=20, blank=True)
-    researchgate = models.URLField(blank=True)
-    google_scholar = models.URLField(blank=True)
-    satbayev_profile_url = models.URLField(blank=True)
+    orc_id = models.CharField(max_length=255, blank=True)
+    scopus_id = models.CharField(max_length=255, blank=True)
+    wos_id = models.CharField(max_length=255, blank=True)
+    researchgate = models.URLField(blank=True, max_length=500)
+    google_scholar = models.URLField(blank=True, max_length=500)
+    satbayev_profile_url = models.URLField(blank=True, max_length=500)
     journal_links = models.JSONField(default=list, blank=True)
     journal_ids = models.JSONField(default=list, blank=True)
-    gender = models.CharField(max_length=20, blank=True, choices=GENDER_CHOICES)
+    gender = models.CharField(max_length=255, blank=True, choices=GENDER_CHOICES)
 
     def __str__(self):
         return f"{self.username}"

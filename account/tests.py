@@ -216,6 +216,45 @@ class RegistrationActivationFlowTests(TestCase):
         self.assertTrue(self.staff_user.is_active)
 
 
+class AccountLoginByUsernameOrEmailTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="login-user",
+            email="login.user@satbayev.university",
+            password="LoginPass123!",
+            is_active=True,
+            is_user=True,
+        )
+
+    def test_account_login_accepts_username(self):
+        response = self.client.post(
+            reverse("account_login"),
+            {
+                "username": self.user.username,
+                "password": "LoginPass123!",
+                "next": reverse("account_page"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("account_page"))
+        self.assertEqual(str(self.client.session.get("_auth_user_id")), str(self.user.id))
+
+    def test_account_login_accepts_email_case_insensitive(self):
+        response = self.client.post(
+            reverse("account_login"),
+            {
+                "username": "LOGIN.USER@SATBAYEV.UNIVERSITY",
+                "password": "LoginPass123!",
+                "next": reverse("account_page"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("account_page"))
+        self.assertEqual(str(self.client.session.get("_auth_user_id")), str(self.user.id))
+
+
 class EmployeeProfileExportTests(TestCase):
     def setUp(self):
         self.profile_user = User.objects.create_user(

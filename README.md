@@ -265,6 +265,45 @@ python manage.py backfill_author_normalization --skip-linking
 python manage.py relink_authors_to_users
 ```
 
+## Docker
+
+Для локального запуска в Docker добавлены:
+
+- `Dockerfile` для Django ASGI приложения;
+- `docker-compose.yml` со стеком `web + celery-worker + celery-beat + postgres + redis + onlyoffice`;
+- `docker/entrypoint.sh` для ожидания зависимостей, миграций и `collectstatic`;
+- `.env.docker.example` с docker-ориентированными переменными.
+
+Быстрый старт:
+
+```bash
+docker compose up --build -d
+```
+
+Если Postgres находится на отдельном сервере:
+
+- в `.env` укажите `DB_HOST`, `DB_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`;
+- обычный `docker compose up --build -d` поднимет только приложение, `redis` и `onlyoffice`;
+- сервис `db` теперь опциональный и запускается только через профиль.
+
+Если нужен локальный Postgres внутри Docker:
+
+```bash
+docker compose --profile local-db up --build -d
+```
+
+По умолчанию сервисы публикуются так:
+
+- Django: `http://localhost:8000`
+- ONLYOFFICE Docs: `http://localhost:8080`
+
+Важно для ONLYOFFICE:
+
+- `DOCK_EDITOR_URL` должен быть доступен браузеру;
+- `APP_PUBLIC_URL` должен быть доступен и браузеру, и контейнеру `onlyoffice`;
+- для локального Docker Desktop по умолчанию используется `http://host.docker.internal:8000`;
+- если запускаете на сервере или Linux-хосте, замените `APP_PUBLIC_URL` на реальный IP или домен приложения.
+
 ## Debug Artifacts
 
 Каждый запуск pipeline сохраняет артефакты в директорию:

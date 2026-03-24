@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import importlib.util
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -47,6 +48,51 @@ def _as_float(value: str | None, default: float = 0.0) -> float:
     except (TypeError, ValueError):
         return default
     return parsed if parsed > 0 else default
+
+
+def _resolved_db_host() -> str:
+    dev_mode = _as_bool(os.getenv('DEV_MODE'), default=True)
+    if dev_mode:
+        return (os.getenv('DEV_DB_HOST') or 'db').strip()
+    return (os.getenv('PROD_DB_HOST') or os.getenv('DB_HOST') or '192.168.1.222').strip()
+
+
+def _database_settings_from_env() -> dict:
+    database_url = (os.getenv('DATABASE_URL') or '').strip()
+    if database_url:
+        parsed = urlparse(database_url)
+        if parsed.scheme in {'postgres', 'postgresql'}:
+            return {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': (parsed.path or '/postgres').lstrip('/'),
+                'USER': parsed.username or '',
+                'PASSWORD': parsed.password or '',
+                'HOST': parsed.hostname or _resolved_db_host(),
+                'PORT': str(parsed.port or 5432),
+                'CONN_MAX_AGE': _as_int(os.getenv('DB_CONN_MAX_AGE'), default=60),
+            }
+
+    db_engine = (os.getenv('DB_ENGINE') or '').strip().lower()
+    if (
+        db_engine in {'postgres', 'postgresql'}
+        or os.getenv('POSTGRES_DB')
+        or os.getenv('DB_NAME')
+        or os.getenv('DEV_MODE')
+    ):
+        return {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', os.getenv('POSTGRES_DB', 'su_science')),
+            'USER': os.getenv('DB_USER', os.getenv('POSTGRES_USER', 'su_science')),
+            'PASSWORD': os.getenv('DB_PASSWORD', os.getenv('POSTGRES_PASSWORD', 'postgres')),
+            'HOST': _resolved_db_host(),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': _as_int(os.getenv('DB_CONN_MAX_AGE'), default=60),
+        }
+
+    return {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
 
 # Quick-start development settings - unsuitable for production
@@ -134,10 +180,7 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': _database_settings_from_env()
 }
 
 
@@ -197,10 +240,10 @@ LLM_MAX_RETRIES = _as_int(os.getenv('LLM_MAX_RETRIES'), default=2)
 
 # Email (SMTP)
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.getenv('GOOLE_SMTP_HOST', os.getenv('GOOGLE_SMTP_HOST', 'smtp.gmail.com'))
+EMAIL_HOST = os.getenv('GOOGLE_SMTP_HOST', os.getenv('GOOGLE_SMTP_HOST', 'smtp.gmail.com'))
 EMAIL_PORT = int(os.getenv('GOOGLE_SMTP_PORT', '587'))
 EMAIL_HOST_USER = os.getenv('GOOGLE_SMTP_EMAIL', '')
-EMAIL_HOST_PASSWORD = os.getenv('GOOGOLE_STMP_PASSWORD', os.getenv('GOOGLE_SMTP_PASSWORD', ''))
+EMAIL_HOST_PASSWORD = os.getenv('GOOGLE_STMP_PASSWORD', os.getenv('GOOGLE_SMTP_PASSWORD', ''))
 EMAIL_USE_TLS = _as_bool(os.getenv('GOOGLE_SMTP_USE_TLS'), default=True)
 EMAIL_USE_SSL = _as_bool(os.getenv('GOOGLE_SMTP_USE_SSL'), default=False)
 EMAIL_TIMEOUT = int(os.getenv('GOOGLE_SMTP_TIMEOUT', '30'))
