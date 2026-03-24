@@ -1,0 +1,130 @@
+x-app-environment: &app-environment
+  DEBUG: ${DEBUG:-True}
+  SECRET_KEY: ${SECRET_KEY:-django-insecure-local-dev-secret}
+  DEV_MODE: ${DEV_MODE:-true}
+  DEV_DB_HOST: ${DEV_DB_HOST:-db}
+  PROD_DB_HOST: ${PROD_DB_HOST:-192.168.1.222}
+  DB_ENGINE: postgres
+  DB_HOST: ${DB_HOST:-}
+  DB_PORT: ${DB_PORT:-5432}
+  POSTGRES_DB: ${POSTGRES_DB:-su_science}
+  POSTGRES_USER: ${POSTGRES_USER:-su_science}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-su_science}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+  CHANNELS_USE_REDIS: ${CHANNELS_USE_REDIS:-1}
+  CHANNELS_REDIS_URL: ${CHANNELS_REDIS_URL:-redis://redis:6379/2}
+  DOCK_EDITOR_URL: ${DOCK_EDITOR_URL:-http://localhost:8080}
+  APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://host.docker.internal:8000}
+  ONLYOFFICE_JWT_SECRET: ${ONLYOFFICE_JWT_SECRET:-onlyoffice-local-secret}
+  LLM_API: ${LLM_API:-http://host.docker.internal:11434/v1}
+  LLM_API_KEY: ${LLM_API_KEY:-openai}
+
+x-common-extra-hosts: &common-extra-hosts
+  - "host.docker.internal:host-gateway"
+
+services:
+  db:
+    image: postgres:16-alpine
+    profiles: ["local-db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-su_science}
+      POSTGRES_USER: ${POSTGRES_USER:-su_science}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-su_science}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-su_science} -d ${POSTGRES_DB:-su_science}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: 1
+      COLLECTSTATIC: 1
+    extra_hosts: *common-extra-hosts
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+      - logs_data:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 5).close()"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  celery-worker:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+    extra_hosts: *common-extra-hosts
+    command: >
+      sh -c "celery -A project worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-4}"
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - logs_data:/app/logs
+
+  celery-beat:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+    extra_hosts: *common-extra-hosts
+    command: >
+      sh -c "celery -A project beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    volumes:
+      - .:/app
+      - logs_data:/app/logs
+
+  onlyoffice:
+    image: onlyoffice/documentserver:8.3
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: ${ONLYOFFICE_JWT_ENABLED:-true}
+      JWT_SECRET: ${ONLYOFFICE_JWT_SECRET:-onlyoffice-local-secret}
+      ALLOW_PRIVATE_IP_ADDRESS: ${ONLYOFFICE_ALLOW_PRIVATE_IP_ADDRESS:-true}
+    extra_hosts: *common-extra-hosts
+    ports:
+      - "${ONLYOFFICE_PORT:-8080}:80"
+    volumes:
+      - onlyoffice_logs:/var/log/onlyoffice
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_lib:/var/lib/onlyoffice
+      - onlyoffice_db:/var/lib/postgresql
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:
+  logs_data:
+  onlyoffice_logs:
+  onlyoffice_data:
+  onlyoffice_lib:
+  onlyoffice_db:

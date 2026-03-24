@@ -51,14 +51,22 @@ class LoginForm(AuthenticationForm):
     password = forms.CharField(label="Құпиясөз", widget=forms.PasswordInput)
 
     error_messages = {
-        "invalid_login": "Пайдаланушы аты немесе құпиясөз қате.",
+        "invalid_login": "Пайдаланушы аты, email немесе құпиясөз қате.",
         "inactive": "Бұл аккаунт белсенді емес.",
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["username"].widget.attrs.update({"class": "form-control", "placeholder": "Пайдаланушы аты"})
+        self.fields["username"].widget.attrs.update({"class": "form-control", "placeholder": "Пайдаланушы аты немесе Email"})
         self.fields["password"].widget.attrs.update({"class": "form-control", "placeholder": "Құпиясөз"})
+
+    def clean(self):
+        login_value = str(self.cleaned_data.get("username") or "").strip()
+        if "@" in login_value:
+            user_by_email = User.objects.filter(email__iexact=login_value).order_by("id").first()
+            if user_by_email:
+                self.cleaned_data["username"] = user_by_email.get_username()
+        return super().clean()
 
 
 class ActivationSetPasswordForm(SetPasswordForm):
