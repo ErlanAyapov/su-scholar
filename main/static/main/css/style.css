@@ -3877,7 +3877,17 @@ footer {
     opacity: 0.55;
     cursor: not-allowed;
 }
-
+.user-profile-edit-button {
+    border: 0;
+    background: #44566b;
+    border-radius: 5px;
+    color: #fff;
+    opacity: 0.7;
+    transition: all 0.2s;
+}
+.user-profile-edit-button:hover {
+    opacity: 1;
+}
 .message-content .chat-md-hr {
     margin: 10px 0 12px;
     border: 0;

@@ -4,68 +4,11 @@
 {% block title %}SU Scholar - Профиль исследователя{% endblock %}
 
 {% block styles %}
-<style>
-  .dashboard-panel {
-    border: 1px solid #dbe4ef;
-    border-radius: 1.5rem;
-    background: #ffffff;
-    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.06);
-  }
-
-  .soft-tile {
-    background: #f8fbff;
-    border: 1px solid #dbe4ef;
-    border-radius: 1.25rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .soft-tile:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.8rem 1.8rem rgba(13, 110, 253, 0.08);
-  }
-
-  .metric-card {
-    border: 1px solid #dbe4ef;
-    border-radius: 1.25rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  }
-
-  .metric-number {
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1;
-    color: #10243e;
-  }
-
-  .placeholder-box {
-    border: 1px dashed #b6c6d8;
-    border-radius: 1.25rem;
-    background: #f8fbff;
-    color: #6c7a89;
-    min-height: 10rem;
-  }
-
-  .profile-avatar {
-    width: 96px;
-    height: 96px;
-    object-fit: cover;
-    border: 1px solid #dbe4ef;
-    display: block;
-  }
-
-  .profile-avatar-fallback {
-    width: 96px;
-    height: 96px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #e9eff7;
-    border: 1px solid #dbe4ef;
-    color: #44566b;
-    font-size: 2rem;
-    font-weight: 700;
-  }
-</style>
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'account/css/user_profile.css' %}">
+{% if can_edit_profile %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -119,6 +62,16 @@
       </form>
     </div>
   </div>
+  {% if can_edit_profile and profile_updated %}
+    <div class="alert alert-success profile-edit-feedback" role="alert">
+      Профиль успешно обновлен.
+    </div>
+  {% endif %}
+  {% if can_edit_profile and profile_form and profile_form.errors %}
+    <div class="alert alert-danger profile-edit-feedback" role="alert">
+      Исправьте ошибки в форме редактирования профиля.
+    </div>
+  {% endif %}
 
   <div class="row g-4">
     <div class="col-lg-8">
@@ -133,14 +86,50 @@
                 {{ profile_user.first_name|default:profile_user.username|slice:":1"|upper }}
               </div>
             {% endif %}
+
           </div>
           <div class="col">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <h3 class="h4 mb-0">
-                {{ profile_user.last_name }} {{ profile_user.first_name }}{% if profile_user.father_name %} {{ profile_user.father_name }}{% endif %}
-              </h3>
-              {% if primary_role %}
-                <span class="badge rounded-pill text-bg-dark">{{ primary_role.name }}</span>
+            <div class="profile-heading-row mb-2">
+              <div class="profile-name-row">
+                <h3 class="h4 mb-0">
+                  {{ profile_user.last_name }} {{ profile_user.first_name }}{% if profile_user.father_name %} {{ profile_user.father_name }}{% endif %}
+                </h3>
+                {% if primary_role %}
+                  <span class="badge rounded-pill text-bg-dark">{{ primary_role.name }}</span>
+                {% endif %}
+              </div>
+              {% if can_edit_profile %}
+                <div class="d-flex">
+                  <button
+                  type="button"
+                  id="userProfileSynchButton"
+                  class="btn btn-outline-primary btn-sm user-profile-edit-button"
+                  data-bs-toggle="modal"
+                  data-bs-target="#userProfileSyncModal"
+                  title="Синхронизация профиля с базами журналов"
+                  disabled
+                >
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+                  <button
+                  type="button"
+                  id="userProfileEditButton"
+                  class="btn btn-outline-primary ms-2 btn-sm user-profile-edit-button"
+                  data-bs-toggle="modal"
+                  data-bs-target="#userProfileEditModal"
+                  title="Открыть форму редактирование"
+                >
+                  <i class="bi bi-pencil-fill"></i>
+                </button>
+                <a
+                  type="button"
+                  class="btn btn-outline-primary ms-2 btn-sm user-profile-edit-button"
+                  title="Выход из аккаунта"
+                  href="{% url 'account_logout' %}"
+                >
+                  <i class="bi bi-door-open-fill"></i>
+              </a>
+                </div>
               {% endif %}
             </div>
             <p class="text-muted mb-3">
@@ -289,9 +278,206 @@
     </div>
   </div>
 </div>
+{% if can_edit_profile and profile_form %}
+  {% if profile_sync_form %}
+    <div
+      class="modal fade"
+      id="userProfileSyncModal"
+      tabindex="-1"
+      aria-labelledby="userProfileSyncModalLabel"
+      aria-hidden="true"
+      data-open-on-load="{% if sync_modal_open %}1{% else %}0{% endif %}"
+      data-sync-fields-url="{{ profile_sync_fields_url }}"
+      data-sync-start-url="{{ profile_sync_start_url }}"
+      data-sync-status-url-template="{{ profile_sync_status_url_template }}"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="userProfileSyncForm" class="profile-sync-form">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title" id="userProfileSyncModalLabel">Синхронизация профиля</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-3">
+                Укажите минимум одно поле. Если заполнен только <strong>Satbayev profile URL</strong>,
+                синхронизация Satbayev запускается автоматически после сохранения.
+              </p>
+
+              <div id="profileSyncRequirementHint" class="alert profile-sync-hint" role="alert"></div>
+
+              <div class="row g-3 mb-3">
+                {% for field in profile_sync_form %}
+                  <div class="col-md-6">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                      <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+
+              <div class="profile-sync-log-wrap">
+                <div class="small fw-semibold mb-2">Логи синхронизации</div>
+                <div id="profileSyncLog" class="profile-sync-log">
+                  <div class="profile-sync-log-empty">Логи появятся после запуска синхронизации.</div>
+                </div>
+              </div>
+
+              <div id="profileSyncSummary" class="alert alert-light border mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+              <button type="button" class="btn btn-outline-primary" id="profileSyncSaveButton">Сохранить поля</button>
+              <button type="button" class="btn btn-primary" id="profileSyncStartButton">Запустить синхронизацию</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {{ profile_sync_availability|json_script:"profile-sync-availability" }}
+  {% endif %}
+
+  <div
+    class="modal fade"
+    id="userProfileEditModal"
+    tabindex="-1"
+    aria-labelledby="userProfileEditModalLabel"
+    aria-hidden="true"
+    data-open-on-load="{% if profile_form.errors %}1{% else %}0{% endif %}"
+  >
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <form method="post" enctype="multipart/form-data" class="profile-edit-form">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="userProfileEditModalLabel">Редактирование профиля</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            {% if profile_form.non_field_errors %}
+              <div class="alert alert-danger profile-edit-feedback" role="alert">
+                {% for error in profile_form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <div class="profile-edit-photo-panel mb-3">
+              <div class="d-flex flex-wrap align-items-center gap-3">
+                {% if profile_user.photo %}
+                  <img
+                    id="profileEditPhotoPreview"
+                    class="profile-edit-photo-preview rounded-4"
+                    src="{{ profile_user.photo.url }}"
+                    alt="{{ profile_user.get_full_name|default:profile_user.username }}"
+                  >
+                  <div id="profileEditPhotoFallback" class="profile-edit-photo-fallback rounded-4 d-none">
+                    {{ profile_user.first_name|default:profile_user.username|slice:":1"|upper }}
+                  </div>
+                {% else %}
+                  <img
+                    id="profileEditPhotoPreview"
+                    class="profile-edit-photo-preview rounded-4 d-none"
+                    alt="Превью фото"
+                  >
+                  <div id="profileEditPhotoFallback" class="profile-edit-photo-fallback rounded-4">
+                    {{ profile_user.first_name|default:profile_user.username|slice:":1"|upper }}
+                  </div>
+                {% endif %}
+                <div class="flex-grow-1">
+                  <label class="form-label" for="{{ profile_form.photo.id_for_label }}">{{ profile_form.photo.label }}</label>
+                  {{ profile_form.photo }}
+                  {% if profile_form.photo.help_text %}
+                    <div class="form-text">{{ profile_form.photo.help_text }}</div>
+                  {% endif %}
+                  {% for error in profile_form.photo.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                  <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      id="profilePhotoCropButton"
+                      {% if not profile_user.photo %}disabled{% endif %}
+                    >
+                      <i class="bi bi-crop"></i>
+                      Обрезать фото
+                    </button>
+                    <span class="small text-muted" id="profilePhotoSizeHint">
+                      Выберите изображение для обрезки и сжатия.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row g-3">
+              {% for field in profile_form %}
+                {% if field.name != "photo" %}
+                  <div class="col-md-6">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                      <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade"
+    id="profilePhotoCropModal"
+    tabindex="-1"
+    aria-labelledby="profilePhotoCropModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="profilePhotoCropModalLabel">Обрезка изображения</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="profile-crop-canvas">
+            <img id="profileCropImage" alt="Редактор обрезки фото">
+          </div>
+          <div class="profile-crop-help mt-2">
+            Перемещайте и масштабируйте изображение, затем нажмите "Применить".
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="button" class="btn btn-primary" id="profilePhotoApplyCropButton">Применить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 {{ block.super }}
 <script src="{% static 'account/scripts/profile_export.js' %}"></script>
+{% if can_edit_profile %}
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  <script src="{% static 'account/scripts/user_profile.js' %}"></script>
+  <script src="{% static 'account/scripts/user_profile_sync.js' %}"></script>
+{% endif %}
 {% endblock %}

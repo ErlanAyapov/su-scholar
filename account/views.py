@@ -1,6 +1,7 @@
 import json
 from urllib.parse import urlencode
 
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
@@ -17,7 +18,7 @@ from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_de
 
 from document.models import Document
 from main.models import Publication
-from main.tasks import sync_user_publications_task
+from main.tasks import sync_user_profile_full_cycle_task, sync_user_publications_task
 from main.utils import (
     build_filtered_publications,
     extract_selected_tags,
@@ -26,7 +27,13 @@ from main.utils import (
     resolve_generator_template_for_request,
 )
 
-from .forms import ActivationSetPasswordForm, LoginForm, ProfileEditForm, RegisterForm
+from .forms import (
+    ActivationSetPasswordForm,
+    LoginForm,
+    ProfileEditForm,
+    ProfileSyncFieldsForm,
+    RegisterForm,
+)
 
 
 User = get_user_model()
@@ -107,6 +114,63 @@ def _can_manage_profile_sync(request_user, profile_user) -> bool:
     )
 
 
+def _sync_profile_field_values(profile_user) -> dict[str, str]:
+    return {
+        "scopus_id": str(profile_user.scopus_id or "").strip(),
+        "wos_id": str(profile_user.wos_id or "").strip(),
+        "google_scholar": str(profile_user.google_scholar or "").strip(),
+        "researchgate": str(profile_user.researchgate or "").strip(),
+        "satbayev_profile_url": str(profile_user.satbayev_profile_url or "").strip(),
+    }
+
+
+def _sync_profile_availability(profile_user) -> dict:
+    values = _sync_profile_field_values(profile_user)
+    has_scopus = bool(values["scopus_id"])
+    has_wos = bool(values["wos_id"])
+    has_scholar = bool(values["google_scholar"])
+    has_researchgate = bool(values["researchgate"])
+    has_satbayev = bool(values["satbayev_profile_url"])
+    has_any = has_scopus or has_wos or has_scholar or has_researchgate or has_satbayev
+    import_ready = has_scopus or has_wos or has_scholar or bool(str(profile_user.orc_id or "").strip())
+    only_satbayev = has_satbayev and not (has_scopus or has_wos or has_scholar or has_researchgate)
+
+    return {
+        "has_any": has_any,
+        "import_ready": import_ready,
+        "only_satbayev": only_satbayev,
+        "has_scopus": has_scopus,
+        "has_wos": has_wos,
+        "has_scholar": has_scholar,
+        "has_researchgate": has_researchgate,
+        "has_satbayev": has_satbayev,
+        "has_orcid": bool(str(profile_user.orc_id or "").strip()),
+        "missing_fields": [
+            key
+            for key, present in (
+                ("scopus_id", has_scopus),
+                ("wos_id", has_wos),
+                ("google_scholar", has_scholar),
+                ("researchgate", has_researchgate),
+                ("satbayev_profile_url", has_satbayev),
+            )
+            if not present
+        ],
+        "values": values,
+    }
+
+
+def _decode_request_payload(request) -> dict:
+    payload = {}
+    content_type = (request.content_type or "").split(";")[0].strip().lower()
+    if content_type == "application/json":
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+    return payload
+
+
 def employees_list(request):
     paginator = Paginator(_employees_queryset(), PAGE_SIZE)
     page_obj = paginator.get_page(1)
@@ -147,7 +211,9 @@ def employee_profile(request, user_id: int):
     can_edit_profile = bool(request.user.is_authenticated and request.user.id == profile_user.id)
     can_manage_sync = _can_manage_profile_sync(request.user, profile_user)
     profile_form = None
+    profile_sync_form = None
     profile_updated = request.GET.get("updated") == "1"
+    sync_modal_open = request.GET.get("sync_open") == "1"
 
     if can_edit_profile:
         if request.method == "POST":
@@ -158,6 +224,7 @@ def employee_profile(request, user_id: int):
                 return redirect(f"{profile_url}?updated=1")
         else:
             profile_form = ProfileEditForm(instance=profile_user)
+        profile_sync_form = ProfileSyncFieldsForm(instance=profile_user)
 
     publications_qs = _employee_publications_queryset(profile_user)
     publication_count = publications_qs.count()
@@ -214,8 +281,17 @@ def employee_profile(request, user_id: int):
         "can_edit_profile": can_edit_profile,
         "can_manage_sync": can_manage_sync,
         "profile_form": profile_form,
+        "profile_sync_form": profile_sync_form,
         "profile_updated": profile_updated,
         "profile_sync_url": reverse("employee_profile_sync", kwargs={"user_id": profile_user.id}),
+        "profile_sync_fields_url": reverse("employee_profile_sync_fields", kwargs={"user_id": profile_user.id}),
+        "profile_sync_start_url": reverse("employee_profile_sync_start", kwargs={"user_id": profile_user.id}),
+        "profile_sync_status_url_template": reverse(
+            "employee_profile_sync_status",
+            kwargs={"user_id": profile_user.id, "task_id": "__TASK_ID__"},
+        ),
+        "profile_sync_availability": _sync_profile_availability(profile_user),
+        "sync_modal_open": sync_modal_open,
         "sync_sources": [
             {"key": "all", "label": "Барлығы"},
             {"key": "orcid", "label": "ORCID"},
@@ -266,6 +342,116 @@ def employee_profile_sync(request, user_id: int):
         },
         status=202,
     )
+
+
+@login_required(login_url="account_login")
+def employee_profile_sync_fields(request, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    profile_user = get_object_or_404(User, pk=user_id)
+    if not _can_manage_profile_sync(request.user, profile_user):
+        return JsonResponse({"detail": "Forbidden"}, status=403)
+
+    payload = _decode_request_payload(request)
+    data = payload or request.POST
+    form = ProfileSyncFieldsForm(data, instance=profile_user)
+    if not form.is_valid():
+        return JsonResponse(
+            {"detail": "Validation failed", "errors": form.errors.get_json_data()},
+            status=400,
+        )
+
+    form.save()
+    profile_user.refresh_from_db()
+    return JsonResponse(
+        {
+            "ok": True,
+            "fields": _sync_profile_field_values(profile_user),
+            "availability": _sync_profile_availability(profile_user),
+        }
+    )
+
+
+@login_required(login_url="account_login")
+def employee_profile_sync_start(request, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    profile_user = get_object_or_404(User, pk=user_id)
+    if not _can_manage_profile_sync(request.user, profile_user):
+        return JsonResponse({"detail": "Forbidden"}, status=403)
+
+    payload = _decode_request_payload(request)
+    mode = str(payload.get("mode") or request.POST.get("mode") or "full").strip().lower()
+    force_raw = payload.get("force", request.POST.get("force", "0"))
+    force = str(force_raw).strip().lower() in {"1", "true", "yes", "on"}
+
+    availability = _sync_profile_availability(profile_user)
+    if not availability["has_any"]:
+        return JsonResponse(
+            {
+                "detail": "At least one sync field is required.",
+                "availability": availability,
+            },
+            status=400,
+        )
+
+    satbayev_only = mode == "satbayev_only"
+    if satbayev_only and not availability["has_satbayev"]:
+        return JsonResponse(
+            {
+                "detail": "Satbayev profile URL is required for satbayev_only mode.",
+                "availability": availability,
+            },
+            status=400,
+        )
+
+    task = sync_user_profile_full_cycle_task.delay(
+        user_id=profile_user.id,
+        initiated_by_id=request.user.id,
+        force=force,
+        satbayev_only=satbayev_only,
+    )
+    return JsonResponse(
+        {
+            "status": "queued",
+            "task_id": task.id,
+            "satbayev_only": satbayev_only,
+            "availability": availability,
+        },
+        status=202,
+    )
+
+
+@login_required(login_url="account_login")
+def employee_profile_sync_status(request, user_id: int, task_id: str):
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+
+    profile_user = get_object_or_404(User, pk=user_id)
+    if not _can_manage_profile_sync(request.user, profile_user):
+        return JsonResponse({"detail": "Forbidden"}, status=403)
+
+    async_result = AsyncResult(task_id)
+    state = str(async_result.state or "PENDING").upper()
+    is_ready = bool(async_result.ready())
+    payload = {
+        "task_id": task_id,
+        "state": state,
+        "ready": is_ready,
+    }
+
+    if not is_ready:
+        return JsonResponse(payload)
+
+    if async_result.successful():
+        payload["result"] = async_result.result
+        payload["ok"] = True
+    else:
+        payload["ok"] = False
+        payload["error"] = str(async_result.result)
+    return JsonResponse(payload)
 
 
 def employee_profile_export(request, user_id: int):
