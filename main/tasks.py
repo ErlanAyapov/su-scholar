@@ -1,9 +1,12 @@
 from celery import group, shared_task
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.urls import reverse
 from django.utils import timezone
 from requests import RequestException
 
+from account.tasks import enrich_user_profile_from_satbayev
 from core.tasks.logged_task import LoggedTask
 from main.models import Author, Publication
 from main.realtime import notify_public, notify_user
@@ -15,6 +18,7 @@ from main.services.publication_importer import (
 )
 from main.services.publication_pipeline import run_publication_pipeline
 from main.services.publication_pipeline.author_linking import populate_author_identity, relink_author_instance
+from utils.email_service import send_system_email
 
 User = get_user_model()
 SYNC_SOURCE_LABELS = {
@@ -23,6 +27,14 @@ SYNC_SOURCE_LABELS = {
     "scopus": "Scopus",
     "scholar": "Google Scholar",
     "wos": "Web of Science",
+}
+
+PROFILE_SYNC_SOURCE_LABELS = {
+    "orcid": "ORCID",
+    "scopus": "Scopus/OpenAlex",
+    "wos": "Web of Science (OpenAlex fallback)",
+    "scholar": "Google Scholar",
+    "satbayev": "Satbayev Profile",
 }
 
 
@@ -52,6 +64,108 @@ def _merge_sync_result(summary: dict, result: dict) -> None:
     summary["updated"] += int(result.get("updated") or 0)
     summary["skipped"] += int(result.get("skipped") or 0)
     summary["errors"].extend(result.get("errors") or [])
+
+
+def _publication_public_url(publication_id: int) -> str:
+    path = reverse("publication_detail", kwargs={"pk": publication_id})
+    public_base = str(getattr(settings, "APP_PUBLIC_URL", "") or "").strip().rstrip("/")
+    if not public_base:
+        return path
+    return f"{public_base}{path}"
+
+
+def _profile_public_url(user_id: int) -> str:
+    path = reverse("employee_profile", kwargs={"user_id": user_id})
+    public_base = str(getattr(settings, "APP_PUBLIC_URL", "") or "").strip().rstrip("/")
+    if not public_base:
+        return path
+    return f"{public_base}{path}"
+
+
+def _send_profile_sync_email_report(
+    *,
+    user,
+    source_stats: dict,
+    publication_ids: list[int],
+) -> bool:
+    recipient = str(user.email or "").strip()
+    if not recipient:
+        return False
+
+    publications = list(
+        Publication.objects.filter(id__in=publication_ids)
+        .only("id", "title_original")
+        .order_by("-id")
+    )
+
+    full_name = user.get_full_name().strip() or user.username
+    subject = "SU Scholar: синхронизация профиля завершена"
+    lines = [
+        f"Здравствуйте, {full_name}!",
+        "",
+        "Синхронизация профиля завершена.",
+        "",
+        "Сводка по источникам:",
+    ]
+    for source_key, source_data in source_stats.items():
+        label = PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)
+        lines.append(
+            (
+                f"- {label}: найдено {int(source_data.get('works_total', 0))}, "
+                f"создано {int(source_data.get('created', 0))}, "
+                f"обновлено {int(source_data.get('updated', 0))}, "
+                f"пропущено {int(source_data.get('skipped', 0))}"
+            )
+        )
+
+    lines.extend(["", f"Публикации в системе ({len(publications)}):"])
+    if publications:
+        for publication in publications:
+            title = (publication.title_original or f"Publication #{publication.id}").strip()
+            lines.append(f"- {title}: {_publication_public_url(publication.id)}")
+    else:
+        lines.append("- Новых публикаций не найдено.")
+
+    lines.extend(["", f"Профиль: {_profile_public_url(user.id)}"])
+
+    html_items = ""
+    for publication in publications:
+        title = (publication.title_original or f"Publication #{publication.id}").strip()
+        html_items += (
+            f'<li><a href="{_publication_public_url(publication.id)}">{title}</a></li>'
+        )
+    if not html_items:
+        html_items = "<li>Новых публикаций не найдено.</li>"
+
+    html_body = (
+        f"<p>Здравствуйте, {full_name}!</p>"
+        "<p>Синхронизация профиля завершена.</p>"
+        "<p><strong>Сводка по источникам:</strong></p>"
+        "<ul>"
+        + "".join(
+            (
+                f"<li>{PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)}: "
+                f"найдено {int(source_data.get('works_total', 0))}, "
+                f"создано {int(source_data.get('created', 0))}, "
+                f"обновлено {int(source_data.get('updated', 0))}, "
+                f"пропущено {int(source_data.get('skipped', 0))}</li>"
+            )
+            for source_key, source_data in source_stats.items()
+        )
+        + "</ul>"
+        + f"<p><strong>Публикации в системе ({len(publications)}):</strong></p>"
+        + f"<ul>{html_items}</ul>"
+        + f'<p>Профиль: <a href="{_profile_public_url(user.id)}">{_profile_public_url(user.id)}</a></p>'
+    )
+
+    send_system_email(
+        subject=subject,
+        body="\n".join(lines),
+        html_body=html_body,
+        recipients=[recipient],
+        fail_silently=False,
+    )
+    return True
 
 @shared_task
 def ping():
@@ -297,6 +411,368 @@ def sync_user_publications_task(
         errors=summary["error_count"],
     )
 
+    return summary
+
+
+@shared_task(bind=True, base=LoggedTask)
+def sync_user_profile_full_cycle_task(
+    self,
+    user_id: int,
+    initiated_by_id: int | None = None,
+    force: bool = False,
+    satbayev_only: bool = False,
+) -> dict:
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return {"status": "not_found", "user_id": user_id}
+
+    run_id = str(getattr(self.request, "id", "") or "")
+    profile_name = user.get_full_name().strip() or user.username or f"user-{user.id}"
+
+    def _push(message: str, *, level: str = "info", stage: str = "", **extra) -> None:
+        _notify_sync_participants(
+            target_user_id=user.id,
+            initiated_by_id=initiated_by_id,
+            source=stage or "profile_sync",
+            message=message,
+            level=level,
+            sync_run_id=run_id,
+            stage=stage,
+            **extra,
+        )
+        if level == "error":
+            self.log_error(message, meta={"stage": stage, **extra}, object_type="user", object_id=str(user.id))
+        elif level == "warning":
+            self.log_warning(message, meta={"stage": stage, **extra}, object_type="user", object_id=str(user.id))
+        else:
+            self.log_info(message, meta={"stage": stage, **extra}, object_type="user", object_id=str(user.id))
+
+    _push(
+        f"Запущена полная синхронизация профиля: {profile_name}",
+        stage="start",
+        level="info",
+        satbayev_only=satbayev_only,
+    )
+
+    summary = {
+        "status": "ok",
+        "user_id": user.id,
+        "sync_run_id": run_id,
+        "satbayev_only": bool(satbayev_only),
+        "sources": {},
+        "unsupported_sources": [],
+        "post_processing": {},
+        "publication_ids": [],
+        "publication_count": 0,
+        "created_total": 0,
+        "updated_total": 0,
+        "skipped_total": 0,
+        "error_count": 0,
+        "email_sent": False,
+    }
+
+    satbayev_result = {"status": "skipped", "reason": "satbayev_profile_url_missing"}
+    if str(user.satbayev_profile_url or "").strip():
+        _push("Satbayev enrichment: старт", stage="satbayev", level="info")
+        satbayev_result = enrich_user_profile_from_satbayev.run(user_id=user.id, force=force)
+        satbayev_status = str(satbayev_result.get("status", "")).strip().lower()
+        if satbayev_status == "ok":
+            _push("Satbayev enrichment: завершено", stage="satbayev", level="success")
+        elif satbayev_status in {"not_found", "skipped"}:
+            _push("Satbayev enrichment: пропущено", stage="satbayev", level="warning")
+        else:
+            _push("Satbayev enrichment: завершено с предупреждением", stage="satbayev", level="warning")
+    else:
+        _push("Satbayev profile URL не указан. Шаг Satbayev пропущен.", stage="satbayev", level="warning")
+
+    summary["sources"]["satbayev"] = satbayev_result
+    user.refresh_from_db()
+
+    if satbayev_only:
+        summary["status"] = "ok"
+        _push(
+            "Синхронизация Satbayev завершена. Обновляем профиль.",
+            stage="complete",
+            level="success",
+            completed=True,
+            satbayev_only=True,
+        )
+        return summary
+
+    if str(user.researchgate or "").strip():
+        summary["unsupported_sources"].append("researchgate")
+        _push(
+            "ResearchGate указан, но прямой импорт в текущей версии не реализован.",
+            stage="researchgate",
+            level="warning",
+        )
+
+    source_results: dict[str, dict] = {}
+    changed_publication_ids: set[int] = set()
+    source_order = ("orcid", "scopus", "wos", "scholar")
+
+    for source_key in source_order:
+        should_run = False
+        if source_key == "orcid":
+            should_run = bool(str(user.orc_id or "").strip())
+        elif source_key == "scopus":
+            should_run = bool(str(user.scopus_id or "").strip())
+        elif source_key == "wos":
+            should_run = bool(str(user.wos_id or "").strip())
+        elif source_key == "scholar":
+            should_run = bool(str(user.google_scholar or "").strip())
+
+        if not should_run:
+            source_results[source_key] = {
+                "status": "skipped",
+                "reason": "missing_profile_field",
+                "works_total": 0,
+                "created": 0,
+                "updated": 0,
+                "skipped": 0,
+                "errors": [],
+            }
+            continue
+
+        _push(f"Импорт {PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)}: старт", stage=source_key, level="info")
+        try:
+            if source_key == "orcid":
+                result = import_publications_for_user(user=user, force=force, sources=("orcid",))
+            elif source_key == "scopus":
+                result = import_publications_for_user(
+                    user=user,
+                    force=force,
+                    sources=("openalex",),
+                    prefer_scopus=True,
+                )
+            elif source_key == "wos":
+                result = import_publications_for_user(
+                    user=user,
+                    force=force,
+                    sources=("openalex",),
+                    prefer_scopus=bool(user.scopus_id),
+                )
+                existing_errors = list(result.get("errors") or [])
+                existing_errors.append("wos:direct_api_not_configured_using_openalex_fallback")
+                result["errors"] = existing_errors
+            else:
+                scholar_query = str(user.google_scholar or "").strip() or (
+                    " ".join(part for part in [user.last_name, user.first_name, user.father_name] if part).strip() or user.username
+                )
+                result = import_works_from_scholar(user=user, query=scholar_query, force=force)
+        except Exception as exc:  # noqa: BLE001
+            source_results[source_key] = {
+                "status": "failed",
+                "works_total": 0,
+                "created": 0,
+                "updated": 0,
+                "skipped": 0,
+                "errors": [str(exc)],
+            }
+            _push(
+                f"Импорт {PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)}: ошибка {exc}",
+                stage=source_key,
+                level="error",
+            )
+            continue
+
+        source_results[source_key] = {
+            "status": "ok",
+            "works_total": int(result.get("works_total") or 0),
+            "created": int(result.get("created") or 0),
+            "updated": int(result.get("updated") or 0),
+            "skipped": int(result.get("skipped") or 0),
+            "errors": [str(item) for item in (result.get("errors") or []) if str(item).strip()],
+        }
+        for publication_id in (result.get("created_publication_ids") or []):
+            if isinstance(publication_id, int):
+                changed_publication_ids.add(publication_id)
+        for publication_id in (result.get("updated_publication_ids") or []):
+            if isinstance(publication_id, int):
+                changed_publication_ids.add(publication_id)
+
+        _push(
+            (
+                f"Импорт {PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)}: "
+                f"найдено {source_results[source_key]['works_total']}, "
+                f"создано {source_results[source_key]['created']}, "
+                f"обновлено {source_results[source_key]['updated']}, "
+                f"пропущено {source_results[source_key]['skipped']}"
+            ),
+            stage=source_key,
+            level="success" if not source_results[source_key]["errors"] else "warning",
+        )
+
+    summary["sources"].update(source_results)
+
+    if changed_publication_ids:
+        publication_ids = list(
+            Publication.objects.filter(id__in=changed_publication_ids)
+            .order_by("-id")
+            .values_list("id", flat=True)
+        )
+    else:
+        publication_ids = []
+
+    summary["publication_ids"] = publication_ids
+    summary["publication_count"] = len(publication_ids)
+
+    if publication_ids:
+        _push("Дополнить данные доступных работ (кол-во): старт", stage="abstracts", level="info")
+        abstracts_result = enrich_publications_with_abstracts(
+            limit=len(publication_ids),
+            force=False,
+            publication_ids=publication_ids,
+        )
+        summary["post_processing"]["abstracts"] = abstracts_result
+        _push(
+            (
+                f"Дополнение абстрактов завершено: обработано {int(abstracts_result.get('processed', 0))}, "
+                f"обновлено {int(abstracts_result.get('updated', 0))}, ошибок {int(abstracts_result.get('failed', 0))}"
+            ),
+            stage="abstracts",
+            level="success" if int(abstracts_result.get("failed", 0)) == 0 else "warning",
+        )
+    else:
+        summary["post_processing"]["abstracts"] = {"status": "skipped", "reason": "no_publications"}
+
+    pipeline_publication_ids = list(
+        Publication.objects.filter(id__in=publication_ids)
+        .filter(
+            Q(url_publisher__gt="")
+            | Q(url_open_access__gt="")
+            | Q(doi__gt="")
+            | Q(repo_links__isnull=False)
+        )
+        .distinct()
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+
+    pipeline_summary = {
+        "processed": 0,
+        "succeeded": 0,
+        "failed": 0,
+        "errors": [],
+    }
+    if pipeline_publication_ids:
+        _push("Publication Pipeline: старт", stage="pipeline", level="info")
+        for index, publication_id in enumerate(pipeline_publication_ids, start=1):
+            self.log_progress(
+                message=f"Publication Pipeline ({index}/{len(pipeline_publication_ids)})",
+                current=index,
+                total=len(pipeline_publication_ids),
+                object_type="publication",
+                object_id=str(publication_id),
+                meta={"sync_run_id": run_id},
+            )
+            item_result = run_publication_pipeline_single_task.run(
+                publication_id=publication_id,
+                force_refresh=force,
+            )
+            pipeline_summary["processed"] += 1
+            if bool(item_result.get("success")):
+                pipeline_summary["succeeded"] += 1
+            else:
+                pipeline_summary["failed"] += 1
+                for error_text in item_result.get("errors") or []:
+                    if str(error_text).strip():
+                        pipeline_summary["errors"].append(str(error_text))
+
+        _push(
+            (
+                f"Publication Pipeline завершен: успешно {pipeline_summary['succeeded']}, "
+                f"с ошибками {pipeline_summary['failed']}"
+            ),
+            stage="pipeline",
+            level="success" if pipeline_summary["failed"] == 0 else "warning",
+        )
+    else:
+        pipeline_summary = {"status": "skipped", "reason": "no_publications_with_sources"}
+    summary["post_processing"]["publication_pipeline"] = pipeline_summary
+
+    author_ids = list(
+        Author.objects.filter(publications__id__in=publication_ids)
+        .distinct()
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+
+    normalization_summary = {
+        "processed": 0,
+        "normalized": 0,
+        "relinked": 0,
+        "updated": 0,
+    }
+    if author_ids:
+        _push("Author Normalization: старт", stage="author_normalization", level="info")
+        for author_id in author_ids:
+            author = Author.objects.select_related("user").get(id=author_id)
+            normalization_summary["processed"] += 1
+            changed_fields = populate_author_identity(author, save=True)
+            if changed_fields:
+                normalization_summary["normalized"] += 1
+                normalization_summary["updated"] += 1
+            relink_result = relink_author_instance(author, save=True)
+            if relink_result.get("matched_user_id"):
+                normalization_summary["relinked"] += 1
+            if relink_result.get("updated_fields"):
+                normalization_summary["updated"] += 1
+
+        _push(
+            (
+                f"Author Normalization + Relink завершены: обработано {normalization_summary['processed']}, "
+                f"связано с пользователями {normalization_summary['relinked']}"
+            ),
+            stage="author_normalization",
+            level="success",
+        )
+    else:
+        normalization_summary = {"status": "skipped", "reason": "no_authors"}
+    summary["post_processing"]["author_normalization"] = normalization_summary
+
+    for source_key, source_data in source_results.items():
+        summary["created_total"] += int(source_data.get("created") or 0)
+        summary["updated_total"] += int(source_data.get("updated") or 0)
+        summary["skipped_total"] += int(source_data.get("skipped") or 0)
+        summary["error_count"] += len(source_data.get("errors") or [])
+    summary["error_count"] += int(pipeline_summary.get("failed") or 0)
+    summary["status"] = "ok" if summary["error_count"] == 0 else "completed_with_warnings"
+
+    if initiated_by_id and initiated_by_id == user.id:
+        try:
+            email_source_stats = {
+                source_key: source_data
+                for source_key, source_data in source_results.items()
+                if source_data.get("status") == "ok"
+            }
+            summary["email_sent"] = _send_profile_sync_email_report(
+                user=user,
+                source_stats=email_source_stats,
+                publication_ids=publication_ids,
+            )
+        except Exception as exc:  # noqa: BLE001
+            summary["email_sent"] = False
+            summary["error_count"] += 1
+            summary["status"] = "completed_with_warnings"
+            _push(
+                f"Не удалось отправить email-отчет: {exc}",
+                stage="email",
+                level="warning",
+            )
+
+    _push(
+        (
+            f"Синхронизация завершена: создано {summary['created_total']}, "
+            f"обновлено {summary['updated_total']}, публикаций в профиле {summary['publication_count']}, "
+            f"ошибок {summary['error_count']}"
+        ),
+        stage="complete",
+        level="success" if summary["status"] == "ok" else "warning",
+        completed=True,
+        status=summary["status"],
+    )
     return summary
 
 

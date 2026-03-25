@@ -337,6 +337,91 @@ class EmployeeProfileExportTests(TestCase):
         )
         self.assertEqual(Document.objects.count(), 0)
 
+
+class EmployeeProfileSyncApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="sync-user",
+            password="SyncPass123!",
+            email="sync.user@satbayev.university",
+            is_user=True,
+            is_active=True,
+        )
+        self.client.force_login(self.user)
+
+    def test_sync_fields_saves_values(self):
+        response = self.client.post(
+            reverse("employee_profile_sync_fields", kwargs={"user_id": self.user.id}),
+            data=json.dumps(
+                {
+                    "satbayev_profile_url": "https://official.satbayev.university/ru/teachers/example",
+                    "scopus_id": "57222517592",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload.get("ok"))
+        self.assertTrue(payload["availability"]["has_satbayev"])
+        self.assertTrue(payload["availability"]["has_scopus"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.scopus_id, "57222517592")
+
+    def test_sync_start_requires_at_least_one_field(self):
+        response = self.client.post(
+            reverse("employee_profile_sync_start", kwargs={"user_id": self.user.id}),
+            data=json.dumps({"mode": "full"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("At least one sync field is required", response.json()["detail"])
+
+    @patch("account.views.sync_user_profile_full_cycle_task.delay")
+    def test_sync_start_queues_task(self, mock_delay):
+        mock_delay.return_value = SimpleNamespace(id="sync-task-1")
+        self.user.scopus_id = "57222517592"
+        self.user.save(update_fields=["scopus_id"])
+
+        response = self.client.post(
+            reverse("employee_profile_sync_start", kwargs={"user_id": self.user.id}),
+            data=json.dumps({"mode": "full", "force": True}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 202)
+        payload = response.json()
+        self.assertEqual(payload["task_id"], "sync-task-1")
+        mock_delay.assert_called_once_with(
+            user_id=self.user.id,
+            initiated_by_id=self.user.id,
+            force=True,
+            satbayev_only=False,
+        )
+
+    @patch("account.views.AsyncResult")
+    def test_sync_status_returns_success_payload(self, mock_async_result_cls):
+        mock_async = Mock()
+        mock_async.state = "SUCCESS"
+        mock_async.ready.return_value = True
+        mock_async.successful.return_value = True
+        mock_async.result = {"status": "ok", "created_total": 3}
+        mock_async_result_cls.return_value = mock_async
+
+        response = self.client.get(
+            reverse(
+                "employee_profile_sync_status",
+                kwargs={"user_id": self.user.id, "task_id": "sync-task-1"},
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["result"]["status"], "ok")
+
     def test_anonymous_export_returns_attachment_without_saving_document(self):
         generator = self._create_generator(
             title="Public employee template",

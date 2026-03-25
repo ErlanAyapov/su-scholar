@@ -941,6 +941,8 @@ def import_publications_for_user(
     created = 0
     updated = 0
     skipped = 0
+    created_publication_ids: list[int] = []
+    updated_publication_ids: list[int] = []
     for work in unique_works:
         doi = _normalize_doi(work.get("doi", ""))
         record_id = _build_record_id(work.get("source", "ext"), work.get("source_id", ""), doi)
@@ -974,6 +976,7 @@ def import_publications_for_user(
                 created_by=user,
             )
             created += 1
+            created_publication_ids.append(publication.id)
         else:
             changed_fields = []
             if force or not publication.title_original:
@@ -1002,6 +1005,7 @@ def import_publications_for_user(
             if changed_fields:
                 publication.save(update_fields=list(set(changed_fields)))
                 updated += 1
+                updated_publication_ids.append(publication.id)
 
         _upsert_identifiers(publication, work.get("external_ids", []))
         _upsert_authors(publication, user=user, work_authors=work.get("authors", []))
@@ -1014,6 +1018,8 @@ def import_publications_for_user(
         "created": created,
         "updated": updated,
         "skipped": skipped,
+        "created_publication_ids": created_publication_ids,
+        "updated_publication_ids": updated_publication_ids,
         "merged_duplicates": dedup_result["merged"],
         "duplicate_groups": dedup_result["groups"],
         "errors": errors,
@@ -1054,6 +1060,8 @@ def import_works_from_scholar(user, query: str, timeout: int = 30, force: bool =
     created = 0
     updated = 0
     skipped = 0
+    created_publication_ids: list[int] = []
+    updated_publication_ids: list[int] = []
     for work in unique_works:
         doi = _normalize_doi(work.get("doi", ""))
         work_year = _safe_year(work.get("year"))
@@ -1088,6 +1096,7 @@ def import_works_from_scholar(user, query: str, timeout: int = 30, force: bool =
                 created_by=user,
             )
             created += 1
+            created_publication_ids.append(publication.id)
         else:
             changed_fields = []
             if force or not publication.title_original:
@@ -1118,6 +1127,7 @@ def import_works_from_scholar(user, query: str, timeout: int = 30, force: bool =
             if changed_fields:
                 publication.save(update_fields=list(set(changed_fields)))
                 updated += 1
+                updated_publication_ids.append(publication.id)
 
         _upsert_identifiers(publication, work.get("external_ids", []))
         _upsert_authors(publication, user=user, work_authors=work.get("authors", []))
@@ -1130,6 +1140,8 @@ def import_works_from_scholar(user, query: str, timeout: int = 30, force: bool =
         "created": created,
         "updated": updated,
         "skipped": skipped,
+        "created_publication_ids": created_publication_ids,
+        "updated_publication_ids": updated_publication_ids,
         "merged_duplicates": dedup_result["merged"],
         "duplicate_groups": dedup_result["groups"],
         "errors": errors,
@@ -1178,9 +1190,12 @@ def enrich_publications_with_abstracts(
     limit: int = 200,
     force: bool = False,
     timeout: int = 20,
+    publication_ids: list[int] | None = None,
     progress_callback=None,
 ) -> dict:
     queryset = Publication.objects.exclude(url_publisher="").order_by("id")
+    if publication_ids:
+        queryset = queryset.filter(id__in=publication_ids)
     if not force:
         queryset = queryset.filter(models.Q(abstract__isnull=True) | models.Q(abstract=""))
 

@@ -1,6 +1,11 @@
+import io
+from pathlib import Path
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm, UserCreationForm
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 
 User = get_user_model()
@@ -85,6 +90,10 @@ class ActivationSetPasswordForm(SetPasswordForm):
 
 
 class ProfileEditForm(forms.ModelForm):
+    MAX_PHOTO_UPLOAD_BYTES = 15 * 1024 * 1024
+    PHOTO_MAX_SIDE = 1280
+    PHOTO_QUALITY = 82
+
     class Meta:
         model = User
         fields = (
@@ -128,3 +137,90 @@ class ProfileEditForm(forms.ModelForm):
             else:
                 field.widget.attrs.update({"class": "form-control"})
             field.widget.attrs.setdefault("placeholder", field.label)
+            if name == "photo":
+                field.widget.attrs.update({"accept": "image/*"})
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get("photo")
+        if photo in (None, False):
+            return photo
+
+        if photo.size > self.MAX_PHOTO_UPLOAD_BYTES:
+            raise forms.ValidationError("Фото тым үлкен. Файл өлшемі 15 MB аспауы керек.")
+
+        try:
+            return self._compress_photo(photo)
+        except (UnidentifiedImageError, OSError, ValueError) as exc:
+            raise forms.ValidationError("Суретті өңдеу мүмкін болмады. Басқа файл жүктеп көріңіз.") from exc
+
+    @classmethod
+    def _compress_photo(cls, photo):
+        photo.seek(0)
+        with Image.open(photo) as image:
+            image = ImageOps.exif_transpose(image)
+
+            if image.mode in ("RGBA", "LA", "P"):
+                rgba_image = image.convert("RGBA")
+                canvas = Image.new("RGB", rgba_image.size, (255, 255, 255))
+                canvas.paste(rgba_image, mask=rgba_image.split()[-1])
+                image = canvas
+            else:
+                image = image.convert("RGB")
+
+            if max(image.size) > cls.PHOTO_MAX_SIDE:
+                image.thumbnail((cls.PHOTO_MAX_SIDE, cls.PHOTO_MAX_SIDE), Image.Resampling.LANCZOS)
+
+            output = io.BytesIO()
+            image.save(
+                output,
+                format="JPEG",
+                quality=cls.PHOTO_QUALITY,
+                optimize=True,
+                progressive=True,
+            )
+            output.seek(0)
+
+        stem = Path(photo.name).stem.strip() or "profile-photo"
+        file_name = f"{stem}.jpg"
+        return InMemoryUploadedFile(
+            file=output,
+            field_name="photo",
+            name=file_name,
+            content_type="image/jpeg",
+            size=output.getbuffer().nbytes,
+            charset=None,
+        )
+
+
+class ProfileSyncFieldsForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = (
+            "scopus_id",
+            "wos_id",
+            "google_scholar",
+            "researchgate",
+            "satbayev_profile_url",
+        )
+        labels = {
+            "scopus_id": "Scopus ID",
+            "wos_id": "Web of Science ID",
+            "google_scholar": "Google Scholar",
+            "researchgate": "ResearchGate",
+            "satbayev_profile_url": "Satbayev profile URL",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.required = False
+            field.widget.attrs.update({"class": "form-control"})
+            field.widget.attrs.setdefault("placeholder", field.label)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for field_name in self.fields:
+            value = cleaned_data.get(field_name)
+            if isinstance(value, str):
+                cleaned_data[field_name] = value.strip()
+        return cleaned_data
