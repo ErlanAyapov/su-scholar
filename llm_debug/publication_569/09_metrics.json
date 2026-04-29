@@ -1,0 +1,83 @@
+{
+  "publication_id": 569,
+  "sources": [
+    {
+      "requested_url": "https://www.mdpi.com/2305-6290/8/1/33",
+      "final_url": "https://www.mdpi.com/2305-6290/8/1/33",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 3.918,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 609225,
+      "cleaned_text_chars": 118323,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://doi.org/10.3390/LOGISTICS8010033",
+      "final_url": "https://www.mdpi.com/2305-6290/8/1/33",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 1.908,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 609225,
+      "cleaned_text_chars": 118323,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://doi.org/10.3390/logistics8010033",
+      "final_url": "https://www.mdpi.com/2305-6290/8/1/33",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 1.335,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 609225,
+      "cleaned_text_chars": 118323,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://www.mdpi.com/2305-6290/8/1/33/pdf?version=1711525315",
+      "final_url": "https://mdpi-res.com/d_attachment/logistics/logistics-08-00033/article_deploy/logistics-08-00033-v2.pdf?version=1711525315",
+      "source_type": "pdf_text",
+      "fetch_time_sec": 0.903,
+      "http_status": 200,
+      "content_type": "application/pdf",
+      "html_chars": 0,
+      "cleaned_text_chars": 0,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://www.mdpi.com/2305-6290/8/1/33/htm",
+      "final_url": "https://www.mdpi.com/2305-6290/8/1/33",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 1.364,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 609225,
+      "cleaned_text_chars": 118323,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    }
+  ],
+  "total_sources_fetched": 5,
+  "pdf_files_saved": 1,
+  "merge_time_sec": 0.0,
+  "normalization_time_sec": 0.0,
+  "author_matching": {
+    "total_authors": 0,
+    "auto_linked": 0,
+    "review_linked": 0
+  },
+  "db_update_time_sec": 0.014,
+  "total_chars_html": 2436900,
+  "total_cleaned_text_chars": 473292,
+  "total_pipeline_time_sec": 22.442
+}

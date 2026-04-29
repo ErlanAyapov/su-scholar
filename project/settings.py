@@ -124,6 +124,7 @@ INSTALLED_APPS = [
     'account',
     'document',
     'llm',
+    'django_extensions',
 ]
 
 if importlib.util.find_spec('daphne') is not None:
@@ -226,12 +227,25 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-DOCK_EDITOR_URL = os.getenv('DOCK_EDITOR_URL', '')
+DOCK_EDITOR_URL = os.getenv('DOCK_EDITOR_URL', 'http://192.168.1.3:8080')
 APP_PUBLIC_URL = os.getenv('APP_PUBLIC_URL', '')
-ONLYOFFICE_JWT_SECRET = os.getenv('ONLYOFFICE_JWT_SECRET', '')
+_onlyoffice_jwt_secret_raw = os.getenv('ONLYOFFICE_JWT_SECRET', 'onlyoffice-local-secret' if DEBUG else '')
+ONLYOFFICE_JWT_SECRET = _onlyoffice_jwt_secret_raw.replace('$$', '$')
 LLM_API = os.getenv('LLM_API', 'http://localhost:11434/v1')
 LLM_API_KEY = os.getenv('LLM_API_KEY', '')
 LLM_MODEL = os.getenv('LLM_MODEL', 'gpt-oss:20b')
+PROJECT_AGENT_MODEL_FAST = os.getenv('PROJECT_AGENT_MODEL_FAST', 'gpt-oss:20b')
+PROJECT_AGENT_MODEL_MIDDLE = os.getenv('PROJECT_AGENT_MODEL_MIDDLE', 'qwen3:30b')
+PROJECT_AGENT_MODEL_HIGH = os.getenv('PROJECT_AGENT_MODEL_HIGH', 'gpt-oss:120b')
+PROJECT_AGENT_LLM_TIMEOUT_FAST = _as_int(os.getenv('PROJECT_AGENT_LLM_TIMEOUT_FAST'), default=120)
+PROJECT_AGENT_LLM_TIMEOUT_MIDDLE = _as_int(os.getenv('PROJECT_AGENT_LLM_TIMEOUT_MIDDLE'), default=300)
+PROJECT_AGENT_LLM_TIMEOUT_HIGH = _as_int(os.getenv('PROJECT_AGENT_LLM_TIMEOUT_HIGH'), default=1200)
+PROJECT_AGENT_LLM_MAX_RETRIES_FAST = _as_int(os.getenv('PROJECT_AGENT_LLM_MAX_RETRIES_FAST'), default=2)
+PROJECT_AGENT_LLM_MAX_RETRIES_MIDDLE = _as_int(os.getenv('PROJECT_AGENT_LLM_MAX_RETRIES_MIDDLE'), default=3)
+PROJECT_AGENT_LLM_MAX_RETRIES_HIGH = _as_int(os.getenv('PROJECT_AGENT_LLM_MAX_RETRIES_HIGH'), default=4)
+PROJECT_AGENT_NODE_URL = os.getenv('PROJECT_AGENT_NODE_URL', 'http://node:3000')
+PROJECT_AGENT_PUBLIC_NODE_URL = os.getenv('PROJECT_AGENT_PUBLIC_NODE_URL', '')
+PROJECT_AGENT_INTERNAL_APP_BASE_URL = os.getenv('PROJECT_AGENT_INTERNAL_APP_BASE_URL', 'http://web:8000')
 LLM_CONNECT_TIMEOUT = _as_float(os.getenv('LLM_CONNECT_TIMEOUT'), default=15.0)
 LLM_READ_TIMEOUT = _as_float(os.getenv('LLM_READ_TIMEOUT'), default=120.0)
 LLM_WRITE_TIMEOUT = _as_float(os.getenv('LLM_WRITE_TIMEOUT'), default=30.0)

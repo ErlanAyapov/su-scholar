@@ -112,51 +112,51 @@
   margin-bottom: 1rem;
 }
 
-.profile-sync-log-wrap {
+.profile-sync-status-wrap {
   border: 1px solid #dbe4ef;
   border-radius: 1rem;
   background: #f8fbff;
   padding: 0.85rem;
 }
 
-.profile-sync-log {
-  max-height: 240px;
-  overflow: auto;
-  border-radius: 0.8rem;
-  background: #0f172a;
-  color: #dbe7f2;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 12px;
+.profile-sync-status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 1.5rem;
 }
 
-.profile-sync-log-empty {
-  padding: 0.8rem;
-  color: #93abc0;
+.profile-sync-status-text {
+  font-size: 0.92rem;
+  color: #475569;
 }
 
-.profile-sync-log-row {
-  padding: 0.5rem 0.65rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+.profile-sync-status-text.is-info {
+  color: #1e3a8a;
 }
 
-.profile-sync-log-row:last-child {
-  border-bottom: 0;
+.profile-sync-status-text.is-success {
+  color: #166534;
 }
 
-.profile-sync-log-row.info {
-  color: #dbe7f2;
+.profile-sync-status-text.is-warning {
+  color: #92400e;
 }
 
-.profile-sync-log-row.success {
-  color: #9ee7b5;
+.profile-sync-status-text.is-error {
+  color: #b91c1c;
 }
 
-.profile-sync-log-row.warning {
-  color: #f7cd8f;
+.profile-sync-progress {
+  height: 0.48rem;
+  margin-top: 0.68rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #dbe7f5;
 }
 
-.profile-sync-log-row.error {
-  color: #f2a3a3;
+.profile-sync-progress .progress-bar {
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
 }
 
 .profile-edit-photo-panel {

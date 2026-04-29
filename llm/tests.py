@@ -1,19 +1,23 @@
 import httpx
 import asyncio
 import json
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from openai import APITimeoutError
 
+from document.models import Document
 from llm.consumers import LlmChatConsumer
 from llm.models import ChatSession, ChatShareImport, ChatShareLink, Message
-from main.models import Language, Publication, PublicationType, Venue
+from main.models import Language, Project, Publication, PublicationFile, PublicationProject, PublicationReference, PublicationType, Venue
 
 User = get_user_model()
 
@@ -112,6 +116,9 @@ class LlmSessionConsumerTests(TestCase):
             username="llm-user",
             password="testpass123",
         )
+        self.language = Language.objects.create(code="en", name="English")
+        self.publication_type = PublicationType.objects.create(name="Journal Article")
+        self.venue = Venue.objects.create(name="Test Venue", kind="journal", character="scientific_journal")
 
     def _create_chat_with_messages(self, user, *, title="Shared chat sample") -> ChatSession:
         session = ChatSession.objects.create(
@@ -291,7 +298,7 @@ class LlmSessionConsumerTests(TestCase):
                 {
                     "action": "ask",
                     "session_id": session_id,
-                    "prompt": "Какие проекты есть на тему IoT?",
+                    "prompt": "Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р Р†Р вЂљРЎвЂєР РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р Р†Р вЂљРЎвЂєР Р†Р вЂљРІР‚Сљ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В° Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В° Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В РІР‚в„ўР вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎв„ў IoT?",
                 }
             )
 
@@ -516,7 +523,7 @@ class LlmSessionConsumerTests(TestCase):
         async_to_sync(scenario)()
 
     def test_select_agent_scripts_by_prompt(self):
-        scripts = LlmChatConsumer._select_agent_scripts("Какие проекты есть на тему IoT")
+        scripts = LlmChatConsumer._select_agent_scripts("Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р Р†Р вЂљРЎвЂєР РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р Р†Р вЂљРЎвЂєР Р†Р вЂљРІР‚Сљ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В° Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В° Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В РІР‚в„ўР вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎв„ў IoT")
 
         self.assertEqual(
             scripts,
@@ -524,7 +531,7 @@ class LlmSessionConsumerTests(TestCase):
         )
 
     def test_select_agent_scripts_for_identity_prompt(self):
-        scripts = LlmChatConsumer._select_agent_scripts("Ты кто?")
+        scripts = LlmChatConsumer._select_agent_scripts("Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р Р‹Р Р†Р вЂљРЎвЂќР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р Р†Р вЂљРЎвЂєР Р†Р вЂљРІР‚Сљ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂє?")
 
         self.assertEqual(scripts, ["dataset_stats", "request_emulator"])
 
@@ -543,8 +550,8 @@ class LlmSessionConsumerTests(TestCase):
 
     def test_resolve_agent_prompt_uses_previous_user_query_for_short_follow_up(self):
         messages = [
-            {"role": "user", "content": "Какие исследователи есть в области iot?"},
-            {"role": "assistant", "content": "Вот список..."},
+            {"role": "user", "content": "Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р Р†Р вЂљРЎвЂєР РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р РЋРЎвЂєР В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В° Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В  Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В iot?"},
+            {"role": "assistant", "content": "Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р Р†Р вЂљРЎвЂєР РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС› Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™..."},
             {"role": "user", "content": "2"},
         ]
 
@@ -554,10 +561,10 @@ class LlmSessionConsumerTests(TestCase):
         self.assertIn("Follow-up: 2", resolved)
 
     def test_resolve_agent_prompt_keeps_regular_prompt_unchanged(self):
-        prompt = "Покажи публикации по blockchain за 2025"
+        prompt = "Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р Р‹Р РЋРЎСџР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В¶Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂє blockchain Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В·Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В° 2025"
         messages = [
-            {"role": "user", "content": "Привет"},
-            {"role": "assistant", "content": "Здравствуйте"},
+            {"role": "user", "content": "Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р Р‹Р РЋРЎСџР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›"},
+            {"role": "assistant", "content": "Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р РЋРЎвЂєР В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р вЂ Р В РІР‚С™Р РЋРІР‚С”Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ"},
             {"role": "user", "content": prompt},
         ]
 
@@ -672,6 +679,696 @@ class LlmSessionConsumerTests(TestCase):
         self.assertLessEqual(fitted["stats"]["publications_in_prompt"], 200)
         self.assertLessEqual(fitted["stats"]["users_in_prompt"], 200)
 
+    def test_project_create_html_redirects_to_detail(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("project_create"),
+            data={
+                "name": "AI Grant 2026",
+                "description": "Drafting publications and milestones",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        created = Project.objects.get(name="AI Grant 2026", owner=self.user)
+        self.assertEqual(created.description, "Drafting publications and milestones")
+        self.assertEqual(
+            response.headers.get("Location"),
+            reverse("project_detail_page", kwargs={"project_id": created.id}),
+        )
+
+    def test_project_create_json_returns_created_payload(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("project_create"),
+            data={"name": "NLP Pilot"},
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["name"], "NLP Pilot")
+        self.assertEqual(payload["owner"], self.user.id)
+        self.assertTrue(Project.objects.filter(id=payload["id"], owner=self.user).exists())
+
+    def test_project_create_blocks_empty_name_for_json(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("project_create"),
+            data={"name": "   "},
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json().get("detail"), "Project name is required")
+
+    def test_project_detail_hides_other_projects_when_active_selected(self):
+        self.client.force_login(self.user)
+        active = Project.objects.create(name="Active Project", owner=self.user)
+        Project.objects.create(name="Other Project", owner=self.user)
+
+        response = self.client.get(reverse("project_detail_page", kwargs={"project_id": active.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Active Project")
+        self.assertNotContains(response, "Other Project")
+
+    def test_project_detail_shows_project_publications_and_publication_files(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Research Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Article")
+        language = Language.objects.create(code="en", name="English")
+        venue = Venue.objects.create(name="Test Journal")
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Linked Publication",
+            language=language,
+            year=2025,
+            venue=venue,
+        )
+        PublicationProject.objects.create(project=project, publication=publication)
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            publication_file = PublicationFile.objects.create(
+                publication=publication,
+                kind="pdf",
+                description="Main PDF",
+                file=SimpleUploadedFile("linked-publication.pdf", b"%PDF-1.4 test", content_type="application/pdf"),
+            )
+
+            response = self.client.get(
+                reverse("project_detail_page", kwargs={"project_id": project.id}),
+                data={"publication_file": publication_file.id},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Публикации проекта")
+        self.assertContains(response, "Linked Publication")
+        self.assertContains(response, "Main PDF")
+        self.assertContains(
+            response,
+            reverse(
+                "project_publication_file_stream",
+                kwargs={"project_id": project.id, "file_id": publication_file.id},
+            ),
+        )
+        self.assertContains(response, "<iframe", html=False)
+
+    def test_project_publication_file_config_and_stream_work_for_owner(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Publication Files Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Conference paper")
+        language = Language.objects.create(code="ru", name="Russian")
+        venue = Venue.objects.create(name="Conference Venue")
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Conference Publication",
+            language=language,
+            year=2024,
+            venue=venue,
+            created_by=self.user,
+        )
+        PublicationProject.objects.create(project=project, publication=publication)
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            publication_file = PublicationFile.objects.create(
+                publication=publication,
+                kind="other",
+                description="Conference Draft",
+                file=SimpleUploadedFile(
+                    "conference-paper.docx",
+                    b"PK\x03\x04 conference docx",
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            )
+
+            config_response = self.client.get(
+                reverse(
+                    "project_publication_file_onlyoffice_config",
+                    kwargs={"project_id": project.id, "file_id": publication_file.id},
+                )
+            )
+            self.assertEqual(config_response.status_code, 200)
+            payload = config_response.json()
+            self.assertEqual(payload["editorConfig"]["mode"], "edit")
+            self.assertEqual(payload["document"]["fileType"], "docx")
+
+            stream_response = self.client.get(
+                reverse(
+                    "project_publication_file_stream",
+                    kwargs={"project_id": project.id, "file_id": publication_file.id},
+                )
+            )
+            streamed_bytes = b"".join(stream_response.streaming_content)
+
+        self.assertEqual(stream_response.status_code, 200)
+        self.assertEqual(streamed_bytes, b"PK\x03\x04 conference docx")
+
+    def test_project_publication_create_adds_publication_to_project(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="New Publication Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Journal article")
+        language = Language.objects.create(code="kk", name="Kazakh")
+
+        response = self.client.post(
+            reverse("project_publication_create", kwargs={"project_id": project.id}),
+            data={
+                "title_original": "Project Publication Draft",
+                "venue": "Automation Letters",
+                "year": "2026",
+                "pub_type_id": str(publication_type.id),
+                "language_id": str(language.id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        publication = Publication.objects.get(title_original="Project Publication Draft")
+        self.assertEqual(publication.venue.name, "Automation Letters")
+        self.assertEqual(publication.year, 2026)
+        self.assertEqual(publication.created_by, self.user)
+        self.assertFalse(publication.private)
+        self.assertTrue(PublicationProject.objects.filter(project=project, publication=publication).exists())
+        self.assertEqual(
+            response.headers.get("Location"),
+            f"{reverse('project_detail_page', kwargs={'project_id': project.id})}?publication={publication.id}",
+        )
+
+    def test_publication_model_generates_record_id_when_missing(self):
+        publication_type = PublicationType.objects.create(name="Generated Record ID type")
+        language = Language.objects.create(code="pl", name="Polish")
+        venue = Venue.objects.create(name="Generated Record ID venue")
+
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Generated Record ID publication",
+            language=language,
+            year=2026,
+            venue=venue,
+        )
+
+        self.assertTrue(publication.record_id)
+        self.assertTrue(publication.record_id.startswith("pub-"))
+
+    def test_project_publication_create_handles_integrity_error(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Integrity Publication Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Integrity article")
+        language = Language.objects.create(code="pt", name="Portuguese")
+
+        with patch("llm.views.Publication.objects.create", side_effect=IntegrityError("duplicate key value violates unique constraint")):
+            response = self.client.post(
+                reverse("project_publication_create", kwargs={"project_id": project.id}),
+                data={
+                    "title_original": "Integrity test publication",
+                    "venue": "Integrity Venue",
+                    "year": "2026",
+                    "pub_type_id": str(publication_type.id),
+                    "language_id": str(language.id),
+                },
+                HTTP_ACCEPT="application/json",
+            )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("Unable to create publication", response.json().get("detail", ""))
+
+    def test_project_publication_link_attaches_existing_publication(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Link Publication Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Book chapter")
+        language = Language.objects.create(code="de", name="German")
+        venue = Venue.objects.create(name="Linked Venue")
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Existing Publication",
+            language=language,
+            year=2023,
+            venue=venue,
+        )
+
+        response = self.client.post(
+            reverse("project_publication_link", kwargs={"project_id": project.id}),
+            data={"publication_id": str(publication.id)},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(PublicationProject.objects.filter(project=project, publication=publication).exists())
+        self.assertEqual(
+            response.headers.get("Location"),
+            f"{reverse('project_detail_page', kwargs={'project_id': project.id})}?publication={publication.id}",
+        )
+
+    def test_project_detail_hides_private_publications_and_link_rejects_them(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Private Publication Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Private article")
+        language = Language.objects.create(code="fr", name="French")
+        venue = Venue.objects.create(name="Private Venue")
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Private Publication",
+            language=language,
+            year=2022,
+            venue=venue,
+            private=True,
+        )
+        PublicationProject.objects.create(project=project, publication=publication)
+
+        response = self.client.get(reverse("project_detail_page", kwargs={"project_id": project.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Private Publication")
+
+        second_project = Project.objects.create(name="Second Project", owner=self.user)
+        link_response = self.client.post(
+            reverse("project_publication_link", kwargs={"project_id": second_project.id}),
+            data={"publication_id": str(publication.id)},
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(link_response.status_code, 404)
+        self.assertFalse(PublicationProject.objects.filter(project=second_project, publication=publication).exists())
+
+    def test_project_publication_file_upload_creates_publication_file_for_owner(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Publication Upload Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Upload article")
+        language = Language.objects.create(code="it", name="Italian")
+        venue = Venue.objects.create(name="Upload Venue")
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Upload Publication",
+            language=language,
+            year=2021,
+            venue=venue,
+            created_by=self.user,
+        )
+        PublicationProject.objects.create(project=project, publication=publication)
+        uploaded = SimpleUploadedFile("appendix.pdf", b"%PDF-1.4 appendix", content_type="application/pdf")
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse("project_publication_file_upload", kwargs={"project_id": project.id}),
+                data={
+                    "publication_id": str(publication.id),
+                    "description": "Appendix PDF",
+                    "kind": "pdf",
+                    "file": uploaded,
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        publication_file = PublicationFile.objects.get(publication=publication)
+        self.assertEqual(publication_file.description, "Appendix PDF")
+        self.assertEqual(publication_file.kind, "pdf")
+
+    def test_project_publication_file_config_is_view_only_for_non_owner(self):
+        owner = User.objects.create_user(username="pub-owner", password="testpass123")
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Shared Publication Project", owner=self.user)
+        publication_type = PublicationType.objects.create(name="Shared article")
+        language = Language.objects.create(code="es", name="Spanish")
+        venue = Venue.objects.create(name="Shared Venue")
+        publication = Publication.objects.create(
+            pub_type=publication_type,
+            title_original="Shared Publication",
+            language=language,
+            year=2020,
+            venue=venue,
+            created_by=owner,
+        )
+        PublicationProject.objects.create(project=project, publication=publication)
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            publication_file = PublicationFile.objects.create(
+                publication=publication,
+                kind="other",
+                description="Shared Draft",
+                file=SimpleUploadedFile(
+                    "shared-draft.docx",
+                    b"PK\x03\x04 shared docx",
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            )
+
+            response = self.client.get(
+                reverse(
+                    "project_publication_file_onlyoffice_config",
+                    kwargs={"project_id": project.id, "file_id": publication_file.id},
+                )
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["editorConfig"]["mode"], "view")
+
+    def test_project_file_create_adds_document_to_project(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Files Project", owner=self.user)
+
+        response = self.client.post(
+            reverse("project_file_create", kwargs={"project_id": project.id}),
+            data={"file_type": "docx", "title": "Project Draft"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        project.refresh_from_db()
+        document = project.documents.get()
+        self.assertEqual(document.title, "Project Draft")
+        self.assertEqual(document.file_type, "docx")
+        self.assertTrue(document.file.name.endswith(".docx"))
+
+    def test_project_file_upload_adds_uploaded_file_to_project(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Upload Project", owner=self.user)
+        uploaded = SimpleUploadedFile(
+            "notes.txt",
+            b"hello world",
+            content_type="text/plain",
+        )
+
+        response = self.client.post(
+            reverse("project_file_upload", kwargs={"project_id": project.id}),
+            data={"title": "Uploaded Notes", "file": uploaded},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        project.refresh_from_db()
+        document = project.documents.get()
+        self.assertEqual(document.title, "Uploaded Notes")
+        self.assertEqual(document.file_type, "txt")
+        self.assertTrue(document.file.name.endswith(".txt"))
+        self.assertEqual(Document.objects.filter(id=document.id, user=self.user).count(), 1)
+
+    def test_project_agent_session_returns_messages(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Agent Session Project", owner=self.user)
+        session = ChatSession.objects.create(user=self.user, project=project, title="Project chat")
+        Message.objects.create(chat=session, body="User prompt", sended_from=Message.Sender.USER)
+        Message.objects.create(chat=session, body="Assistant reply", sended_from=Message.Sender.BOT)
+
+        response = self.client.get(reverse("project_agent_session", kwargs={"project_id": project.id}))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["session_id"], session.id)
+        self.assertEqual(len(payload["messages"]), 2)
+        self.assertEqual(payload["messages"][0]["role"], "user")
+        self.assertEqual(payload["messages"][1]["role"], "assistant")
+
+    @patch("llm.views.AgentProgressPublisher.publish")
+    def test_project_agent_task_returns_reference_suggestions(self, _publish_mock):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Agent Reference Project", owner=self.user)
+        target_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Target Publication",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        related_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Relevant Publication",
+            language=self.language,
+            year=2023,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+            abstract="Relevant abstract",
+        )
+        PublicationProject.objects.create(project=project, publication=target_publication)
+
+        with patch(
+            "llm.views.ProjectAgentOrchestrator.handle",
+            return_value={
+                "mode": "text_response",
+                "response_text": "Подобрал релевантные работы.",
+                "search_tags": [],
+                "relevant_publication_ids": [related_publication.id],
+            },
+        ):
+            response = self.client.post(
+                reverse("project_agent_task", kwargs={"project_id": project.id}),
+                data=json.dumps(
+                    {
+                        "message": "Найди релевантные работы",
+                        "publication_id": target_publication.id,
+                    }
+                ),
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["mode"], "text_response")
+        self.assertEqual(payload["assistant_message"], "Подобрал релевантные работы.")
+        self.assertEqual(len(payload["reference_suggestions"]), 1)
+        suggestion = payload["reference_suggestions"][0]
+        self.assertEqual(suggestion["id"], related_publication.id)
+        self.assertEqual(suggestion["target_publication_id"], target_publication.id)
+        self.assertTrue(suggestion["can_add_reference"])
+        self.assertFalse(suggestion["already_added"])
+
+        session = ChatSession.objects.get(user=self.user, project=project)
+        self.assertEqual(session.messages.count(), 2)
+        self.assertEqual(session.messages.order_by("created").last().body, "Подобрал релевантные работы.")
+
+    def test_project_publication_reference_add_creates_reference(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Reference Add Project", owner=self.user)
+        target_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Target Publication",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        related_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Relevant Publication",
+            language=self.language,
+            year=2022,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        PublicationProject.objects.create(project=project, publication=target_publication)
+
+        response = self.client.post(
+            reverse("project_publication_reference_add", kwargs={"project_id": project.id}),
+            data=json.dumps(
+                {
+                    "target_publication_id": target_publication.id,
+                    "referenced_publication_id": related_publication.id,
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["status"], "created")
+        self.assertTrue(
+            PublicationReference.objects.filter(
+                publication=target_publication,
+                referenced_publication=related_publication,
+                order=1,
+            ).exists()
+        )
+
+        duplicate = self.client.post(
+            reverse("project_publication_reference_add", kwargs={"project_id": project.id}),
+            data=json.dumps(
+                {
+                    "target_publication_id": target_publication.id,
+                    "referenced_publication_id": related_publication.id,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertEqual(duplicate.json()["status"], "already_exists")
+        self.assertEqual(
+            PublicationReference.objects.filter(
+                publication=target_publication,
+                referenced_publication=related_publication,
+            ).count(),
+            1,
+        )
+
+    def test_project_publication_reference_add_handles_html_form_redirect(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Reference Form Project", owner=self.user)
+        target_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Target Form Publication",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        related_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Related Form Publication",
+            language=self.language,
+            year=2021,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        PublicationProject.objects.create(project=project, publication=target_publication)
+
+        response = self.client.post(
+            reverse("project_publication_reference_add", kwargs={"project_id": project.id}),
+            data={
+                "target_publication_id": str(target_publication.id),
+                "referenced_publication_id": str(related_publication.id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.headers.get("Location"),
+            f"{reverse('project_detail_page', kwargs={'project_id': project.id})}?publication={target_publication.id}",
+        )
+        self.assertTrue(
+            PublicationReference.objects.filter(
+                publication=target_publication,
+                referenced_publication=related_publication,
+            ).exists()
+        )
+
+    def test_project_detail_shows_publication_reference_list_read_only(self):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Reference List Project", owner=self.user)
+        target_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Target With References",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        referenced_publication = Publication.objects.create(
+            pub_type=self.publication_type,
+            title_original="Visible Referenced Publication",
+            language=self.language,
+            year=2022,
+            venue=self.venue,
+            private=False,
+            created_by=self.user,
+        )
+        PublicationProject.objects.create(project=project, publication=target_publication)
+        PublicationReference.objects.create(
+            publication=target_publication,
+            referenced_publication=referenced_publication,
+            order=1,
+        )
+
+        response = self.client.get(
+            reverse("project_detail_page", kwargs={"project_id": project.id}),
+            data={"publication": str(target_publication.id)},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Связанные ссылки")
+        self.assertContains(response, "Только чтение")
+        self.assertContains(response, "Visible Referenced Publication")
+
+    @patch(
+        "llm.views._plan_project_agent_edits",
+        return_value={
+            "assistant_reply": "Applied edits.",
+            "operations": [{"op": "replace", "old": "world", "new": "team", "count": 1}],
+        },
+    )
+    def test_project_agent_ask_updates_document_with_planner_operations(self, _plan_mock):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Agent Edit Project", owner=self.user)
+        uploaded = SimpleUploadedFile("draft.txt", b"Hello world", content_type="text/plain")
+        document = Document.objects.create(
+            title="Draft",
+            content="Hello world",
+            file=uploaded,
+            file_type="txt",
+            user=self.user,
+            version=1,
+            is_deleted=False,
+        )
+        project.documents.add(document)
+
+        response = self.client.post(
+            reverse("project_agent_ask", kwargs={"project_id": project.id}),
+            data=json.dumps(
+                {
+                    "message": "Fix the text",
+                    "document_id": document.id,
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["document_updated"])
+        self.assertEqual(payload["applied_operations"], 1)
+        self.assertIn("Applied edits", payload["assistant_message"])
+
+        document.refresh_from_db()
+        self.assertIn("Hello team", document.content)
+        self.assertEqual(document.version, 2)
+        self.assertTrue(ChatSession.objects.filter(user=self.user, project=project).exists())
+        chat_session = ChatSession.objects.get(user=self.user, project=project)
+        self.assertEqual(chat_session.messages.count(), 2)
+
+    @patch(
+        "llm.views._plan_project_agent_edits",
+        return_value={
+            "assistant_reply": "Based on the current document, here is the answer.",
+            "operations": [],
+            "patch": "",
+        },
+    )
+    def test_project_agent_ask_non_edit_request_uses_planner(self, plan_mock):
+        self.client.force_login(self.user)
+        project = Project.objects.create(name="Agent Help Project", owner=self.user)
+        uploaded = SimpleUploadedFile("note.txt", b"Initial text", content_type="text/plain")
+        document = Document.objects.create(
+            title="Note",
+            content="Initial text",
+            file=uploaded,
+            file_type="txt",
+            user=self.user,
+            version=1,
+            is_deleted=False,
+        )
+        project.documents.add(document)
+
+        response = self.client.post(
+            reverse("project_agent_ask", kwargs={"project_id": project.id}),
+            data=json.dumps(
+                {
+                    "message": "What can you do for this document?",
+                    "document_id": document.id,
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertFalse(payload["document_updated"])
+        self.assertIn("Based on the current document", payload["assistant_message"])
+        plan_mock.assert_called_once()
+
     def test_share_create_returns_referral_link_for_owned_session(self):
         session = self._create_chat_with_messages(self.user)
         self.client.force_login(self.user)
@@ -751,3 +1448,4 @@ class LlmSessionConsumerTests(TestCase):
     def test_shared_chat_invalid_token_returns_404(self):
         response = self.client.get(reverse("llm_shared_chat", kwargs={"token": "invalid-token-value"}))
         self.assertEqual(response.status_code, 404)
+

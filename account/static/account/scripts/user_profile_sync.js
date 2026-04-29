@@ -7,22 +7,42 @@
   }
 
   const form = document.getElementById("userProfileSyncForm");
+  const resetButton = document.getElementById("profileSyncResetButton");
   const saveButton = document.getElementById("profileSyncSaveButton");
   const startButton = document.getElementById("profileSyncStartButton");
   const hintNode = document.getElementById("profileSyncRequirementHint");
-  const logNode = document.getElementById("profileSyncLog");
+  const statusTextNode = document.getElementById("profileSyncStatusText");
+  const spinnerNode = document.getElementById("profileSyncSpinner");
+  const progressWrapNode = document.getElementById("profileSyncProgressWrap");
   const summaryNode = document.getElementById("profileSyncSummary");
   const availabilityNode = document.getElementById("profile-sync-availability");
   const satbayevInput = document.getElementById("id_satbayev_profile_url");
   const syncButton = document.getElementById("userProfileSynchButton");
+  const publicationsListNode = document.getElementById("profileRecentPublicationsList");
+  const metricNodes = {
+    profileMetricPublicationsValue: document.getElementById("profileMetricPublicationsValue"),
+    profileMetricPublicationsDelta: document.getElementById("profileMetricPublicationsDelta"),
+    profileMetricCitationsValue: document.getElementById("profileMetricCitationsValue"),
+    profileMetricCitationsDelta: document.getElementById("profileMetricCitationsDelta"),
+    profileMetricGrantsValue: document.getElementById("profileMetricGrantsValue"),
+    profileMetricGrantsDelta: document.getElementById("profileMetricGrantsDelta"),
+    profileMetricFundingValue: document.getElementById("profileMetricFundingValue"),
+    profileMetricFundingDelta: document.getElementById("profileMetricFundingDelta"),
+    profileFinanceProjectsCount: document.getElementById("profileFinanceProjectsCount"),
+    profileFinanceFundingTotal: document.getElementById("profileFinanceFundingTotal"),
+    profileFinanceCollaboratorsCount: document.getElementById("profileFinanceCollaboratorsCount"),
+    profileFinanceOpenAccessShare: document.getElementById("profileFinanceOpenAccessShare"),
+  };
 
-  if (!form || !saveButton || !startButton || !hintNode || !logNode || !summaryNode) {
+  if (!form || !saveButton || !startButton || !hintNode || !statusTextNode || !spinnerNode || !progressWrapNode || !summaryNode) {
     return;
   }
 
   const fieldsUrl = modalElement.dataset.syncFieldsUrl || "";
+  const resetUrl = modalElement.dataset.syncResetUrl || "";
   const startUrl = modalElement.dataset.syncStartUrl || "";
   const statusUrlTemplate = modalElement.dataset.syncStatusUrlTemplate || "";
+  const publicationsFragmentUrl = modalElement.dataset.publicationsFragmentUrl || "";
   if (!fieldsUrl || !startUrl || !statusUrlTemplate) {
     return;
   }
@@ -42,26 +62,58 @@
   let pollingTimer = null;
   let syncing = false;
   let lastPolledState = "";
+  let lastSatbayevAutoRunValue = (inputMap.satbayev_profile_url && inputMap.satbayev_profile_url.value || "").trim();
 
   function getCsrfToken() {
     const tokenInput = form.querySelector("input[name='csrfmiddlewaretoken']");
     return tokenInput ? tokenInput.value : "";
   }
 
-  function appendLog(message, level) {
-    if (!message) {
-      return;
+  function normalizeStatusLevel(level) {
+    const raw = String(level || "info").toLowerCase();
+    if (raw === "success" || raw === "warning" || raw === "error") {
+      return raw;
     }
-    const emptyNode = logNode.querySelector(".profile-sync-log-empty");
-    if (emptyNode) {
-      emptyNode.remove();
+    return "info";
+  }
+
+  function compactMessage(message) {
+    const value = String(message || "").replace(/\s+/g, " ").trim();
+    if (!value) {
+      return "";
     }
-    const row = document.createElement("div");
-    row.className = `profile-sync-log-row ${String(level || "info").toLowerCase()}`;
-    const timestamp = new Date().toLocaleTimeString();
-    row.textContent = `[${timestamp}] ${message}`;
-    logNode.appendChild(row);
-    logNode.scrollTop = logNode.scrollHeight;
+    if (value.length <= 220) {
+      return value;
+    }
+    return `${value.slice(0, 217)}...`;
+  }
+
+  function setStatus(message, level) {
+    const nextLevel = normalizeStatusLevel(level);
+    statusTextNode.classList.remove("is-info", "is-success", "is-warning", "is-error");
+    statusTextNode.classList.add(`is-${nextLevel}`);
+    statusTextNode.textContent = compactMessage(message) || "Ожидание запуска синхронизации.";
+  }
+
+  function setProgressPending(isPending) {
+    const pending = Boolean(isPending);
+    spinnerNode.classList.toggle("d-none", !pending);
+    progressWrapNode.classList.toggle("d-none", !pending);
+    progressWrapNode.setAttribute("aria-hidden", pending ? "false" : "true");
+  }
+
+  function getStateStatusMessage(state) {
+    const normalizedState = String(state || "").toUpperCase();
+    if (normalizedState === "PENDING" || normalizedState === "RECEIVED" || normalizedState === "RETRY") {
+      return "Задача поставлена в очередь, ожидается запуск.";
+    }
+    if (normalizedState === "STARTED") {
+      return "Синхронизация запущена, выполняется обработка.";
+    }
+    if (normalizedState === "PROGRESS") {
+      return "Выполняется сбор и парсинг данных из источников.";
+    }
+    return "";
   }
 
   function readFieldValues() {
@@ -99,6 +151,9 @@
 
   function setButtonsDisabled(value) {
     const disabled = Boolean(value);
+    if (resetButton) {
+      resetButton.disabled = disabled;
+    }
     saveButton.disabled = disabled;
     startButton.disabled = disabled;
   }
@@ -116,7 +171,7 @@
 
     if (availability.only_satbayev) {
       hintNode.classList.add("alert-warning");
-      hintNode.textContent = "Заполнен только Satbayev profile URL. После сохранения запустится автоматическая синхронизация Satbayev.";
+      hintNode.textContent = "Заполнен только Satbayev profile URL. После сохранения профиль автоматически заполнится из Satbayev, затем кнопка запуска станет доступна.";
       startButton.disabled = true;
       return;
     }
@@ -154,6 +209,20 @@
     ].join("");
   }
 
+  function renderResetSummary(stats) {
+    const payload = stats || {};
+    const publicationsDeleted = Number(payload.publications_deleted || 0);
+    const authorsDeleted = Number(payload.authors_deleted || 0);
+    const projectsDeleted = Number(payload.projects_deleted || 0);
+    summaryNode.classList.remove("d-none");
+    summaryNode.innerHTML = [
+      "<div><strong>Сброс профиля завершен.</strong></div>",
+      `<div><strong>Удалено публикаций:</strong> ${publicationsDeleted}</div>`,
+      `<div><strong>Удалено соавторов:</strong> ${authorsDeleted}</div>`,
+      `<div><strong>Удалено проектов:</strong> ${projectsDeleted}</div>`,
+    ].join("");
+  }
+
   function applyServerFields(fields) {
     if (!fields || typeof fields !== "object") {
       return;
@@ -167,6 +236,45 @@
       }
       inputMap[fieldName].value = String(fields[fieldName] || "").trim();
     });
+  }
+
+  function applyMetricTexts(metricTexts) {
+    if (!metricTexts || typeof metricTexts !== "object") {
+      return;
+    }
+
+    Object.keys(metricNodes).forEach((metricKey) => {
+      const targetNode = metricNodes[metricKey];
+      if (!targetNode || !Object.prototype.hasOwnProperty.call(metricTexts, metricKey)) {
+        return;
+      }
+      const nextValue = metricTexts[metricKey];
+      targetNode.textContent = typeof nextValue === "string" ? nextValue : String(nextValue == null ? "" : nextValue);
+    });
+  }
+
+  async function refreshRecentPublications() {
+    if (!publicationsFragmentUrl || !publicationsListNode) {
+      return;
+    }
+
+    try {
+      const response = await fetch(publicationsFragmentUrl, {
+        method: "GET",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        credentials: "same-origin",
+      });
+      const data = await response.json();
+      if (!response.ok || !data || !data.ok || typeof data.html !== "string") {
+        return;
+      }
+      publicationsListNode.innerHTML = data.html;
+      applyMetricTexts(data.metric_texts || {});
+    } catch (_error) {
+      // Best effort: keep current list if refresh fails.
+    }
   }
 
   async function saveFields(options) {
@@ -185,7 +293,7 @@
     const data = await response.json();
     if (!response.ok) {
       const detail = data.detail || "Не удалось сохранить поля синхронизации.";
-      appendLog(detail, "error");
+      setStatus(detail, "error");
       throw new Error(detail);
     }
 
@@ -193,7 +301,7 @@
     currentAvailability = data.availability || buildAvailability(readFieldValues(), currentAvailability.has_orcid);
     renderHint();
     if (!opts.silent) {
-      appendLog("Поля синхронизации сохранены.", "success");
+      setStatus("Поля синхронизации сохранены.", "success");
     }
     return data;
   }
@@ -209,6 +317,7 @@
     }
     syncing = false;
     lastPolledState = "";
+    setProgressPending(false);
     setButtonsDisabled(false);
     renderHint();
   }
@@ -229,14 +338,17 @@
         });
         const data = await response.json();
         if (!response.ok) {
-          appendLog(data.detail || "Ошибка получения статуса синхронизации.", "error");
+          setStatus(data.detail || "Ошибка получения статуса синхронизации.", "error");
           stopPolling();
           return;
         }
 
         const state = String(data.state || "").toUpperCase();
         if (state && state !== lastPolledState) {
-          appendLog(`Статус задачи: ${state}`, "info");
+          const stateMessage = getStateStatusMessage(state);
+          if (stateMessage) {
+            setStatus(stateMessage, "info");
+          }
           lastPolledState = state;
         }
 
@@ -246,7 +358,8 @@
 
         if (data.ok && data.result) {
           renderSummary(data.result);
-          appendLog("Синхронизация завершена.", "success");
+          await refreshRecentPublications();
+          setStatus("Синхронизация завершена.", "success");
           stopPolling();
 
           const resultSatbayevOnly = Boolean(data.result.satbayev_only);
@@ -258,10 +371,10 @@
           return;
         }
 
-        appendLog(data.error || "Синхронизация завершилась с ошибкой.", "error");
+        setStatus(data.error || "Синхронизация завершилась с ошибкой.", "error");
         stopPolling();
       } catch (error) {
-        appendLog("Ошибка связи с сервером при проверке статуса.", "error");
+        setStatus("Ошибка связи с сервером при проверке статуса.", "error");
         stopPolling();
       }
     };
@@ -287,16 +400,25 @@
     });
     const data = await response.json();
     if (!response.ok) {
-      appendLog(data.detail || "Не удалось запустить синхронизацию.", "error");
+      setStatus(data.detail || "Не удалось запустить синхронизацию.", "error");
       throw new Error(data.detail || "Start failed");
     }
 
     activeTaskId = String(data.task_id || "");
     activeTaskSatbayevOnly = Boolean(data.satbayev_only);
+    if (satbayevOnly) {
+      lastSatbayevAutoRunValue = readFieldValues().satbayev_profile_url;
+    }
     syncing = true;
     setButtonsDisabled(true);
     renderHint();
-    appendLog(`Задача синхронизации поставлена в очередь. Task ID: ${activeTaskId}`, "info");
+    setProgressPending(true);
+    setStatus(
+      satbayevOnly
+        ? "Запущено обновление профиля из Satbayev. Ожидайте завершения."
+        : "Запущен поиск и парсинг публикаций по источникам профиля.",
+      "info"
+    );
     startPolling();
     return data;
   }
@@ -311,16 +433,16 @@
       setButtonsDisabled(true);
       await saveFields({ silent: true });
       if (!currentAvailability.has_any) {
-        appendLog("Укажите минимум одно поле для запуска синхронизации.", "warning");
+        setStatus("Укажите минимум одно поле для запуска синхронизации.", "warning");
         return;
       }
       if (currentAvailability.only_satbayev) {
-        appendLog("Заполнен только Satbayev profile URL. Будет запущен Satbayev-only режим.", "warning");
+        setStatus("Запущен режим Satbayev-only: сначала заполним профиль из Satbayev.", "warning");
         await startSync({ satbayevOnly: true });
         return;
       }
       if (!currentAvailability.import_ready) {
-        appendLog("Для полного импорта не хватает ORCID/Scopus/WoS/Google Scholar.", "warning");
+        setStatus("Для полного импорта не хватает ORCID/Scopus/WoS/Google Scholar.", "warning");
         return;
       }
       await startSync({ satbayevOnly: false });
@@ -334,16 +456,27 @@
     }
   }
 
-  async function handleSaveFields(autoStartWhenOnlySatbayev) {
+  async function handleSaveFields(autoStartSatbayev) {
     if (syncing) {
       return;
     }
 
     try {
       setButtonsDisabled(true);
+      setStatus("Сохраняем поля синхронизации...", "info");
       const data = await saveFields({ silent: false });
-      if (autoStartWhenOnlySatbayev && data.availability && data.availability.only_satbayev) {
-        appendLog("Обнаружен режим только Satbayev. Автоматический запуск.", "warning");
+      const savedSatbayevUrl = String(
+        (data.fields && data.fields.satbayev_profile_url) || readFieldValues().satbayev_profile_url || ""
+      ).trim();
+      if (!savedSatbayevUrl) {
+        lastSatbayevAutoRunValue = "";
+      }
+
+      const shouldAutoRunSatbayev = Boolean(
+        autoStartSatbayev && savedSatbayevUrl && savedSatbayevUrl !== lastSatbayevAutoRunValue
+      );
+      if (shouldAutoRunSatbayev) {
+        setStatus("Обнаружен Satbayev profile URL. Запускаем автообновление профиля.", "warning");
         await startSync({ satbayevOnly: true });
       }
     } catch (_error) {
@@ -353,6 +486,54 @@
         setButtonsDisabled(false);
         renderHint();
       }
+    }
+  }
+
+  async function handleResetProfileData() {
+    if (!resetButton || !resetUrl) {
+      return;
+    }
+    if (syncing) {
+      setStatus("Нельзя выполнять сброс во время активной синхронизации.", "warning");
+      return;
+    }
+    if (!window.confirm("Удалить данные профиля, публикации, проекты и соавторов? Действие необратимо.")) {
+      return;
+    }
+
+    summaryNode.classList.add("d-none");
+    try {
+      setButtonsDisabled(true);
+      setProgressPending(true);
+      setStatus("Выполняется сброс данных профиля...", "warning");
+      const response = await fetch(resetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setStatus(data.detail || "Не удалось выполнить сброс профиля.", "error");
+        return;
+      }
+
+      applyServerFields(data.fields || {});
+      currentAvailability = data.availability || buildAvailability(readFieldValues(), false);
+      lastSatbayevAutoRunValue = "";
+      await refreshRecentPublications();
+      renderHint();
+      renderResetSummary(data.stats || {});
+      setStatus("Данные профиля успешно очищены.", "success");
+    } catch (_error) {
+      setStatus("Ошибка связи с сервером при сбросе профиля.", "error");
+    } finally {
+      setProgressPending(false);
+      setButtonsDisabled(false);
     }
   }
 
@@ -388,13 +569,19 @@
       if (!activeTaskId && runId) {
         return;
       }
-      appendLog(payload.message || "Обновление статуса синхронизации.", payload.level || "info");
+      setStatus(payload.message || "Обновление статуса синхронизации.", payload.level || "info");
     });
   }
 
   saveButton.addEventListener("click", function () {
     handleSaveFields(true);
   });
+
+  if (resetButton && resetUrl) {
+    resetButton.addEventListener("click", function () {
+      handleResetProfileData();
+    });
+  }
 
   startButton.addEventListener("click", function () {
     handleStartFullSync();
@@ -403,8 +590,7 @@
   if (satbayevInput) {
     satbayevInput.addEventListener("change", function () {
       const values = readFieldValues();
-      const availability = buildAvailability(values, currentAvailability.has_orcid);
-      if (availability.only_satbayev) {
+      if (values.satbayev_profile_url) {
         handleSaveFields(true);
       }
     });
@@ -413,15 +599,27 @@
   if (syncButton) {
     syncButton.addEventListener("click", function () {
       summaryNode.classList.add("d-none");
+      if (!syncing) {
+        setProgressPending(false);
+        setStatus("Ожидание запуска синхронизации.", "info");
+      }
     });
   }
 
+  setProgressPending(false);
+  setStatus("Ожидание запуска синхронизации.", "info");
   hydrateInitialAvailability();
   wireWebsocketLogs();
 
   if (modalElement.dataset.openOnLoad === "1") {
-    modal.show();
     const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.has("sync_open")) {
+      setStatus(
+        "Профиль обновлен из Satbayev. Проверьте поля и запустите поиск и парсинг публикаций.",
+        "success"
+      );
+    }
+    modal.show();
     currentUrl.searchParams.delete("sync_open");
     window.history.replaceState({}, "", currentUrl.toString());
   }

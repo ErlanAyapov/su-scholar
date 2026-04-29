@@ -1,0 +1,69 @@
+{
+  "publication_id": 341,
+  "sources": [
+    {
+      "url": "http://www.scopus.com/inward/record.url?eid=2-s2.0-85068370010&partnerID=MN8TOARS",
+      "fetch_error": "HTTPSConnectionPool(host='next-js.scopus.elsevier.systems', port=443): Max retries exceeded with url: /pages/redirect?monolithReturnUrl=%2Finward%2Frecord.url%3Feid%3D2-s2.0-85068370010%26partnerID%3DMN8TOARS (Caused by NewConnectionError(\"HTTPSConnection(host='next-js.scopus.elsevier.systems', port=443): Failed to establish a new connection: [Errno 111] Connection refused\"))"
+    },
+    {
+      "requested_url": "https://doi.org/10.1007/978-3-030-21803-4_84",
+      "final_url": "https://link.springer.com/chapter/10.1007/978-3-030-21803-4_84",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 5.509,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 291422,
+      "cleaned_text_chars": 8164,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "url": "https://doi.org/10.1145/2801081.2801120",
+      "fetch_error": "403 Client Error: Forbidden for url: https://dl.acm.org/doi/10.1145/2801081.2801120"
+    },
+    {
+      "requested_url": "https://link.springer.com/content/pdf/10.1007/978-3-030-21803-4_84.pdf",
+      "final_url": "https://link.springer.com/chapter/10.1007/978-3-030-21803-4_84",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 0.907,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 291422,
+      "cleaned_text_chars": 8164,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://link.springer.com/chapter/10.1007/978-3-030-21803-4_84",
+      "final_url": "https://link.springer.com/chapter/10.1007/978-3-030-21803-4_84",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 0.506,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 291422,
+      "cleaned_text_chars": 8164,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "url": "http://api.springer.com/xmldata/jats?q=doi:10.1007/978-3-030-21803-4_84&api_key=",
+      "fetch_error": "HTTPConnectionPool(host='api.springer.com', port=80): Max retries exceeded with url: /xmldata/jats?q=doi:10.1007/978-3-030-21803-4_84&api_key= (Caused by NameResolutionError(\"HTTPConnection(host='api.springer.com', port=80): Failed to resolve 'api.springer.com' ([Errno -2] Name or service not known)\"))"
+    }
+  ],
+  "total_sources_fetched": 3,
+  "pdf_files_saved": 0,
+  "merge_time_sec": 0.0,
+  "normalization_time_sec": 0.0,
+  "author_matching": {
+    "total_authors": 0,
+    "auto_linked": 0,
+    "review_linked": 0
+  },
+  "db_update_time_sec": 0.005,
+  "total_chars_html": 874266,
+  "total_cleaned_text_chars": 24492,
+  "total_pipeline_time_sec": 208.915
+}

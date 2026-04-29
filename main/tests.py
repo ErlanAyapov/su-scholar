@@ -5,13 +5,14 @@ from unittest.mock import Mock, patch
 from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.http import QueryDict
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
 
 from account.models import Department, Institute, University
 from main.context_processors import layout_navigation
-from main.models import Language, Publication, PublicationType, Venue
+from main.models import Language, Publication, PublicationReference, PublicationType, Venue
 from main.services.publication_importer import (
     _build_record_id,
     _extract_abstract_from_html,
@@ -95,6 +96,18 @@ class LayoutNavigationTests(SimpleTestCase):
 
     def test_employee_profile_marks_account_as_active(self):
         request = self._build_request(url_name="employee_profile")
+
+        nav = layout_navigation(request)["layout_nav"]["active"]
+
+        self.assertFalse(nav["home"])
+        self.assertFalse(nav["researchers"])
+        self.assertFalse(nav["projects"])
+        self.assertFalse(nav["publications"])
+        self.assertFalse(nav["analytics"])
+        self.assertTrue(nav["account"])
+
+    def test_employee_create_marks_account_as_active(self):
+        request = self._build_request(url_name="employee_create")
 
         nav = layout_navigation(request)["layout_nav"]["active"]
 
@@ -350,6 +363,88 @@ class PublicationPipelineRunViewTests(TestCase):
         payload = response.json()
         self.assertFalse(payload["ok"])
         self.assertEqual(payload["status"], "not_found")
+
+
+class PublicationReferenceTests(TestCase):
+    def setUp(self):
+        self.language = Language.objects.create(code="en", name="English")
+        self.pub_type = PublicationType.objects.create(name="Journal Article")
+        self.venue = Venue.objects.create(name="Reference Venue", kind="journal", character="scientific_journal")
+
+    def test_reference_requires_raw_text_or_linked_publication(self):
+        publication = Publication.objects.create(
+            record_id="reference-test-primary",
+            pub_type=self.pub_type,
+            title_original="Primary publication",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+        )
+
+        reference = PublicationReference(publication=publication, order=1)
+
+        with self.assertRaises(ValidationError):
+            reference.full_clean()
+
+    def test_reference_cannot_point_to_same_publication(self):
+        publication = Publication.objects.create(
+            record_id="reference-test-self",
+            pub_type=self.pub_type,
+            title_original="Self reference publication",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+        )
+
+        reference = PublicationReference(
+            publication=publication,
+            order=1,
+            referenced_publication=publication,
+        )
+
+        with self.assertRaises(ValidationError):
+            reference.full_clean()
+
+    def test_publication_detail_shows_references_in_order(self):
+        publication = Publication.objects.create(
+            record_id="reference-test-detail",
+            pub_type=self.pub_type,
+            title_original="Primary publication",
+            language=self.language,
+            year=2024,
+            venue=self.venue,
+        )
+        linked_reference = Publication.objects.create(
+            record_id="reference-test-linked",
+            pub_type=self.pub_type,
+            title_original="Linked reference publication",
+            language=self.language,
+            year=2021,
+            venue=self.venue,
+        )
+        PublicationReference.objects.create(
+            publication=publication,
+            order=2,
+            raw_text="Second reference text",
+        )
+        PublicationReference.objects.create(
+            publication=publication,
+            order=1,
+            referenced_publication=linked_reference,
+            note="Used in introduction",
+        )
+
+        response = self.client.get(reverse("publication_detail", kwargs={"pk": publication.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item.order for item in response.context["reference_entries"]], [1, 2])
+
+        content = response.content.decode("utf-8")
+        self.assertIn("Список литературы", content)
+        self.assertIn("Linked reference publication", content)
+        self.assertIn("Second reference text", content)
+        self.assertIn("Used in introduction", content)
+        self.assertIn(reverse("publication_detail", kwargs={"pk": linked_reference.id}), content)
 
 
 class LlmWebSocketTests(SimpleTestCase):

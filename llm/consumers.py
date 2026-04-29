@@ -10,7 +10,7 @@ from datetime import datetime
 from urllib.parse import quote_plus
 
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer, AsyncWebsocketConsumer
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import Count, Max, Q
@@ -1450,3 +1450,49 @@ class LlmChatConsumer(AsyncJsonWebsocketConsumer):
                 },
             ],
         }
+
+
+class ProjectAgentConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        user = self.scope["user"]
+        if not user.is_authenticated:
+            await self.close(code=4401)
+            return
+
+        self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
+        self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
+        self.group_name = f"project_agent_{self.project_id}_{self.session_id}"
+
+        # если хочешь, тут можно добавить проверку доступа к project/session
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+        await self.send_json({
+            "type": "connection_ready",
+            "project_id": int(self.project_id),
+            "session_id": int(self.session_id),
+            "message": "WebSocket connected",
+        })
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def receive(self, text_data=None, bytes_data=None):
+        if text_data:
+            try:
+                payload = json.loads(text_data)
+            except json.JSONDecodeError:
+                await self.send_json({
+                    "type": "error",
+                    "message": "Invalid JSON",
+                })
+                return
+
+            if payload.get("type") == "ping":
+                await self.send_json({"type": "pong"})
+
+    async def agent_event(self, event):
+        await self.send_json(event["payload"])
+
+    async def send_json(self, data):
+        await self.send(text_data=json.dumps(data, ensure_ascii=False))

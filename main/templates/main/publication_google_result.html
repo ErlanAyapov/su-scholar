@@ -1,0 +1,45 @@
+{% with primary_url=publication.url_publisher|default:publication.url_open_access %}
+<article class="google-result-item">
+    <div class="google-result-source">
+        <span class="google-result-source-name">{{ publication.venue.name|default:"Source" }}</span>
+        {% if primary_url %}
+            <span class="google-result-source-url">{{ primary_url }}</span>
+        {% elif publication.doi %}
+            <span class="google-result-source-url">https://doi.org/{{ publication.doi }}</span>
+        {% else %}
+            <span class="google-result-source-url">{% url "publication_detail" publication.id %}</span>
+        {% endif %}
+    </div>
+    
+    <h3 class="google-result-title">
+        <a href="{% url 'publication_detail' publication.id %}" target="_blank" rel="noopener noreferrer" class="google-result-title-link">
+            {{ publication.title_original }}
+        </a>
+        {% comment %}
+        {% if primary_url %}
+            <a href="{{ primary_url }}" target="_blank" rel="noopener noreferrer" class="google-result-title-link">
+                {{ publication.title_original }}
+            </a>
+        {% elif publication.doi %}
+            <a href="https://doi.org/{{ publication.doi }}" target="_blank" rel="noopener noreferrer" class="google-result-title-link">
+                {{ publication.title_original }}
+            </a>
+        {% else %}
+            <a href="{% url 'publication_detail' publication.id %}" class="google-result-title-link">
+                {{ publication.title_original }}
+            </a>
+        {% endif %}
+        {% endcomment %}
+    </h3>
+
+    <p class="google-result-snippet">
+        {% if publication.abstract %}
+            {{ publication.abstract|truncatechars:280 }}
+        {% else %}
+            {{ publication.year|default:"-" }} | {{ publication.pub_type.name|default:"-" }} | {{ publication.venue.name|default:"-" }} | {{ publication.language.name|default:"-" }}{% if publication.quartile %} | {{ publication.quartile }}{% endif %}{% if publication.open_access %} | OA{% endif %}
+        {% endif %}
+    </p>
+
+    <!-- <a href="{% url 'publication_detail' publication.id %}" class="google-result-open">Open details</a> -->
+</article>
+{% endwith %}

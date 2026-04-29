@@ -14,9 +14,12 @@ x-app-environment: &app-environment
   CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
   CHANNELS_USE_REDIS: ${CHANNELS_USE_REDIS:-1}
   CHANNELS_REDIS_URL: ${CHANNELS_REDIS_URL:-redis://redis:6379/2}
-  DOCK_EDITOR_URL: ${DOCK_EDITOR_URL:-http://localhost:8080}
+  DOCK_EDITOR_URL: ${DOCK_EDITOR_URL:-http://192.168.1.3:8080}
   APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://host.docker.internal:8000}
-  ONLYOFFICE_JWT_SECRET: ${ONLYOFFICE_JWT_SECRET:-onlyoffice-local-secret}
+  PROJECT_AGENT_NODE_URL: ${PROJECT_AGENT_NODE_URL:-http://node:3000}
+  PROJECT_AGENT_PUBLIC_NODE_URL: ${PROJECT_AGENT_PUBLIC_NODE_URL:-}
+  PROJECT_AGENT_INTERNAL_APP_BASE_URL: ${PROJECT_AGENT_INTERNAL_APP_BASE_URL:-http://web:8000}
+  ONLYOFFICE_JWT_SECRET: ${ONLYOFFICE_JWT_SECRET:-onlyoffice-insecure-1123dv1h3_sm0b%=p3nza3$$s-=ot=p6k8epgh*49mptah9#q9-+toa7asd}
   LLM_API: ${LLM_API:-http://host.docker.internal:11434/v1}
   LLM_API_KEY: ${LLM_API_KEY:-openai}
 
@@ -75,6 +78,23 @@ services:
       timeout: 5s
       retries: 10
 
+  node:
+    build:
+      context: ./node
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NODE_PORT: ${NODE_PORT:-3000}
+      OO_SERVER: ${OO_SERVER:-http://192.168.1.3:8080}
+      OO_JWT_SECRET: ${OO_JWT_SECRET:-${ONLYOFFICE_JWT_SECRET:-onlyoffice-insecure-1123dv1h3_sm0b%=p3nza3$$s-=ot=p6k8epgh*49mptah9#q9-+toa7asd}}
+      APP_BASE_URL: ${APP_BASE_URL:-http://web:8000}
+      OO_SOCKET_PATH: ${OO_SOCKET_PATH:-/doc/{key}/c}
+      OO_DEBUG_PROTOCOL: ${OO_DEBUG_PROTOCOL:-0}
+    extra_hosts: *common-extra-hosts
+    ports:
+      - "${NODE_PORT:-3000}:3000"
+
   celery-worker:
     build:
       context: .
@@ -86,7 +106,7 @@ services:
       sh -c "celery -A project worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-4}"
     volumes:
       - .:/app
-      - media_data:/app/media
+      - ./media:/app/media
       - logs_data:/app/logs
 
   celery-beat:
@@ -102,29 +122,8 @@ services:
       - .:/app
       - logs_data:/app/logs
 
-  onlyoffice:
-    image: onlyoffice/documentserver:8.3
-    restart: unless-stopped
-    environment:
-      JWT_ENABLED: ${ONLYOFFICE_JWT_ENABLED:-true}
-      JWT_SECRET: ${ONLYOFFICE_JWT_SECRET:-onlyoffice-local-secret}
-      ALLOW_PRIVATE_IP_ADDRESS: ${ONLYOFFICE_ALLOW_PRIVATE_IP_ADDRESS:-true}
-    extra_hosts: *common-extra-hosts
-    ports:
-      - "${ONLYOFFICE_PORT:-8080}:80"
-    volumes:
-      - onlyoffice_logs:/var/log/onlyoffice
-      - onlyoffice_data:/var/www/onlyoffice/Data
-      - onlyoffice_lib:/var/lib/onlyoffice
-      - onlyoffice_db:/var/lib/postgresql
-
 volumes:
   postgres_data:
   redis_data:
-  media_data:
   static_data:
   logs_data:
-  onlyoffice_logs:
-  onlyoffice_data:
-  onlyoffice_lib:
-  onlyoffice_db:

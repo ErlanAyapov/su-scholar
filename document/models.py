@@ -8,8 +8,7 @@ class Document(models.Model):
         ('txt', 'TXT'),
         ('excel', 'Excel'),
         ('pptx', 'PowerPoint'),
-        ('other', 'Other'),
-
+        ('other', 'Other'), 
     )
 
     title = models.CharField(max_length=255)

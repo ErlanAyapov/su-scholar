@@ -1,0 +1,802 @@
+[
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/79",
+    "label": "Real-Time Service Migration in Edge Networks: A Survey"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/83",
+    "label": "Can Differential Privacy Hinder Poisoning Attack Detection in Federated Learning?"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/77",
+    "label": "FO-DEMST: Optimized Multi-Scale Transformer with Dual-Encoder Architecture for Feeding Amount Prediction in Sea Bass Aquaculture"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/71",
+    "label": "A Federated Learning Architecture for Bird Species Classification in Wetlands"
+  },
+  {
+    "url": "https://www.mdpi.com/about/journals",
+    "label": "Active Journals"
+  },
+  {
+    "url": "https://www.mdpi.com/about/journalfinder",
+    "label": "Find a Journal"
+  },
+  {
+    "url": "https://www.mdpi.com/about/journals/proposal",
+    "label": "Journal Proposal"
+  },
+  {
+    "url": "https://www.mdpi.com/about/proceedings",
+    "label": "Proceedings Series"
+  },
+  {
+    "url": "https://www.mdpi.com/topics",
+    "label": "Topics"
+  },
+  {
+    "url": "https://www.mdpi.com/authors",
+    "label": "For Authors"
+  },
+  {
+    "url": "https://www.mdpi.com/reviewers",
+    "label": "For Reviewers"
+  },
+  {
+    "url": "https://www.mdpi.com/editors",
+    "label": "For Editors"
+  },
+  {
+    "url": "https://www.mdpi.com/librarians",
+    "label": "For Librarians"
+  },
+  {
+    "url": "https://www.mdpi.com/publishing_services",
+    "label": "For Publishers"
+  },
+  {
+    "url": "https://www.mdpi.com/societies",
+    "label": "For Societies"
+  },
+  {
+    "url": "https://www.mdpi.com/conference_organizers",
+    "label": "For Conference Organizers"
+  },
+  {
+    "url": "https://www.mdpi.com/openaccess",
+    "label": "Open Access Policy"
+  },
+  {
+    "url": "https://www.mdpi.com/ioap",
+    "label": "Institutional Open Access Program"
+  },
+  {
+    "url": "https://www.mdpi.com/special_issues_guidelines",
+    "label": "Special Issues Guidelines"
+  },
+  {
+    "url": "https://www.mdpi.com/editorial_process",
+    "label": "Editorial Process"
+  },
+  {
+    "url": "https://www.mdpi.com/ethics",
+    "label": "Research and Publication Ethics"
+  },
+  {
+    "url": "https://www.mdpi.com/apc",
+    "label": "Article Processing Charges"
+  },
+  {
+    "url": "https://www.mdpi.com/awards",
+    "label": "Awards"
+  },
+  {
+    "url": "https://www.mdpi.com/testimonials",
+    "label": "Testimonials"
+  },
+  {
+    "url": "https://www.mdpi.com/authors/english",
+    "label": "Author Services"
+  },
+  {
+    "url": "https://sciforum.net",
+    "label": "Sciforum"
+  },
+  {
+    "url": "https://www.mdpi.com/books",
+    "label": "MDPI Books"
+  },
+  {
+    "url": "https://www.preprints.org",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://www.scilit.com",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://sciprofiles.com",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://encyclopedia.pub",
+    "label": "Encyclopedia"
+  },
+  {
+    "url": "https://jams.pub",
+    "label": "JAMS"
+  },
+  {
+    "url": "https://www.mdpi.com/about",
+    "label": "Overview"
+  },
+  {
+    "url": "https://www.mdpi.com/about/contact",
+    "label": "Contact"
+  },
+  {
+    "url": "https://careers.mdpi.com",
+    "label": "Careers"
+  },
+  {
+    "url": "https://www.mdpi.com/about/announcements",
+    "label": "News"
+  },
+  {
+    "url": "https://www.mdpi.com/about/press",
+    "label": "Press"
+  },
+  {
+    "url": "http://blog.mdpi.com/",
+    "label": "Blog"
+  },
+  {
+    "url": "https://www.mdpi.com/user/login",
+    "label": "Sign In / Sign Up"
+  },
+  {
+    "url": "https://susy.mdpi.com/user/manuscripts/upload",
+    "label": "here"
+  },
+  {
+    "url": "https://www.mdpi.com/openaccess",
+    "label": "https://www.mdpi.com/openaccess"
+  },
+  {
+    "url": "https://www.mdpi.com/",
+    "label": ""
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "clear"
+  },
+  {
+    "url": "https://www.mdpi.com/toggle_desktop_layout_cookie",
+    "label": "zoom_out_map"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "search"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "menu"
+  },
+  {
+    "url": "https://www.mdpi.com/about/journals",
+    "label": "Journals"
+  },
+  {
+    "url": "https://www.mdpi.com/authors",
+    "label": "Information"
+  },
+  {
+    "url": "https://www.mdpi.com/about/initiatives",
+    "label": "Initiatives"
+  },
+  {
+    "url": "https://www.mdpi.com/about",
+    "label": "About"
+  },
+  {
+    "url": "https://susy.mdpi.com/user/manuscripts/upload?journal=jsan",
+    "label": "Submit"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Advanced Search"
+  },
+  {
+    "url": "https://www.mdpi.com/journal/jsan",
+    "label": "JSAN"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14",
+    "label": "Volume 14"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4",
+    "label": "Issue 4"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "10.3390/jsan14040078"
+  },
+  {
+    "url": "https://www.mdpi.com/journal/jsan",
+    "label": ""
+  },
+  {
+    "url": "https://susy.mdpi.com/user/manuscripts/upload?form%5Bjournal_id%5D%3D138",
+    "label": "Submit to this Journal"
+  },
+  {
+    "url": "https://susy.mdpi.com/volunteer/journals/review",
+    "label": "Review for this Journal"
+  },
+  {
+    "url": "https://www.mdpi.com/journalproposal/sendproposalspecialissue/jsan",
+    "label": "Propose a Special Issue"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "► ▼ Article Menu"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Academic Editors"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/1272525?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "Laura Verde"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/192601?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "Fiammetta Marulli"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/1299499?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "Rosario Catelli"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/1033891?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "Giovanni Paragliola"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Show more..."
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Recommended Articles"
+  },
+  {
+    "url": "https://www.mdpi.com/article/1707835/author-biographies",
+    "label": "Author Biographies"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Related Info Link"
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Federated%20Learning-Based%20Intrusion%20Detection%20in%20IoT%20Networks%3A%20Performance%20Evaluation%20and%20Data%20Scaling%20Study",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "More by Authors Links"
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Nurtay%20Albanbay%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Albanbay, N."
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Yerlan%20Tursynbek%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Tursynbek, Y."
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Kalman%20Graffi%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Graffi, K."
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Raissa%20Uskenbayeva%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Uskenbayeva, R."
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Zhuldyz%20Kalpeyeva%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Kalpeyeva, Z."
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Zhastalap%20Abilkaiyr%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Abilkaiyr, Z."
+  },
+  {
+    "url": "http://doaj.org/search/articles?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22%5C%22Yerlan%20Ayapov%5C%22%22%2C%22default_operator%22%3A%22AND%22%2C%22default_field%22%3A%22bibjson.author.name%22%7D%7D%7D",
+    "label": "Ayapov, Y."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Nurtay%20Albanbay",
+    "label": "Albanbay, N."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Yerlan%20Tursynbek",
+    "label": "Tursynbek, Y."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Kalman%20Graffi",
+    "label": "Graffi, K."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Raissa%20Uskenbayeva",
+    "label": "Uskenbayeva, R."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Zhuldyz%20Kalpeyeva",
+    "label": "Kalpeyeva, Z."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Zhastalap%20Abilkaiyr",
+    "label": "Abilkaiyr, Z."
+  },
+  {
+    "url": "http://scholar.google.com/scholar?q=Yerlan%20Ayapov",
+    "label": "Ayapov, Y."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Nurtay%20Albanbay",
+    "label": "Albanbay, N."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Yerlan%20Tursynbek",
+    "label": "Tursynbek, Y."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Kalman%20Graffi",
+    "label": "Graffi, K."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Raissa%20Uskenbayeva",
+    "label": "Uskenbayeva, R."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Zhuldyz%20Kalpeyeva",
+    "label": "Kalpeyeva, Z."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Zhastalap%20Abilkaiyr",
+    "label": "Abilkaiyr, Z."
+  },
+  {
+    "url": "http://www.pubmed.gov/?cmd=Search&term=Yerlan%20Ayapov",
+    "label": "Ayapov, Y."
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Article Views"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Citations -"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Table of Contents"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "share Share"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "announcement Help"
+  },
+  {
+    "url": "https://sciprofiles.com/discussion-groups/public/10.3390/jsan14040078?utm_source=mpdi.com&utm_medium=publication&utm_campaign=discuss_in_sciprofiles",
+    "label": "question_answer Discuss in SciProfiles"
+  },
+  {
+    "url": "https://www.mdpi.com/about/contactform",
+    "label": "Get Support"
+  },
+  {
+    "url": "https://www.mdpi.com/feedback/send",
+    "label": "Give Feedback"
+  },
+  {
+    "url": "https://www.mdpi.com/authors",
+    "label": "Get Information"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78/pdf?version=1753263151",
+    "label": "Download PDF"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78/reprints",
+    "label": "Order Article Reprints"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/4440505?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Nurtay%20Albanbay",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Nurtay+Albanbay%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Nurtay+Albanbay",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Read more"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Read less"
+  },
+  {
+    "url": "https://orcid.org/0000-0002-3393-7380",
+    "label": ""
+  },
+  {
+    "url": "https://sciprofiles.com/profile/4369965?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Yerlan%20Tursynbek",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Yerlan+Tursynbek%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Yerlan+Tursynbek",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://orcid.org/0009-0009-9520-3030",
+    "label": ""
+  },
+  {
+    "url": "https://sciprofiles.com/profile/1213708?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Kalman%20Graffi",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Kalman+Graffi%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Kalman+Graffi",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://orcid.org/0000-0003-1708-6835",
+    "label": ""
+  },
+  {
+    "url": "https://sciprofiles.com/profile/author/a0YrZzBDckl3U2g1NjhVRGhES1pxeHNycFZOYnI0S0JUazV0aW5FM0RnSU45dE5wYmI3T0srd25XcmxBYlA1Nw==?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Raissa%20Uskenbayeva",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Raissa+Uskenbayeva%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Raissa+Uskenbayeva",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/3242610?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Zhuldyz%20Kalpeyeva",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Zhuldyz+Kalpeyeva%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Zhuldyz+Kalpeyeva",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://orcid.org/0000-0002-4970-3095",
+    "label": ""
+  },
+  {
+    "url": "https://sciprofiles.com/profile/4455454?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Zhastalap%20Abilkaiyr",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Zhastalap+Abilkaiyr%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Zhastalap+Abilkaiyr",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://sciprofiles.com/profile/4444223?utm_source=mdpi.com&utm_medium=website&utm_campaign=avatar_name",
+    "label": "SciProfiles"
+  },
+  {
+    "url": "https://scilit.com/scholars?q=Yerlan%20Ayapov",
+    "label": "Scilit"
+  },
+  {
+    "url": "https://www.preprints.org/search?condition_blocks=[{%22value%22:%22Yerlan+Ayapov%22,%22type%22:%22author%22,%22operator%22:null}]&sort_field=relevance&sort_dir=desc&page=1&exact_match=true",
+    "label": "Preprints.org"
+  },
+  {
+    "url": "https://scholar.google.com/scholar?q=Yerlan+Ayapov",
+    "label": "Google Scholar"
+  },
+  {
+    "url": "https://doi.org/10.3390/jsan14040078",
+    "label": "https://doi.org/10.3390/jsan14040078"
+  },
+  {
+    "url": "https://www.mdpi.com/journal/jsan/special_issues/J0X2VRCGHN",
+    "label": "Federated Learning: Applications and Future Directions"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Download PDF with Cover"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Download XML"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78/epub",
+    "label": "Download Epub"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Browse Figures"
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g001.png?1753263263",
+    "label": ""
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g002.png?1753263264",
+    "label": ""
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g003.png?1753263265",
+    "label": ""
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g004.png?1753263266",
+    "label": ""
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g005.png?1753263267",
+    "label": ""
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g006.png?1753263268",
+    "label": ""
+  },
+  {
+    "url": "https://pub.mdpi-res.com/jsan/jsan-14-00078/article_deploy/html/images/jsan-14-00078-g007.png?1753263270",
+    "label": ""
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78/notes",
+    "label": "Versions Notes"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=federated+learning",
+    "label": "federated learning"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=Internet+of+Things",
+    "label": "Internet of Things"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=intrusion+detection+system",
+    "label": "intrusion detection system"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=deep+learning",
+    "label": "deep learning"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=data+scaling",
+    "label": "data scaling"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=DNN",
+    "label": "DNN"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=CNN",
+    "label": "CNN"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=BiLSTM",
+    "label": "BiLSTM"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=CICIoT+2023",
+    "label": "CICIoT 2023"
+  },
+  {
+    "url": "https://www.mdpi.com/search?q=anomaly+detection",
+    "label": "anomaly detection"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "1"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "2"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "3"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "4"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "5"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Figure 1"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "7"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Section 2"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Section 3"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Section 4"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Section 5"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "Section 6"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "8"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "9"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "10"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "11"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "12"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "13"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "14"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "15"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "16"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "17"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "18"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "19"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "20"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "21"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "22"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "23"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "24"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "25"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "26"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "27"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "28"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "29"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "30"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "31"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "32"
+  },
+  {
+    "url": "https://www.mdpi.com/2224-2708/14/4/78",
+    "label": "33"
+  }
+]

@@ -204,6 +204,10 @@ main {
     margin: 0 auto;
 }
 
+.documents-mobile-layout {
+    display: none;
+}
+
 .research-search-card {
     background: #fff;
     border-radius: 16px;
@@ -363,6 +367,82 @@ main {
     gap: 14px;
 }
 
+.search-results-list {
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.google-result-item {
+    padding: 4px 0 14px;
+    border-bottom: 1px solid rgba(15, 23, 42, .12);
+}
+
+.google-result-item:last-child {
+    border-bottom: 0;
+}
+
+.google-result-source {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 5px;
+}
+
+.google-result-source-name {
+    font-size: .82rem;
+    color: #111827;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.google-result-source-url {
+    font-size: .78rem;
+    color: #6b7280;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.google-result-title {
+    margin: 0 0 6px;
+    font-size: 1.2rem;
+    line-height: 1.28;
+    font-weight: 500;
+}
+
+.google-result-title-link {
+    color: #1a0dab;
+    text-decoration: none;
+}
+
+.google-result-title-link:hover {
+    color: #0b57d0;
+    text-decoration: underline;
+}
+
+.google-result-snippet {
+    margin: 0;
+    color: #374151;
+    font-size: .94rem;
+    line-height: 1.5;
+    max-width: 75ch;
+}
+
+.google-result-open {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: .82rem;
+    color: #0b57d0;
+    text-decoration: none;
+}
+
+.google-result-open:hover {
+    text-decoration: underline;
+}
+
 .result-card {
     background: #fff;
     border: 1px solid rgba(0, 0, 0, .1);
@@ -449,6 +529,36 @@ main {
     word-break: break-word;
 }
 
+.report-compact-card {
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, .35);
+}
+
+.report-compact-card .card-body {
+    padding: 10px 12px;
+}
+
+.report-compact-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.report-compact-note {
+    color: #64748b;
+    font-size: .85rem;
+    font-weight: 500;
+}
+
+.report-compact-toggle {
+    white-space: nowrap;
+}
+
+.report-compact-submit {
+    min-height: 31px;
+}
+
 .table-open-link {
     width: 30px;
     height: 30px;
@@ -477,6 +587,31 @@ main {
 
 .result-title-link:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .search-results-list {
+        gap: 14px;
+    }
+
+    .google-result-title {
+        font-size: 1.06rem;
+    }
+
+    .google-result-snippet {
+        font-size: .9rem;
+        max-width: 100%;
+    }
+
+    .report-compact-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .report-compact-toggle,
+    .report-compact-submit {
+        width: 100%;
+    }
 }
 
 .result-meta {
@@ -2154,6 +2289,21 @@ footer {
     }
 }
 
+@media (max-width: 991.98px) {
+    .documents-mobile-layout {
+        display: block;
+    }
+
+    .documents-mobile-layout .result-container,
+    .documents-mobile-layout .search-empty-state {
+        display: none;
+    }
+
+    .documents-desktop-search-card {
+        display: none;
+    }
+}
+
 @media (max-width: 480px) {
     .employee-top {
         gap: 10px;
@@ -3081,7 +3231,7 @@ footer {
 }
 
 .rms-app-shell {
-    width: min(1380px, calc(100% - 32px));
+    width: 95%;
     margin: 20px auto 24px;
     background: #ffffff;
     border-radius: 28px;
@@ -3144,6 +3294,62 @@ footer {
     color: #64748b;
 }
 
+.rms-menu-toggle {
+    display: none;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #dce4ee;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #0f172a;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.rms-menu-toggle:focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
+}
+
+.rms-menu-toggle-icon,
+.rms-menu-toggle-icon::before,
+.rms-menu-toggle-icon::after {
+    content: "";
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    position: relative;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.rms-menu-toggle-icon::before {
+    position: absolute;
+    top: -6px;
+    left: 0;
+}
+
+.rms-menu-toggle-icon::after {
+    position: absolute;
+    top: 6px;
+    left: 0;
+}
+
+.rms-topbar.is-menu-open .rms-menu-toggle-icon {
+    background: transparent;
+}
+
+.rms-topbar.is-menu-open .rms-menu-toggle-icon::before {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.rms-topbar.is-menu-open .rms-menu-toggle-icon::after {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
 .rms-quick-nav {
     display: flex;
     flex-wrap: wrap;
@@ -3200,7 +3406,7 @@ footer {
 .rms-footer {
     border-top: 1px solid #e2e8f0;
     background: #ffffff;
-    padding: 20px 24px;
+    padding: 10px 24px;
 }
 
 .rms-footer-grid {
@@ -3445,6 +3651,32 @@ footer {
 
     .rms-topbar {
         padding: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .rms-menu-toggle {
+        display: inline-flex;
+        margin-left: auto;
+    }
+
+    .rms-quick-nav {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 8px;
+        padding-top: 8px;
+    }
+
+    .rms-topbar.is-menu-open .rms-quick-nav {
+        display: flex;
+    }
+
+    .rms-nav-pill {
+        width: 100%;
+        justify-content: flex-start;
     }
 
     .rms-brand-mark {
@@ -3475,10 +3707,6 @@ footer {
 @media (max-width: 640px) {
     .rms-kpi-grid {
         grid-template-columns: 1fr;
-    }
-
-    .rms-nav-pill {
-        width: 100%;
     }
 
     .rms-quick-nav {
@@ -4098,3 +4326,96 @@ footer {
             max-width: 88%;
         }
     }
+body.ai-fullscreen-mode {
+    overflow: hidden;
+}
+
+.rms-content.ai-fullscreen-target {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 9999 !important;
+    background: white !important;
+    border-radius: 0 !important; 
+} 
+.rms-content.ai-fullscreen-target > * {
+    height: 100% !important;
+    min-height: 100% !important;
+}
+
+.rms-content.ai-fullscreen-target > .rounded-3xl,
+.rms-content.ai-fullscreen-target > .rounded-2xl,
+.rms-content.ai-fullscreen-target > .rounded-xl {
+    border-radius: 0 !important;
+}
+
+/* главный layout */
+.rms-content.ai-fullscreen-target #projectWorkspaceGrid {
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    width: 100% !important;
+    align-items: stretch !important;
+}
+
+/* правый сайдбар */
+.rms-content.ai-fullscreen-target #projectWorkspaceRightSidebar {
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+/* внутренний контейнер чата */
+.rms-content.ai-fullscreen-target #projectWorkspaceRightSidebar > * {
+    min-height: 0 !important;
+}
+
+/* если есть отдельный блок со списком сообщений */
+.rms-content.ai-fullscreen-target #projectAgentMessages,
+.rms-content.ai-fullscreen-target #projectAgentChat,
+.rms-content.ai-fullscreen-target .project-agent-messages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+}
+
+/* нижняя зона ввода */
+.rms-content.ai-fullscreen-target #projectAgentComposer,
+.rms-content.ai-fullscreen-target #projectAgentInputWrapper,
+.rms-content.ai-fullscreen-target .project-agent-composer {
+    margin-top: auto !important;
+    flex-shrink: 0 !important;
+}.rms-content.ai-fullscreen-target #projectAgentPanel {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+}
+
+/* Только зона редактора */
+.rms-content.ai-fullscreen-target #projectOnlyofficeEditor,
+.rms-content.ai-fullscreen-target #projectOnlyofficeEditorWrapper,
+.rms-content.ai-fullscreen-target #projectOnlyofficeFallback {
+    height: 100% !important;
+    min-height: 100% !important;
+}
+
+/* Только контейнер редактора, а не все h-[720px] */
+.rms-content.ai-fullscreen-target #projectOnlyofficeSection .h-\[720px\] {
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+}
+
+/* Только внутренние отступы редактора */
+.rms-content.ai-fullscreen-target #projectOnlyofficeSection .p-3,
+.rms-content.ai-fullscreen-target #projectOnlyofficeSection .lg\:p-5 {
+    padding: 0 !important;
+}

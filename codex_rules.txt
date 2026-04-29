@@ -14,3 +14,7 @@
 - Prefer minimal patches over full-file rewrites when non-ASCII text exists.
 - Inspect diffs before finish; do not commit mojibake.
 - If encoding confidence is low, warn and do not rewrite the file.
+
+1. Агент архетиктурасы - принциптік схемасы керек. Қысқаша сипаттамасы.
+2. Нәтижесі агент - жұмыс жасау процессі қажет дейін/кейінгі суреті
+3. Қолданылған негізгі инструменттер. 

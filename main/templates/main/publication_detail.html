@@ -3,63 +3,120 @@
 {% block title %}Публикация{% endblock %}
 
 {% block content %}
-<div class="publication-detail">
-    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-        <div>
-            <h1 class="h3 mb-2">{{ publication.title_original }}</h1>
-            <p class="text-muted mb-0">
-                {{ publication.year }} &bull; {{ publication.pub_type.name }} &bull; {{ publication.venue.name }}
-            </p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <button
-                type="button"
-                id="runPublicationPipelineBtn"
-                class="btn btn-outline-primary btn-sm"
-                data-run-url="{% url 'publication_pipeline_run' publication.id %}"
-                title="Refresh abstract and keywords"
-            >
-                <i class="bi bi-arrow-repeat"></i>
-            </button>
-            <a href="{% url 'advanced_search' %}" id="backToSearchBtn" class="btn btn-outline-secondary btn-sm">Вернуться к поиску</a>
-        </div>
-    </div>
-    <p id="runPublicationPipelineStatus" class="small text-muted mb-3 d-none"></p>
+<div class="publication-detail space-y-4">
+    <nav class="text-sm text-slate-500">
+        <a href="/" class="hover:text-slate-700 hover:underline">Главная</a>
+        <span class="mx-1">/</span>
+        <a href="{% url 'advanced_search' %}" class="hover:text-slate-700 hover:underline">Публикации</a>
+        <span class="mx-1">/</span>
+        <span class="text-slate-700">Статья</span>
+    </nav>
 
-    {% if publication.abstract %}
-    <section class="result-card mb-3">
-        <p class="mb-1"><strong>Аннотация</strong></p>
-        <p class="mb-2">{{ publication.abstract }}</p>
-        {% if publication.url_publisher %}
-            <p class="mb-0">
-                <strong>Ссылка издателя:</strong>
-                <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer">открыть</a>
-            </p>
-        {% endif %}
+    <section class="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+                <div class="mb-3 flex flex-wrap items-center gap-2">
+                    <span class="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                        {{ publication.pub_type.name|default:"Публикация" }}
+                    </span>
+                    <span class="inline-flex rounded-full border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700">
+                        {{ publication.year|default:"-" }}
+                    </span>
+                </div>
+                <h1 class="mb-2 break-words text-2xl font-semibold leading-8 text-slate-900">
+                    {{ publication.title_original }}
+                </h1>
+                <p class="mb-0 text-sm text-slate-600">
+                    {{ publication.venue.name|default:"Источник не указан" }}
+                    {% if publication.venue and publication.venue.get_kind_display %} · {{ publication.venue.get_kind_display }}{% endif %}
+                    {% if publication.year %} · {{ publication.year }}{% endif %}
+                </p>
+                {% if publication.doi %}
+                <p class="mt-2 mb-0 text-sm text-slate-600">
+                    DOI
+                    <a href="https://doi.org/{{ publication.doi }}" target="_blank" rel="noopener noreferrer" class="ml-1 text-blue-600 hover:text-blue-700 hover:underline">
+                        {{ publication.doi }}
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+            {% comment %}
+            <div class="flex flex-wrap items-center gap-2">
+                {% if publication.url_publisher %}
+                <a href="{{ publication.url_publisher }}" target="_blank" rel="noopener noreferrer" class="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    Открыть источник
+                </a>
+                {% endif %}
+                <button
+                    type="button"
+                    id="runPublicationPipelineBtn"
+                    class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    data-run-url="{% url 'publication_pipeline_run' publication.id %}"
+                    title="Обновить аннотацию и ключевые слова"
+                >
+                    <i class="bi bi-arrow-repeat"></i>
+                </button>
+                <a href="{% url 'advanced_search' %}" id="backToSearchBtn" class="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    К поиску
+                </a>
+            </div>
+            {% endcomment %}
+        </div>
+        <p id="runPublicationPipelineStatus" class="mt-2 mb-0 hidden text-sm text-slate-500"></p>
     </section>
-    {% endif %}
 
-    <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Авторы</h2>
-        {% if author_links %}
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>ФИО</th>
-                            <th>Роль</th>
-                            <th>ORCID</th>
-                            <th>Сотрудник</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for link in author_links %}
+    <section class="grid gap-3 md:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
+            <div class="text-3xl font-semibold text-slate-900">{{ publication.citations_count|default:0 }}</div>
+            <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">Цитирований</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
+            <div class="text-3xl font-semibold text-slate-900">{{ author_links|length }}</div>
+            <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">Авторов</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
+            <div class="text-3xl font-semibold text-slate-900">{{ publication.year|default:"-" }}</div>
+            <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">Год публикации</div>
+        </div>
+    </section>
+
+    <section class="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div class="space-y-3">
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Аннотация</h2>
+                {% if publication.abstract %}
+                <p class="mb-0 whitespace-pre-line text-base leading-8 text-slate-700">{{ publication.abstract }}</p>
+                {% else %}
+                <p class="mb-0 text-sm text-slate-500">Аннотация не добавлена.</p>
+                {% endif %}
+            </article>
+
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Авторы</h2>
+                {% if author_links %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="text-xs uppercase tracking-wide text-slate-500">
+                            <tr class="border-b border-slate-200">
+                                <th class="px-2 py-2 text-left">#</th>
+                                <th class="px-2 py-2 text-left">ФИО</th>
+                                <th class="px-2 py-2 text-left">Роль</th>
+                                <th class="px-2 py-2 text-left">ORCID</th>
+                                <th class="px-2 py-2 text-left">Сотрудник</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            {% for link in author_links %}
                             <tr>
-                                <td>{{ link.order }}</td>
-                                <td>{% if link.author.user %}{{link.author.user.full_name}}{% else %}{{ link.author.full_name }}{% endif %}</td>
-                                <td>
+                                <td class="px-2 py-2">{{ link.order }}</td>
+                                <td class="px-2 py-2">
+                                    {% if link.author.user %}
+                                        {{ link.author.user.full_name }}
+                                    {% else %}
+                                        {{ link.author.full_name }}
+                                    {% endif %}
+                                </td>
+                                <td class="px-2 py-2">
                                     {% if link.role == "first" %}
                                         Первый автор
                                     {% elif link.role == "corresponding" %}
@@ -68,167 +125,151 @@
                                         Соавтор
                                     {% endif %}
                                 </td>
-                                <td>{{ link.author.orcid|default:"-" }}</td>
-                                <td>{% if link.author.is_department_staff %}Да{% else %}Нет{% endif %}</td>
-                                <td>
-                                    {% if link.author.user_id %}
-                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'employee_profile' link.author.user_id %}"><i class="bi bi-arrow-up-right"></i></a>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
+                                <td class="px-2 py-2">{{ link.author.orcid|default:"—" }}</td>
+                                <td class="px-2 py-2">{% if link.author.is_department_staff %}Да{% else %}—{% endif %}</td>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="mb-0 text-muted">Авторы не добавлены.</p>
-        {% endif %}
-    </section>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="mb-0 text-sm text-slate-500">Авторы не добавлены.</p>
+                {% endif %}
+            </article>
 
-    <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Основная информация</h2>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <p class="mb-1"><span>Квартиль:</span> {{ publication.quartile|default:"-" }}</p>
-                <p class="mb-1"><span>Год квартиля:</span> {{ publication.quartile_year|default:"-" }}</p>
-                <p class="mb-1"><span>Количество цитирований:</span> {{ publication.citations_count }}</p>
-            </div>
-            <div class="col-md-6">
-                <p class="mb-1"><span>Дата публикации:</span> {{ publication.publication_date|default:"-" }}</p>
-                <p class="mb-1"><span>Дата принятия:</span> {{ publication.accepted_date|default:"-" }}</p>
-                <p class="mb-1"><span>Том / Номер:</span> {{ publication.volume|default:"-" }} / {{ publication.issue|default:"-" }}</p>
-                <p class="mb-1"><span>Общее число страниц:</span> {{ publication.total_pages|default:"-" }}</p>
-            </div>
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Основная информация</h2>
+                <div class="grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+                    <p class="mb-0"><span class="text-slate-500">Квартиль:</span> {{ publication.quartile|default:"—" }}</p>
+                    <p class="mb-0"><span class="text-slate-500">Дата публикации:</span> {{ publication.publication_date|default:"—" }}</p>
+                    <p class="mb-0"><span class="text-slate-500">Год квартиля:</span> {{ publication.quartile_year|default:"—" }}</p>
+                    <p class="mb-0"><span class="text-slate-500">Дата принятия:</span> {{ publication.accepted_date|default:"—" }}</p>
+                    <p class="mb-0"><span class="text-slate-500">Том / Номер:</span> {{ publication.volume|default:"—" }} / {{ publication.issue|default:"—" }}</p>
+                    <p class="mb-0"><span class="text-slate-500">Число страниц:</span> {{ publication.total_pages|default:"—" }}</p>
+                </div>
+                {% if publication.keywords %}
+                <p class="mt-2 mb-0 text-sm text-slate-700"><span class="text-slate-500">Ключевые слова:</span> {{ publication.keywords }}</p>
+                {% endif %}
+                {% if publication.url_open_access %}
+                <p class="mt-2 mb-0 text-sm text-slate-700">
+                    <span class="text-slate-500">Open Access:</span>
+                    <a href="{{ publication.url_open_access }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 hover:underline">
+                        {{ publication.url_open_access }}
+                    </a>
+                </p>
+                {% endif %}
+            </article>
         </div>
 
-        {% if publication.doi %}
-            <p class="mt-3 mb-1">
-                <strong>DOI:</strong>
-                <a href="https://doi.org/{{ publication.doi }}" target="_blank" rel="noopener noreferrer">{{ publication.doi }}</a>
-            </p>
-        {% endif %}
+        <div class="space-y-3">
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Полный текст статьи</h2>
+                    {% if primary_pdf_file and primary_pdf_file.file %}
+                    <a href="{% url 'publication_pdf_preview' primary_pdf_file.id %}" target="_blank" rel="noopener noreferrer" class="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        Скачать PDF
+                    </a>
+                    {% endif %}
+                </div>
+                {% if primary_pdf_file and primary_pdf_file.file %}
+                <div class="h-[780px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <iframe
+                        src="{% url 'publication_pdf_preview' primary_pdf_file.id %}"
+                        class="h-full w-full"
+                        title="{{ primary_pdf_file.description|default:publication.title_original }}"
+                    ></iframe>
+                </div>
+                {% else %}
+                <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+                    PDF-файл отсутствует.
+                </div>
+                {% endif %}
+            </article>
 
-        {% if publication.url_open_access %}
-            <p class="mb-1">
-                <strong>Ссылка Open Access:</strong>
-                <a href="{{ publication.url_open_access }}" target="_blank" rel="noopener noreferrer">{{ publication.url_open_access }}</a>
-            </p>
-        {% endif %}
-        {% if publication.keywords %}
-            <p class="mt-3 mb-1"><strong>Ключевые слова:</strong> {{ publication.keywords }}</p>
-        {% endif %}
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Источник публикации</h2>
+                <p class="mb-1 text-sm text-slate-700"><span class="text-slate-500">Название:</span> {{ publication.venue.name|default:"—" }}</p>
+                <p class="mb-1 text-sm text-slate-700"><span class="text-slate-500">Тип:</span> {{ publication.venue.get_kind_display|default:"—" }}</p>
+                <p class="mb-1 text-sm text-slate-700"><span class="text-slate-500">Издатель:</span> {{ publication.venue.publisher|default:"—" }}</p>
+                <p class="mb-1 text-sm text-slate-700"><span class="text-slate-500">ISSN:</span> {{ publication.venue.issn|default:"—" }}</p>
+                <p class="mb-1 text-sm text-slate-700"><span class="text-slate-500">ISBN:</span> {{ publication.venue.isbn|default:"—" }}</p>
+                <p class="mb-0 text-sm text-slate-700"><span class="text-slate-500">Серия:</span> {{ publication.venue.series|default:"—" }}</p>
+            </article>
+
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Список литературы</h2>
+                {% if reference_entries %}
+                <ol class="mb-0 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                    {% for reference in reference_entries %}
+                    <li>
+                        <div>{{ reference.display_text }}</div>
+                        {% if reference.note %}
+                        <div class="mt-1 text-xs text-slate-500">{{ reference.note }}</div>
+                        {% endif %}
+                        {% if reference.referenced_publication %}
+                        <div class="mt-1 text-xs">
+                            <a href="{% url 'publication_detail' reference.referenced_publication.id %}" class="text-blue-600 hover:text-blue-700 hover:underline">
+                                Открыть связанную публикацию
+                            </a>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <p class="mb-0 text-sm text-slate-500">Список литературы пока не добавлен.</p>
+                {% endif %}
+            </article>
+        </div>
     </section>
 
-    <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Источник публикации</h2>
-        <p class="mb-1"><span>Название:</span> {{ publication.venue.name }}</p>
-        <p class="mb-1"><span>Тип:</span> {{ publication.venue.get_kind_display }}</p>
-        <p class="mb-1"><span>Издатель:</span> {{ publication.venue.publisher|default:"-" }}</p>
-        <p class="mb-1"><span>ISSN:</span> {{ publication.venue.issn|default:"-" }}</p>
-        <p class="mb-1"><span>ISBN:</span> {{ publication.venue.isbn|default:"-" }}</p>
-        <p class="mb-0"><span>Серия:</span> {{ publication.venue.series|default:"-" }}</p>
-
-        {% if publication.venue.metrics.all %}
-            <hr>
-            <h3 class="h6">Метрики источника</h3>
-            <ul class="mb-0">
-                {% for metric in publication.venue.metrics.all %}
-                    <li>{{ metric.metric|upper }} ({{ metric.year }}): {{ metric.value }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </section>
-
-    <section class="result-card mb-3 d-none">
-        <h2 class="h5 mb-3">Классификация</h2>
-        <p class="mb-1"><strong>Область:</strong> {{ publication.area.name|default:"-" }}</p>
-        <p class="mb-1"><strong>Индексирование:</strong>
-            {% for db in publication.indexing.all %}
-                {{ db.name }}{% if not forloop.last %}, {% endif %}
-            {% empty %}
-                -
-            {% endfor %}
-        </p>
-        <p class="mb-0"><strong>Теги:</strong>
-            {% for tag in publication.tags.all %}
-                {{ tag.name }}{% if not forloop.last %}, {% endif %}
-            {% empty %}
-                -
-            {% endfor %}
-        </p>
-    </section>
-
-    <section class="result-card mb-3 d-none">
-        <h2 class="h5 mb-3">Внешние идентификаторы</h2>
-        {% if publication.identifiers.all %}
-            <ul class="mb-0">
-                {% for item in publication.identifiers.all %}
-                    <li>{{ item.get_id_type_display }}: {{ item.value }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p class="mb-0 text-muted">Внешние идентификаторы отсутствуют.</p>
-        {% endif %}
-    </section>
-
-    <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Проекты</h2>
-        {% if project_links %}
-            <ul class="mb-0">
+    <section class="grid gap-3 xl:grid-cols-2">
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Проекты</h2>
+            {% if project_links %}
+            <ul class="mb-0 space-y-1 text-sm text-slate-700">
                 {% for link in project_links %}
-                    <li>
-                        {{ link.project.name }} ({{ link.project.get_project_type_display }})
-                        {% if link.project.contract_number %} &bull; {{ link.project.contract_number }}{% endif %}
-                    </li>
+                <li>
+                    {{ link.project.name }}
+                    {% if link.project.contract_number %} · {{ link.project.contract_number }}{% endif %}
+                </li>
                 {% endfor %}
             </ul>
-        {% else %}
-            <p class="mb-0 text-muted">Связанные проекты отсутствуют.</p>
-        {% endif %}
-    </section>
+            {% else %}
+            <p class="mb-0 text-sm text-slate-500">Связанные проекты отсутствуют.</p>
+            {% endif %}
+        </article>
 
-    <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Файлы</h2>
-        {% if publication.files.all %}
-            <ul class="mb-0">
-                {% for file in publication.files.all %}
-                    <li>
-                        {{ file.get_kind_display }}
-                        {% if file.description %} &mdash; {{ file.description }}{% endif %}
-                        &bull; <a href="{{ file.file.url }}" target="_blank" rel="noopener noreferrer">Открыть</a>
-                    </li>
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Файлы и репозитории</h2>
+            {% if publication_files %}
+            <ul class="mb-3 space-y-1 text-sm text-slate-700">
+                {% for file in publication_files %}
+                <li>
+                    {{ file.get_kind_display }}{% if file.description %} — {{ file.description }}{% endif %}
+                    {% if file.file %}
+                    · <a href="{{ file.file.url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 hover:underline">Открыть</a>
+                    {% endif %}
+                </li>
                 {% endfor %}
             </ul>
-        {% else %}
-            <p class="mb-0 text-muted">Файлы не добавлены.</p>
-        {% endif %}
-    </section>
+            {% else %}
+            <p class="mb-3 text-sm text-slate-500">Файлы не добавлены.</p>
+            {% endif %}
 
-    <section class="result-card mb-3">
-        <h2 class="h5 mb-3">Ссылки на репозиторий</h2>
-        {% if publication.repo_links.all %}
-            <ul class="mb-0">
+            {% if publication.repo_links.all %}
+            <ul class="mb-0 space-y-1 text-sm text-slate-700">
                 {% for link in publication.repo_links.all %}
-                    <li>
-                        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
-                        {% if link.label %} ({{ link.label }}){% endif %}
-                    </li>
+                <li>
+                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 hover:underline">{{ link.url }}</a>
+                    {% if link.label %} ({{ link.label }}){% endif %}
+                </li>
                 {% endfor %}
             </ul>
-        {% else %}
-            <p class="mb-0 text-muted">Ссылки на репозиторий отсутствуют.</p>
-        {% endif %}
-    </section>
-
-    <section class="result-card d-none">
-        <h2 class="h5 mb-3">Системные поля</h2>
-        <p class="mb-1"><strong>ID записи:</strong> {{ publication.record_id|default:"-" }}</p>
-        <p class="mb-1"><strong>Отчетный период:</strong> {{ publication.report_period|default:"-" }}</p>
-        <p class="mb-1"><strong>Создал пользователь:</strong> {{ publication.created_by|default:"-" }}</p>
-        <p class="mb-1"><strong>Создано:</strong> {{ publication.created_at }}</p>
-        <p class="mb-0"><strong>Обновлено:</strong> {{ publication.updated_at }}</p>
+            {% else %}
+            <p class="mb-0 text-sm text-slate-500">Ссылки на репозитории отсутствуют.</p>
+            {% endif %}
+        </article>
     </section>
 </div>
 {% endblock %}
@@ -267,19 +308,19 @@
 
         const setStatus = function (text, levelClass) {
             statusNode.textContent = text;
-            statusNode.classList.remove("d-none", "text-muted", "text-success", "text-danger");
+            statusNode.classList.remove("hidden", "text-slate-500", "text-emerald-600", "text-rose-600");
             statusNode.classList.add(levelClass);
         };
 
         runButton.addEventListener("click", async function () {
             const runUrl = runButton.dataset.runUrl || "";
             if (!runUrl) {
-                setStatus("Run URL is missing.", "text-danger");
+                setStatus("Run URL is missing.", "text-rose-600");
                 return;
             }
 
             runButton.disabled = true;
-            setStatus("Queuing publication pipeline task...", "text-muted");
+            setStatus("Queuing publication pipeline task...", "text-slate-500");
 
             try {
                 const headers = {
@@ -300,14 +341,14 @@
                 });
                 if (!response.ok || !payload.ok) {
                     const errorText = payload.status || "request_failed";
-                    setStatus("Failed to queue task: " + errorText, "text-danger");
+                    setStatus("Failed to queue task: " + errorText, "text-rose-600");
                     return;
                 }
 
                 const taskId = payload.task_id || "";
-                setStatus("Task queued" + (taskId ? " (id: " + taskId + ")." : "."), "text-success");
+                setStatus("Task queued" + (taskId ? " (id: " + taskId + ")." : "."), "text-emerald-600");
             } catch (error) {
-                setStatus("Failed to queue task: network error.", "text-danger");
+                setStatus("Failed to queue task: network error.", "text-rose-600");
             } finally {
                 runButton.disabled = false;
             }

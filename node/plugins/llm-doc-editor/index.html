@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SU Scholar Live Bridge</title>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search || "");
+        var ooServer = String(params.get("oo_server") || "").replace(/\/+$/, "");
+        var candidates = [];
+
+        if (ooServer) {
+          candidates.push(ooServer + "/sdkjs-plugins/v1/plugins.js");
+        }
+        candidates.push("https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.js");
+
+        function loadScript(url, onLoad, onError) {
+          var script = document.createElement("script");
+          script.src = url;
+          script.onload = onLoad;
+          script.onerror = onError;
+          document.head.appendChild(script);
+        }
+
+        function loadCode() {
+          var codeScript = document.createElement("script");
+          codeScript.src = "code.js";
+          codeScript.defer = true;
+          document.head.appendChild(codeScript);
+        }
+
+        function tryLoad(index) {
+          if (index >= candidates.length) {
+            if (document.body) {
+              document.body.textContent = "Failed to load ONLYOFFICE plugin SDK.";
+            } else {
+              document.addEventListener("DOMContentLoaded", function () {
+                document.body.textContent = "Failed to load ONLYOFFICE plugin SDK.";
+              });
+            }
+            return;
+          }
+          loadScript(candidates[index], loadCode, function () {
+            tryLoad(index + 1);
+          });
+        }
+
+        tryLoad(0);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

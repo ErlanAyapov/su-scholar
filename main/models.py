@@ -1,5 +1,8 @@
-from django.db import models
+import uuid
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models
 
 
 # ---------- РЎРїСЂР°РІРѕС‡РЅРёРєРё ----------
@@ -161,6 +164,7 @@ class Publication(models.Model):
 
     # 46-49 (СЃРІСЏР¶РµРј С‡РµСЂРµР· РїСЂРѕРµРєС‚С‹)
     report_period = models.CharField(max_length=50, blank=True)
+    private = models.BooleanField(default=False)
 
     # РєС‚Рѕ СЃРѕР·РґР°Р» Р·Р°РїРёСЃСЊ
     created_by = models.ForeignKey(
@@ -196,6 +200,15 @@ class Publication(models.Model):
 
     def __str__(self):
         return self.title_original
+
+    @staticmethod
+    def _build_generated_record_id() -> str:
+        return f"pub-{uuid.uuid4().hex}"
+
+    def save(self, *args, **kwargs):
+        normalized_record_id = (self.record_id or "").strip()
+        self.record_id = normalized_record_id or self._build_generated_record_id()
+        super().save(*args, **kwargs)
 
 
 class PublicationAuthor(models.Model):
@@ -281,8 +294,13 @@ class Project(models.Model):
 
     name = models.CharField(max_length=300)
     project_type = models.CharField(max_length=20, choices=PROJECT_TYPE_CHOICES, default="other")
+    description = models.TextField(blank=True)
     contract_number = models.CharField(max_length=100, blank=True)
     funding_source = models.CharField(max_length=200, blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="owned_projects")
+    collaborators = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="collaborating_projects")
+    documents = models.ManyToManyField("document.Document", blank=True, related_name="projects")
+    private = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -296,7 +314,62 @@ class PublicationProject(models.Model):
         unique_together = ("publication", "project")
 
 
-# ---------- Р¤Р°Р№Р»С‹/РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ ----------
+# ---------- Список литературы ----------
+
+class PublicationReference(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="reference_entries")
+    referenced_publication = models.ForeignKey(
+        Publication,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cited_by_entries",
+    )
+    order = models.PositiveIntegerField(default=1, db_index=True)
+    raw_text = models.TextField(blank=True)
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def clean(self):
+        if self.referenced_publication_id and self.referenced_publication_id == self.publication_id:
+            raise ValidationError("Publication cannot reference itself.")
+        if not (self.raw_text or "").strip() and not self.referenced_publication_id:
+            raise ValidationError("Either raw_text or referenced_publication must be provided.")
+
+    @property
+    def display_text(self) -> str:
+        raw = (self.raw_text or "").strip()
+        if raw:
+            return raw
+
+        reference = self.referenced_publication
+        if not reference:
+            return ""
+
+        title = (reference.title_original or "").strip() or f"Publication #{reference.id}"
+        meta_parts = []
+        if reference.year:
+            meta_parts.append(str(reference.year))
+        venue = getattr(reference, "venue", None)
+        venue_name = (venue.name or "").strip() if venue else ""
+        if venue_name:
+            meta_parts.append(venue_name)
+
+        display = title
+        if meta_parts:
+            display = f"{display} ({', '.join(meta_parts)})"
+        if reference.doi:
+            display = f"{display}. DOI: {reference.doi}"
+        return display
+
+    def __str__(self):
+        display = self.display_text or f"Reference #{self.id or 'new'}"
+        return f"{self.publication_id}: {display[:80]}"
+
+
+# ---------- Файлы/подтверждения ----------
 
 class PublicationFile(models.Model):
     FILE_KIND_CHOICES = [
@@ -350,6 +423,3 @@ class NewsMedia(models.Model):
 
     def __str__(self):
         return f"{self.news_item_id} media"
-
-
-

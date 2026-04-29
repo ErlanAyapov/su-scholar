@@ -17,7 +17,7 @@ from django.utils.text import slugify
 
 from account.models import Department, Institute, University
 from document.models import Document, DocumentGenerator
-from main.models import DepartmentArea, IndexingDatabase, Language, NewsItem, Project, Publication, PublicationType, Tag, Venue
+from main.models import DepartmentArea, IndexingDatabase, Language, NewsItem, Project, Publication, PublicationReference, PublicationType, Tag, Venue
 from utils.document_generator import generate_document, generate_docx
 
 User = get_user_model()
@@ -787,11 +787,29 @@ def build_publication_detail_context(pk: int):
             seen_user_ids.add(author.user_id)
 
         author_links.append(link)
+    reference_entries = list(
+        PublicationReference.objects.filter(publication=publication)
+        .select_related("referenced_publication", "referenced_publication__venue")
+        .order_by("order", "id")
+    )
+    publication_files = list(publication.files.all())
+    primary_pdf_file = None
+    for publication_file in publication_files:
+        file_field = getattr(publication_file, "file", None)
+        file_name = str(getattr(file_field, "name", "") or "").lower()
+        is_pdf_by_kind = str(getattr(publication_file, "kind", "") or "").lower() == "pdf"
+        is_pdf_by_name = file_name.endswith(".pdf")
+        if (is_pdf_by_kind or is_pdf_by_name) and file_field:
+            primary_pdf_file = publication_file
+            break
 
     return {
         "publication": publication,
         "author_links": author_links,
         "project_links": publication.publicationproject_set.all(),
+        "reference_entries": reference_entries,
+        "publication_files": publication_files,
+        "primary_pdf_file": primary_pdf_file,
     }
 
 def collect_preset_context_for_llm():

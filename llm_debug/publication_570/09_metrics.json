@@ -1,0 +1,31 @@
+{
+  "publication_id": 570,
+  "sources": [
+    {
+      "requested_url": "http://www.jatit.org/volumes/Vol98No24/2Vol98No24.pdf",
+      "final_url": "http://www.jatit.org/volumes/Vol98No24/2Vol98No24.pdf",
+      "source_type": "pdf_text",
+      "fetch_time_sec": 0.32,
+      "http_status": 200,
+      "content_type": "application/pdf",
+      "html_chars": 0,
+      "cleaned_text_chars": 0,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    }
+  ],
+  "total_sources_fetched": 1,
+  "pdf_files_saved": 1,
+  "merge_time_sec": 0.0,
+  "normalization_time_sec": 0.0,
+  "author_matching": {
+    "total_authors": 0,
+    "auto_linked": 0,
+    "review_linked": 0
+  },
+  "db_update_time_sec": 0.001,
+  "total_chars_html": 0,
+  "total_cleaned_text_chars": 0,
+  "total_pipeline_time_sec": 1.399
+}

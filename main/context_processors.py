@@ -37,6 +37,7 @@ ACCOUNT_NAV_URLS = {
     "account_activate",
     "account_set_password",
     "account_logout",
+    "employee_create",
     "employee_profile",
     "employee_profile_sync",
     "employees",

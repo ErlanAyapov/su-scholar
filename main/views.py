@@ -1,8 +1,11 @@
-from django.http import JsonResponse
-from django.shortcuts import render
+from django.http import FileResponse, Http404, JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.views import View
+from django.utils.text import get_valid_filename
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.utils.decorators import method_decorator
 
-from main.models import Publication
+from main.models import Publication, PublicationFile
 from main.utils import (
     build_main_page_context,
     build_search_page_context,
@@ -53,6 +56,33 @@ class PublicationDetailView(View):
     def get(self, request, pk: int):
         context = build_publication_detail_context(pk)
         return render(request, self.template_name, context)
+
+
+@method_decorator(xframe_options_sameorigin, name="dispatch")
+class PublicationPdfPreviewView(View):
+    http_method_names = ["get"]
+
+    def get(self, request, file_id: int):
+        publication_file = get_object_or_404(PublicationFile, pk=file_id)
+        file_field = getattr(publication_file, "file", None)
+        file_name = str(getattr(file_field, "name", "") or "")
+        if not file_field:
+            raise Http404("PDF file not found.")
+
+        is_pdf_by_kind = str(getattr(publication_file, "kind", "") or "").lower() == "pdf"
+        is_pdf_by_name = file_name.lower().endswith(".pdf")
+        if not (is_pdf_by_kind or is_pdf_by_name):
+            raise Http404("The requested file is not a PDF.")
+
+        try:
+            file_field.open("rb")
+        except FileNotFoundError as exc:
+            raise Http404("PDF file not found.") from exc
+
+        safe_name = get_valid_filename(file_name.split("/")[-1] or f"publication-{publication_file.id}.pdf")
+        response = FileResponse(file_field, content_type="application/pdf")
+        response["Content-Disposition"] = f'inline; filename="{safe_name}"'
+        return response
 
 
 class PublicationPipelineRunView(View):

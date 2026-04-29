@@ -1,0 +1,69 @@
+{
+  "publication": {
+    "record_id": "",
+    "pub_type": "other",
+    "title_original": "",
+    "language": "",
+    "year": null,
+    "publication_date": "",
+    "status": "published",
+    "accepted_date": "",
+    "volume": "",
+    "issue": "",
+    "pages": "",
+    "article_number": "",
+    "total_pages": null,
+    "doi": "",
+    "abstract": "",
+    "keywords": [],
+    "candidate_keywords": [],
+    "quartile": "",
+    "quartile_year": null,
+    "citations_count": null,
+    "open_access": false,
+    "oa_type": "",
+    "report_period": "",
+    "needs_review": false
+  },
+  "venue": {
+    "name": "",
+    "kind": "journal",
+    "character": "scientific_journal",
+    "publisher": "",
+    "issn": "",
+    "isbn": "",
+    "conference_name": "",
+    "conference_country": "",
+    "conference_city": "",
+    "series": ""
+  },
+  "authors": [],
+  "indexing": [
+    "Google Scholar"
+  ],
+  "tags": [],
+  "area": "",
+  "identifiers": [],
+  "venue_metrics": [],
+  "projects": [],
+  "links": {
+    "url_publisher": "",
+    "url_open_access": "",
+    "doi_url": "",
+    "pdf_url": "",
+    "html_url": "",
+    "scholar_url": "",
+    "related_urls": [],
+    "repository_links": [],
+    "supplementary_links": []
+  },
+  "source_meta": {
+    "source_type": "google_scholar",
+    "source_title": "Formation of Order Packages for Planning of the Orders Implementation Process in E-Commerce | IEEE Conference Publication | IEEE Xplore",
+    "source_url": "https://ieeexplore.ieee.org/document/8971726/",
+    "raw_publication_date": "",
+    "raw_journal": "",
+    "raw_authors": "",
+    "raw_description": ""
+  }
+}

@@ -63,7 +63,19 @@ def _update_user_photo_from_satbayev(user, photo_url: str, force: bool = False, 
     if not url:
         return False
     if user.photo and not force:
-        return False
+        photo_name = str(getattr(user.photo, "name", "") or "").strip()
+        if photo_name:
+            try:
+                if user.photo.storage.exists(photo_name):
+                    return False
+            except Exception as exc:
+                logger.warning(
+                    "Failed to check existing photo in storage for user_id=%s name=%s error=%s",
+                    user.id,
+                    photo_name,
+                    exc,
+                )
+                return False
 
     try:
         response = requests.get(url, headers=REQUEST_HEADERS, timeout=timeout)
@@ -129,7 +141,10 @@ def enrich_user_profile_from_satbayev(self, user_id: int, force: bool = False) -
         object_id=str(user_id),
         meta={"full_name": full_name},
     )
-    profile_data = load_teacher_profile_data(full_name=full_name)
+    profile_data = load_teacher_profile_data(
+        full_name=full_name,
+        preferred_profile_url=str(user.satbayev_profile_url or "").strip(),
+    )
     if not profile_data:
         result = {"status": "not_found", "reason": "profile_not_found", "user_id": user_id}
         self.log_warning("Satbayev profile not found", object_type="user", object_id=str(user_id), meta=result)

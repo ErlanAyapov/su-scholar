@@ -36,6 +36,7 @@ ONLYOFFICE_SAVE_STATUSES = {2, 6}
 ONLYOFFICE_ERROR_STATUSES = {3, 7}
 FILE_TOKEN_SALT = "document-file-access"
 GENERATOR_FILE_TOKEN_SALT = "generator-file-access"
+PROJECT_AGENT_ONLYOFFICE_PLUGIN_GUID = "asc.{8DFA4E54-52F2-4D8C-8AF1-A8B31C8A4D12}"
 
 
 def _to_int(value, default: int = 0) -> int:
@@ -86,6 +87,57 @@ def _absolute_url(request, path_or_url: str) -> str:
     if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
         return path_or_url
     return urljoin(f"{_build_public_base_url(request)}/", path_or_url.lstrip("/"))
+
+
+def _project_agent_public_node_url(request) -> str:
+    configured = str(getattr(settings, "PROJECT_AGENT_PUBLIC_NODE_URL", "") or "").strip()
+    if configured:
+        return configured.rstrip("/")
+
+    public_base = _build_public_base_url(request)
+    parsed = urlsplit(public_base)
+    host = parsed.hostname or "localhost"
+    node_port = _to_int(getattr(settings, "NODE_PORT", 3000) or 3000, default=3000)
+    if node_port <= 0:
+        node_port = 3000
+    return urlunsplit(parsed._replace(netloc=f"{host}:{node_port}")).rstrip("/")
+
+
+def _append_project_agent_plugin_config(
+    request,
+    config: dict,
+    *,
+    document_key: str,
+    target_type: str,
+    target_id: int,
+) -> dict:
+    if not isinstance(config, dict):
+        return config
+
+    normalized_key = str(document_key or "").strip()
+    normalized_target_type = str(target_type or "").strip().lower()
+    normalized_target_id = _to_int(target_id, default=0)
+    if not normalized_key or normalized_target_type not in {"project", "publication_file"} or normalized_target_id <= 0:
+        return config
+
+    plugin_base_url = f"{_project_agent_public_node_url(request)}/plugins/llm-doc-editor"
+    plugin_config_url = (
+        f"{plugin_base_url}/config.json?"
+        f"{urlencode({'doc_key': normalized_key, 'target_type': normalized_target_type, 'target_id': normalized_target_id})}"
+    )
+
+    editor_config = config.setdefault("editorConfig", {})
+    plugins_config = editor_config.setdefault("plugins", {})
+
+    plugins_data = plugins_config.setdefault("pluginsData", [])
+    if plugin_config_url not in plugins_data:
+        plugins_data.append(plugin_config_url)
+
+    autostart = plugins_config.setdefault("autostart", [])
+    if PROJECT_AGENT_ONLYOFFICE_PLUGIN_GUID not in autostart:
+        autostart.append(PROJECT_AGENT_ONLYOFFICE_PLUGIN_GUID)
+
+    return config
 
 
 def _json_request(request) -> bool:
@@ -465,6 +517,29 @@ def _save_document_file(document: Document, raw_bytes: bytes = b"") -> None:
     document.file_type = "docx"
 
 
+def _is_docx_file(file_name: str, file_type: str = "") -> bool:
+    if str(file_type or "").strip().lower() == "docx":
+        return True
+    extension = os.path.splitext(file_name or "")[1].lower()
+    return extension == ".docx"
+
+
+def _is_valid_docx_payload(raw_bytes: bytes) -> bool:
+    if not raw_bytes:
+        return False
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as archive:
+            names = set(archive.namelist())
+            if "[Content_Types].xml" not in names:
+                return False
+            if "word/document.xml" not in names:
+                return False
+            archive.testzip()
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
+
 def _onlyoffice_file_params(file_name: str, fallback_file_type: str = "docx") -> tuple[str, str]:
     extension = os.path.splitext(file_name or "")[1].lower().lstrip(".")
     if not extension:
@@ -521,6 +596,7 @@ def _build_onlyoffice_config_payload(
             "customization": {
                 "autosave": True,
                 "forcesave": True,
+                "uiTheme": "theme-light",
             },
         },
     }
@@ -671,7 +747,7 @@ def _build_onlyoffice_config(request, document: Document, permissions: dict) -> 
     document_type, file_type = _onlyoffice_file_params(file_name, fallback_file_type=document.file_type)
     title = os.path.basename(file_name) if file_name else (document.title or "document")
 
-    return _build_onlyoffice_config_payload(
+    config = _build_onlyoffice_config_payload(
         file_url=file_url,
         callback_url=callback_url,
         title=title,
@@ -681,6 +757,13 @@ def _build_onlyoffice_config(request, document: Document, permissions: dict) -> 
         permissions=permissions,
         user_id=request.user.pk,
         user_name=user_name,
+    )
+    return _append_project_agent_plugin_config(
+        request,
+        config,
+        document_key=_document_key(document),
+        target_type="project",
+        target_id=document.id,
     )
 
 
@@ -1237,6 +1320,15 @@ def onlyoffice_callback(request, pk: int):
         logger.warning("ONLYOFFICE callback download failed document=%s url=%s error=%s", pk, file_url, exc)
         return JsonResponse({"error": 1}, status=502)
 
+    if _is_docx_file(getattr(document.file, "name", ""), document.file_type):
+        if not _is_valid_docx_payload(downloaded.content):
+            logger.warning(
+                "ONLYOFFICE callback invalid DOCX payload document=%s size=%s",
+                pk,
+                len(downloaded.content or b""),
+            )
+            return JsonResponse({"error": 1}, status=422)
+
     _save_document_file(document, downloaded.content)
     document.version = document.version + 1
     document.save()
@@ -1297,6 +1389,15 @@ def generator_onlyoffice_callback(request, pk: int):
     except requests.RequestException as exc:
         logger.warning("ONLYOFFICE callback download failed generator=%s url=%s error=%s", pk, file_url, exc)
         return JsonResponse({"error": 1}, status=502)
+
+    if _is_docx_file(getattr(generator.file, "name", ""), generator.file_type):
+        if not _is_valid_docx_payload(downloaded.content):
+            logger.warning(
+                "ONLYOFFICE callback invalid DOCX payload generator=%s size=%s",
+                pk,
+                len(downloaded.content or b""),
+            )
+            return JsonResponse({"error": 1}, status=422)
 
     file_name = generator.file.name.rsplit("/", 1)[-1] if generator.file else f"generator-{generator.id}.docx"
     if generator.file:

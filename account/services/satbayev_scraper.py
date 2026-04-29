@@ -29,6 +29,20 @@ ISSN_RE = re.compile(r"\b\d{4}-?\d{3}[\dX]\b", re.IGNORECASE)
 SCOPUS_EID_RE = re.compile(r"\b2-s2\.0-\d+\b", re.IGNORECASE)
 SCOPUS_AUTHOR_RE = re.compile(r"authorId=(\d+)", re.IGNORECASE)
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", re.IGNORECASE)
+WOS_LINK_MARKERS = (
+    "webofscience.com",
+    "publons.com/researcher",
+    "researcherid.com",
+)
+PROFILE_LINK_HINTS = (
+    "scopus.com",
+    "orcid.org",
+    "scholar.google.",
+    "webofscience.com",
+    "publons.com/researcher",
+    "researcherid.com",
+    "researchgate.net",
+)
 
 TRANSLIT_MAP = {
     "а": "a",
@@ -279,7 +293,7 @@ def _parse_profile_links(links: list[str]) -> dict:
         if "scholar.google." in lowered:
             parsed["google_scholar"] = link
 
-        if "webofscience.com" in lowered:
+        if any(marker in lowered for marker in WOS_LINK_MARKERS):
             parsed["wos_id"] = link
 
         if "researchgate.net" in lowered:
@@ -425,6 +439,14 @@ def extract_teacher_profile(html: str, page_url: str) -> dict:
             href = link.get("href", "").strip()
             if href:
                 external_links.append(urljoin(page_url, href))
+    if not external_links:
+        for link in soup.select("a[href]"):
+            href = link.get("href", "").strip()
+            if not href:
+                continue
+            lowered = href.lower()
+            if any(marker in lowered for marker in PROFILE_LINK_HINTS):
+                external_links.append(urljoin(page_url, href))
     external_links = _unique_keep_order(external_links)
 
     parsed_links = _parse_profile_links(external_links)
@@ -469,6 +491,24 @@ def _find_best_profile_data(full_name: str, timeout: int = 15) -> dict | None:
     return best_profile
 
 
+def _load_profile_data_from_url(profile_url: str, timeout: int = 15) -> dict | None:
+    url = str(profile_url or "").strip()
+    if not url:
+        return None
+
+    try:
+        response = requests.get(url, headers=REQUEST_HEADERS, timeout=timeout)
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+
+    profile_data = extract_teacher_profile(response.text, url)
+    profile_name = str(profile_data.get("profile_name") or "").strip()
+    if not profile_name:
+        return None
+    return profile_data
+
+
 def find_teacher_page_url(full_name: str, timeout: int = 15) -> str | None:
     profile_data = _find_best_profile_data(full_name=full_name, timeout=timeout)
     if not profile_data:
@@ -476,5 +516,19 @@ def find_teacher_page_url(full_name: str, timeout: int = 15) -> str | None:
     return profile_data.get("satbayev_profile_url")
 
 
-def load_teacher_profile_data(full_name: str, timeout: int = 15) -> dict | None:
+def load_teacher_profile_data(
+    full_name: str,
+    timeout: int = 15,
+    preferred_profile_url: str = "",
+) -> dict | None:
+    preferred_url = str(preferred_profile_url or "").strip()
+    if preferred_url:
+        profile_data = _load_profile_data_from_url(preferred_url, timeout=timeout)
+        if profile_data:
+            score = _name_match_score(full_name, profile_data.get("profile_name", "")) if full_name else 0.0
+            profile_data["match_score"] = round(score, 3)
+            return profile_data
+
+    if not str(full_name or "").strip():
+        return None
     return _find_best_profile_data(full_name=full_name, timeout=timeout)

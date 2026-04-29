@@ -1,0 +1,83 @@
+{
+  "publication_id": 369,
+  "sources": [
+    {
+      "requested_url": "https://doi.org/10.3390/JSAN14040078",
+      "final_url": "https://www.mdpi.com/2224-2708/14/4/78",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 4.184,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 557060,
+      "cleaned_text_chars": 98864,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://doi.org/10.3390/jsan14040078",
+      "final_url": "https://www.mdpi.com/2224-2708/14/4/78",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 1.032,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 557064,
+      "cleaned_text_chars": 98864,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://www.mdpi.com/2224-2708/14/4/78",
+      "final_url": "https://www.mdpi.com/2224-2708/14/4/78",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 0.779,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 557064,
+      "cleaned_text_chars": 98864,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://www.mdpi.com/2224-2708/14/4/78/pdf?version=1753263151",
+      "final_url": "https://mdpi-res.com/d_attachment/jsan/jsan-14-00078/article_deploy/jsan-14-00078.pdf?version=1753263151",
+      "source_type": "pdf_text",
+      "fetch_time_sec": 1.147,
+      "http_status": 200,
+      "content_type": "application/pdf",
+      "html_chars": 0,
+      "cleaned_text_chars": 0,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    },
+    {
+      "requested_url": "https://www.mdpi.com/2224-2708/14/4/78/htm",
+      "final_url": "https://www.mdpi.com/2224-2708/14/4/78",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 1.345,
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_chars": 557064,
+      "cleaned_text_chars": 98864,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    }
+  ],
+  "total_sources_fetched": 5,
+  "pdf_files_saved": 1,
+  "merge_time_sec": 0.0,
+  "normalization_time_sec": 0.0,
+  "author_matching": {
+    "total_authors": 0,
+    "auto_linked": 0,
+    "review_linked": 0
+  },
+  "db_update_time_sec": 0.013,
+  "total_chars_html": 2228252,
+  "total_cleaned_text_chars": 395456,
+  "total_pipeline_time_sec": 28.688
+}
