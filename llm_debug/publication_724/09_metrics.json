@@ -1,0 +1,12 @@
+{
+  "publication_id": 724,
+  "sources": [
+    {
+      "url": "https://doi.org/10.1145/3410352.3410783",
+      "fetch_error": "403 Client Error: Forbidden for url: https://dl.acm.org/doi/10.1145/3410352.3410783"
+    }
+  ],
+  "total_sources_fetched": 0,
+  "pdf_files_saved": 0,
+  "total_pipeline_time_sec": 0.702
+}

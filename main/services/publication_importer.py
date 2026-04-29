@@ -641,6 +641,8 @@ def _merge_duplicate_publications(primary: Publication, duplicate: Publication) 
             project=project_link.project,
         )
 
+    duplicate.cited_by_entries.update(referenced_publication=primary)
+    duplicate.reference_entries.update(publication=primary)
     duplicate.files.update(publication=primary)
     duplicate.repo_links.update(publication=primary)
     duplicate.delete()

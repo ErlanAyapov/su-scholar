@@ -1,0 +1,54 @@
+{% extends "main/base.html" %}
+
+{% block title %}SU Scholar - Add User{% endblock %}
+
+{% block content %}
+<section class="dashboard-panel p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="h4 mb-1">Add Inactive User</h2>
+      <p class="text-muted mb-0">Creates a new inactive profile with no password.</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'employees' %}">Back to Employees</a>
+  </div>
+
+  {% if created %}
+    <div class="alert alert-success" role="alert">
+      User has been created as inactive with an unusable password.
+      {% if created_profile_url %}
+        <a href="{{ created_profile_url }}" class="alert-link">Open profile</a>.
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="row g-3">
+      {% for field in form %}
+        <div class="col-md-6">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+          {% endif %}
+          {% for error in field.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Create User</button>
+      <a class="btn btn-outline-secondary" href="{% url 'employees' %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

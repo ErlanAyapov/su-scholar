@@ -1,0 +1,1674 @@
+﻿{% extends "main/base.html" %}
+{% block title %}SU Scholar Workspace{% endblock %}
+{% load static %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'llm/project_workspace.css' %}">
+{% endblock %}
+{% block content %}
+<section class="rms-section-card project-workspace-card">
+    <!-- <div class="border-b border-slate-200 bg-white px-5 py-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+     
+        </div>
+    </div> -->
+    <div id="projectWorkspaceShell" class="project-workspace-shell">
+        <button id="projectWorkspaceBackdrop" type="button" class="project-workspace-backdrop" aria-label="Закрыть боковые панели"></button>
+        <button
+            type="button"
+            id="toggleAiFullscreen"
+            class="workspace-fullscreen-toggle"
+            title="Полный экран"
+            aria-label="Переключить полный экран"
+        >
+            <i class="bi bi-fullscreen"></i>
+        </button>
+        <button
+            type="button"
+            class="workspace-resizer workspace-resizer-left js-workspace-resizer-left"
+            title="Изменить ширину левой панели"
+            aria-label="Изменить ширину левой панели"
+        ></button>
+        <button
+            type="button"
+            class="workspace-resizer workspace-resizer-right js-workspace-resizer-right"
+            title="Изменить ширину правой панели"
+            aria-label="Изменить ширину правой панели"
+        ></button>
+        <button type="button" class="workspace-edge-toggle workspace-edge-toggle-left js-workspace-left-toggle" aria-label="Скрыть левую панель" aria-expanded="true"></button>
+        <button type="button" class="workspace-edge-toggle workspace-edge-toggle-right js-workspace-right-toggle" aria-label="Скрыть правую панель" aria-expanded="true"></button>
+        <div id="projectWorkspaceGrid" class="project-workspace-grid grid grid-cols-12 h100">
+            <aside id="projectWorkspaceLeftSidebar" class="project-workspace-sidebar col-span-12 border-b border-slate-200 bg-slate-50 p-2 lg:col-span-3 lg:border-b-0 lg:border-r">
+                <div class="mb-5">
+                    <div class="mb-2">
+                    </div>
+                    {% if active_project %}
+                    <a href="{% url 'project_page' %}" class="mb-2 block rounded-2xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100">
+                        ← Все проекты
+                    </a>
+                    <div class="rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-sm text-slate-900">
+                        <div class="text-sm font-semibold">{{ active_project.name }}</div>
+                        <div class="mt-1 text-xs text-slate-600">{{ active_project.description|default:"Без описания"|truncatechars:120 }}</div>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'project_page' %}?create=true" class="mb-2 block rounded-2xl border border-slate-200 bg-white p-3 text-center text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100">
+                        Новый проект +
+                    </a>
+                    {% for project in projects %}
+                    <a href="{% url 'project_detail_page' project.id %}" class="mb-2 block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:bg-slate-100">
+                        <div class="text-sm font-semibold text-slate-900">{{ project.name }}</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ project.description|default:"Без описания"|truncatechars:80 }}</div>
+                    </a>
+                    {% empty %}
+                    <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-500">
+                        Пока нет проектов
+                    </div>
+                    {% endfor %}
+                    {% if collaborating_projects %}
+                    <div class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Совместные</div>
+                    {% for project in collaborating_projects %}
+                    <a href="{% url 'project_detail_page' project.id %}" class="mt-2 block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:bg-slate-100">
+                        <div class="text-sm font-semibold text-slate-900">{{ project.name }}</div>
+                        <div class="mt-1 text-xs text-slate-500">Владелец: {{ project.owner.get_full_name|default:project.owner.username }}</div>
+                    </a>
+                    {% endfor %}
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                {% if active_project %}
+                <details open class="mb-3 overflow-hidden ">
+                    <summary class="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-base font-semibold text-slate-900">Участники</h2>
+                            <span class="text-xs text-slate-400">{{ project_members|length }}</span>
+                        </div>
+                    </summary>
+                    <div class="border-t border-slate-100 px-4 py-2">
+                        {% if project_members %}
+                        <div class="divide-y divide-slate-100">
+                            {% for member in project_members %}
+                            <div class="flex items-center justify-between gap-3 py-2.5">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium text-slate-800">{{ member.user.get_full_name|default:member.user.username }}</div>
+                                    <div class="text-xs text-slate-500">@{{ member.user.username }}</div>
+                                </div>
+                                <span class="rounded-full px-2 py-0.5 text-[11px] font-medium {% if member.role == 'Owner' %}bg-blue-100 text-blue-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                    {{ member.role }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="py-2 text-xs text-slate-500">
+                            Нет участников
+                        </div>
+                        {% endif %}
+                    </div>
+                </details>
+
+                <details open class="mb-3 overflow-hidden ">
+                    <summary class="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-base font-semibold text-slate-900">Публикации проекта</h2>
+                            <span class="text-xs text-slate-400">{{ project_publications|length }}</span>
+                        </div>
+                    </summary>
+                    <div class="space-y-3 border-t border-slate-100 px-4 py-3">
+                        <div class="flex justify-end">
+                            <button type="button" id="projectAddPublicationButton" class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                                + Добавить
+                            </button>
+                        </div>
+                        {% for publication_item in project_publications %}
+                        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="break-words text-sm font-semibold leading-5 text-slate-900">{{ publication_item.publication.title_original }}</div>
+                                    <div class="mt-1 text-xs text-slate-500">
+                                        {% if publication_item.publication.year %}{{ publication_item.publication.year }} · {% endif %}Файлов: {{ publication_item.files|length }} · Ссылок: {{ publication_item.references|length }}
+                                    </div>
+                                </div>
+                                <div class="mt-0.5 shrink-0 text-right">
+                                    {% if publication_item.can_manage %}
+                                    <div class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Моя публикация</div>
+                                    {% else %}
+                                    <div class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">Только чтение</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if publication_item.can_manage %}
+                            <div class="mt-2 flex justify-end">
+                                <button
+                                    type="button"
+                                    class="js-publication-file-modal-trigger rounded-xl border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                                    data-publication-id="{{ publication_item.publication.id }}"
+                                    data-publication-title="{{ publication_item.publication.title_original }}"
+                                >
+                                    + Добавить файл
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if publication_item.references %}
+                        <div>
+                            <div class="text-[11px]">Литература</div>
+                            <ul class="mt-1 list-disc pl-5 space-y-1">
+                                {% for reference in publication_item.references %}
+                                    <li class="break-words text-xs leading-5 text-slate-700">
+                                        {% if reference.referenced_publication %}
+                                            <a
+                                                href="{% url 'publication_detail' reference.referenced_publication.id %}"
+                                                class="hover:text-slate-900 hover:underline"
+                                            >
+                                                {{ reference.display_text }}
+                                            </a>
+                                        {% else %}
+                                            {{ reference.display_text }}
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% empty %}
+                        <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-500">
+                            Для проекта пока не привязаны публикации
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
+
+                <details open class="mb-3 overflow-hidden ">
+                    <summary class="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-base font-semibold text-slate-900">Файлы</h2>
+                            <span class="text-xs text-slate-400">{{ project_documents|length|add:project_publication_files_total }}</span>
+                        </div>
+                    </summary>
+                    <div class="space-y-2 border-t border-slate-100 bg-slate-50 px-3 py-3">
+                        <div class="flex justify-end">
+                            <button type="button" id="projectAddFileButton" class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                                + Добавить
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="px-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Документы проекта</div>
+                            {% for document in project_documents %}
+                                {% include 'project_system/file_card.html' %}
+                            {% empty %}
+                            <div class="rounded-lg border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-500">
+                                В проекте пока нет документов
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="space-y-2 pt-1">
+                            <div class="px-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Файлы публикаций</div>
+                            {% for publication_group in project_publication_file_groups %}
+                            <div class="space-y-1.5">
+                                <div class="px-1 text-xs font-medium leading-5 text-slate-600 break-words">
+                                    {{ publication_group.publication.title_original }}
+                                </div>
+                                <div class="space-y-1.5 pl-1">
+                                {% for publication_file in publication_group.files %}
+                                <a href="{% url 'project_detail_page' active_project.id %}?publication={{ publication_group.publication.id }}&publication_file={{ publication_file.id }}"
+                                   class="flex items-center rounded-lg border px-3 py-2 transition {% if active_publication_file and active_publication_file.id == publication_file.id %}border-slate-300 bg-slate-100 text-slate-900{% else %}border-slate-200 bg-white text-slate-800 hover:bg-slate-50{% endif %}">
+                                    {% if publication_file.kind == 'pdf' %}
+                                    <span class="mr-3 inline-flex h-7 w-7 items-center justify-center rounded bg-rose-600 text-[11px] font-bold text-white">PDF</span>
+                                    {% elif publication_file.kind == 'acceptance' %}
+                                    <span class="mr-3 inline-flex h-7 w-7 items-center justify-center rounded bg-amber-600 text-[10px] font-bold text-white">ACC</span>
+                                    {% else %}
+                                    <span class="mr-3 inline-flex h-7 w-7 items-center justify-center rounded bg-slate-600 text-[10px] font-bold text-white">FILE</span>
+                                    {% endif %}
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="truncate text-sm font-medium">
+                                            {{ publication_file.description|default:publication_file.get_kind_display }}
+                                        </div>
+                                        <div class="mt-1 text-xs {% if active_publication_file and active_publication_file.id == publication_file.id %}text-slate-600{% else %}text-slate-500{% endif %}">
+                                            {{ publication_file.get_kind_display }}
+                                            {% if publication_group.can_manage and active_publication_file and active_publication_file.id == publication_file.id and active_publication_file_mode == 'onlyoffice' %}
+                                             · редактирование доступно
+                                            {% elif not publication_group.can_manage %}
+                                             · только чтение
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="rounded-lg border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-500">
+                                У публикаций пока нет файлов
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </details>
+                {% endif %}
+            </aside>
+
+            <main id="projectWorkspaceMainPanel" class="project-workspace-main col-span-12 border-slate-200 bg-white lg:col-span-6 lg:border-r">
+                {% if active_project %}
+                    {% if project_publication_file_iframe_url %}
+                    <div class="project-main-panel-content project-main-panel-padded project-main-panel-padded-lg">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="truncate text-base font-semibold text-slate-900">{{ active_publication_file.description|default:active_publication.title_original }}</div>
+                                <div class="mt-1 text-sm text-slate-500">
+                                    PDF · {{ active_publication.title_original }}
+                                </div>
+                            </div>
+                            <a href="{{ project_publication_file_iframe_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                                Открыть отдельно
+                            </a>
+                        </div>
+                        <div class="project-main-panel-viewer overflow-hidden rounded-3xl border border-slate-200 bg-white">
+                            <iframe
+                                src="{{ project_publication_file_iframe_url }}"
+                                class="h-full w-full"
+                                title="{{ active_publication_file.description|default:active_publication.title_original }}"
+                            ></iframe>
+                        </div>
+                    </div>
+                    {% elif active_publication_file and active_publication_file_mode == 'download' %}
+                    <div class="flex h-full items-center justify-center p-5">
+                        <div class="max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                            <h3 class="text-lg font-semibold text-slate-800">Предпросмотр недоступен</h3>
+                            <p class="mt-2 text-sm text-slate-500">
+                                Для файла <span class="font-medium text-slate-700">{{ active_publication_file.description|default:active_publication.title_original }}</span> нет встроенного просмотра.
+                            </p>
+                            <a href="{{ project_publication_file_download_url }}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-flex rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                                Открыть файл
+                            </a>
+                        </div>
+                    </div>
+                    {% elif project_onlyoffice_config_url %}
+                    <div id="projectOnlyofficeSection" class="project-main-panel-content">
+                        <div class="project-main-panel-padded project-main-panel-padded-lg">
+                            <div class="project-main-panel-viewer rounded-3xl border border-slate-200 bg-white">
+                                <div id="projectOnlyofficeEditor" class="h-full w-full rounded-3xl" data-config-url="{{ project_onlyoffice_config_url }}"></div>
+                                <div id="projectOnlyofficeFallback" class="hidden p-6 text-sm text-slate-600"></div>
+                            </div> 
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex h-full items-center justify-center p-5">
+                        <div class="max-w-md rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                            {% if selected_publication %}
+                            <h3 class="text-lg font-semibold text-slate-800">У публикации пока нет файлов</h3>
+                            <p class="mt-2 text-sm text-slate-500">Выберите файл публикации слева или добавьте новый, если публикация принадлежит вам.</p>
+                            {% if active_publication_file_can_manage %}
+                            <button
+                                type="button"
+                                class="js-publication-file-modal-trigger mt-4 inline-flex rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                                data-publication-id="{{ selected_publication.id }}"
+                                data-publication-title="{{ selected_publication.title_original }}"
+                            >
+                                Добавить файл публикации
+                            </button>
+                            {% endif %}
+                            {% else %}
+                            <h3 class="text-lg font-semibold text-slate-800">В проекте пока нет файлов</h3>
+                            <p class="mt-2 text-sm text-slate-500">Добавьте новый документ, загрузите файл или откройте файл публикации слева.</p>
+                            <button type="button" class="js-project-add-file mt-4 inline-flex rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                                Добавить файл
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    {% if not create %}
+                    <div class="flex h-full items-center justify-center p-5">
+                        <div class="max-w-md rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                            <h3 class="text-lg font-semibold text-slate-800">Выберите проект</h3>
+                            <p class="mt-2 text-sm text-slate-500">
+                                Откройте проект из списка слева или создайте новый, чтобы начать работу.
+                            </p>
+                            <a href="{% url 'project_page' %}?create=true" class="mt-4 inline-flex rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                                Создать проект
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if create %}
+                    <div class="new-project-container p-5">
+                        {% include 'project_system/new_project_form.html' %}
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </main>
+
+            <section
+                id="projectWorkspaceRightSidebar"
+                class="project-workspace-chat col-span-12 bg-slate-50 lg:col-span-3"
+                data-project-id="{{ active_project.id|default:'' }}"
+                data-session-url="{{ project_agent_session_url|default:'' }}"
+                data-ask-url="{{ project_agent_ask_url|default:'' }}"
+                data-cancel-url="{{ project_agent_cancel_url|default:'' }}"
+                data-reference-add-url="{{ project_agent_reference_add_url|default:'' }}"
+                data-session-id="{{ project_agent_session_id|default:'' }}"
+                data-thinking-mode="middle"
+                data-access-scope="active_project"
+                data-interaction-mode="ask"
+                data-document-id="{% if active_project_document %}{{ active_project_document.id }}{% endif %}"
+                data-publication-id="{% if active_publication %}{{ active_publication.id }}{% endif %}"
+                data-publication-file-id="{% if active_publication_file %}{{ active_publication_file.id }}{% endif %}"
+                data-publication-title="{% if active_publication %}{{ active_publication.title_original|escape }}{% endif %}"
+            >
+                <div class="border-b border-slate-200 px-5 py-4">
+                    <h2 class="text-lg font-semibold text-slate-900 text-center">SU Scholar AI</h2>
+                </div>
+
+                <div id="projectAgentPanel" class="flex h-full min-h-0 flex-col">
+                    <div id="projectAgentMessages" class="flex-1 min-h-0 space-y-3 overflow-y-auto p-4">
+                    </div>
+
+                    <div class="border-t border-slate-200 bg-white p-3 shrink-0">
+                        <p id="projectAgentStatus" class="mb-2 hidden text-xs d-none"></p>
+                        <div class="flex items-end gap-2">
+                            <textarea
+                                id="projectAgentInput"
+                                rows="1"
+                                class="form-textarea form-control flex-1 resize-none"
+                                placeholder="Напишите задачу для SU Scholar..."
+                            ></textarea>
+
+                            <button
+                                type="button"
+                                id="projectAgentSendButton"
+                                class="btn btn-primary shrink-0 p-2"
+                                title="Отправить"
+                                aria-label="Отправить"
+                            >
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+
+                        <div class="project-agent-controls">
+                            <div class="project-agent-control-group">
+                                <label for="projectAgentThinkingMode" class="text-xs font-medium text-slate-600" title="Модель который будет использоваться для генераций">Модель</label>
+                                <select
+                                    id="projectAgentThinkingMode"
+                                    class="form agent-form-select"
+                                    title="Выберите модель"
+                                >
+                                    <option value="fast">Легкий</option>
+                                    <option value="middle" selected>Средний</option>
+                                    <option value="high">Высокий</option>
+                                </select>
+                            </div>
+
+                            <div class="project-agent-control-group">
+                                <label for="projectAgentAccessScope" class="text-xs font-medium text-slate-600">Доступ</label>
+                                <select
+                                    id="projectAgentAccessScope"
+                                    class="form agent-form-select"
+                                    title="Выберите уровень доступа"
+                                >
+                                    <option value="active_document">Документ</option>
+                                    <option value="active_project" selected>Проект</option>
+                                    <option value="full_access">Полный доступ</option>
+                                </select>
+                            </div>
+
+                            <div class="project-agent-control-group">
+                                <label for="projectAgentInteractionMode" class="text-xs font-medium text-slate-600">Режим</label>
+                                <select
+                                    id="projectAgentInteractionMode"
+                                    class="form agent-form-select"
+                                    title="Выберите режим"
+                                >
+                                    <option value="autonomous">Автономный</option>
+                                    <option value="ask" selected>Спрашивать</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+
+{% if active_project %}
+<div id="projectFileModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" aria-hidden="true">
+    <div class="absolute inset-0 bg-black/50" data-modal-close="1"></div>
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+        <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-900">Добавить файл в проект</h3>
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-50" data-modal-close="1">✕</button>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-2">
+            <form action="{% url 'project_file_create' active_project.id %}" method="post" class="space-y-4 rounded-xl border border-slate-200 p-4">
+                {% csrf_token %}
+                <div>
+                    <label for="projectFileTitleInput" class="mb-1 block text-sm font-medium text-slate-700">Название</label>
+                    <input id="projectFileTitleInput" name="title" type="text" maxlength="255" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Новый документ">
+                </div>
+                <input type="hidden" name="file_type" id="projectFileTypeInput" value="docx">
+
+                <div>
+                    <p class="mb-2 text-sm font-medium text-slate-700">Создать новый</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" class="project-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="docx" data-default-title="Новый документ">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-blue-600 text-xs font-bold text-white">W</span> Word
+                        </button>
+                        <button type="button" class="project-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="xlsx" data-default-title="Новая таблица">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-600 text-xs font-bold text-white">X</span> Excel
+                        </button>
+                        <button type="button" class="project-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="pptx" data-default-title="Новая презентация">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-orange-600 text-xs font-bold text-white">P</span> PowerPoint
+                        </button>
+                        <button type="button" class="project-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="txt" data-default-title="Новая заметка">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-slate-600 text-[10px] font-bold text-white">TXT</span> Блокнот
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">Создать файл</button>
+            </form>
+
+            <form action="{% url 'project_file_upload' active_project.id %}" method="post" enctype="multipart/form-data" class="space-y-4 rounded-xl border border-slate-200 p-4">
+                {% csrf_token %}
+                <div>
+                    <label for="projectUploadTitleInput" class="mb-1 block text-sm font-medium text-slate-700">Название (опционально)</label>
+                    <input id="projectUploadTitleInput" name="title" type="text" maxlength="255" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Оставьте пустым, чтобы взять имя файла">
+                </div>
+                <div>
+                    <label for="projectUploadFileInput" class="mb-1 block text-sm font-medium text-slate-700">Файл с компьютера</label>
+                    <input id="projectUploadFileInput" name="file" type="file" required class="block w-full rounded-md border-gray-300 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90">
+                </div>
+                <button type="submit" class="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">Upload</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="projectPublicationModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" aria-hidden="true">
+    <div class="absolute inset-0 bg-black/50" data-publication-modal-close="1"></div>
+    <div class="relative z-10 w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+        <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-900">Добавить публикацию в проект</h3>
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-50" data-publication-modal-close="1">✕</button>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-2">
+            <form action="{% url 'project_publication_create' active_project.id %}" method="post" class="space-y-4 rounded-xl border border-slate-200 p-4">
+                {% csrf_token %}
+                <div>
+                    <label for="projectPublicationTitleInput" class="mb-1 block text-sm font-medium text-slate-700">Название публикации</label>
+                    <input id="projectPublicationTitleInput" name="title_original" type="text" maxlength="500" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Введите название публикации">
+                </div>
+
+                <div>
+                    <label for="projectPublicationVenueInput" class="mb-1 block text-sm font-medium text-slate-700">Журнал / конференция / источник</label>
+                    <input id="projectPublicationVenueInput" name="venue" type="text" maxlength="300" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Например, Applied Sciences">
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div>
+                        <label for="projectPublicationYearInput" class="mb-1 block text-sm font-medium text-slate-700">Год</label>
+                        <input id="projectPublicationYearInput" name="year" type="number" min="1900" max="2100" value="{{ project_publication_year_default }}" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="projectPublicationTypeInput" class="mb-1 block text-sm font-medium text-slate-700">Тип публикации</label>
+                        <select id="projectPublicationTypeInput" name="pub_type_id" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            {% for publication_type in project_publication_types %}
+                            <option value="{{ publication_type.id }}">{{ publication_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="projectPublicationLanguageInput" class="mb-1 block text-sm font-medium text-slate-700">Язык</label>
+                    <select id="projectPublicationLanguageInput" name="language_id" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for language in project_publication_languages %}
+                        <option value="{{ language.id }}">{{ language.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">Создать публикацию</button>
+            </form>
+
+            <form action="{% url 'project_publication_reference_add' active_project.id %}" method="post" class="space-y-4 rounded-xl border border-slate-200 p-4">
+                {% csrf_token %}
+                <div>
+                    <label for="projectReferenceTargetSelect" class="mb-1 block text-sm font-medium text-slate-700">Целевая публикация проекта</label>
+                    {% if project_publication_reference_targets %}
+                    <select id="projectReferenceTargetSelect" name="target_publication_id" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for publication in project_publication_reference_targets %}
+                        <option value="{{ publication.id }}" {% if project_publication_reference_target_default_id and publication.id == project_publication_reference_target_default_id %}selected{% endif %}>
+                            {{ publication.title_original|truncatechars:110 }}{% if publication.year %} ({{ publication.year }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
+                        Сначала создайте свою публикацию в этом проекте, затем добавляйте references.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="projectReferencePublicationSelect" class="mb-1 block text-sm font-medium text-slate-700">Привязать публикацию как PublicationReference</label>
+                    {% if project_publication_candidates %}
+                    <select id="projectReferencePublicationSelect" name="referenced_publication_id" size="10" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for publication in project_publication_candidates %}
+                        <option value="{{ publication.id }}">
+                            {{ publication.title_original|truncatechars:110 }}{% if publication.year %} ({{ publication.year }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
+                        Нет доступных публикаций для привязки
+                    </div>
+                    {% endif %}
+                </div>
+
+                <p class="text-xs text-slate-500">
+                    В списке доступны только публичные публикации (<code>private=False</code>). Добавление выполняется как запись в <code>PublicationReference</code>.
+                </p>
+
+                <button type="submit" class="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 {% if not project_publication_candidates or not project_publication_reference_targets %}cursor-not-allowed opacity-60{% endif %}" {% if not project_publication_candidates or not project_publication_reference_targets %}disabled{% endif %}>
+                    Добавить PublicationReference
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="projectPublicationFileModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" aria-hidden="true">
+    <div class="absolute inset-0 bg-black/50" data-publication-file-modal-close="1"></div>
+    <div class="relative z-10 w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+        <div class="mb-4 flex items-center justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Добавить файл публикации</h3>
+                <p class="mt-1 text-sm text-slate-500">Публикация: <span id="projectPublicationFileModalTitle" class="font-medium text-slate-700">—</span></p>
+            </div>
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-50" data-publication-file-modal-close="1">✕</button>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-2">
+            <form action="{% url 'project_publication_file_create' active_project.id %}" method="post" class="space-y-4 rounded-xl border border-slate-200 p-4">
+                {% csrf_token %}
+                <input type="hidden" name="publication_id" id="projectPublicationFileCreatePublicationId">
+                <input type="hidden" name="file_type" id="projectPublicationFileTypeInput" value="docx">
+
+                <div>
+                    <label for="projectPublicationFileDescriptionInput" class="mb-1 block text-sm font-medium text-slate-700">Название файла</label>
+                    <input id="projectPublicationFileDescriptionInput" name="description" type="text" maxlength="200" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Новый документ публикации">
+                </div>
+
+                <div>
+                    <label for="projectPublicationFileKindCreateInput" class="mb-1 block text-sm font-medium text-slate-700">Тип файла</label>
+                    <select id="projectPublicationFileKindCreateInput" name="kind" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for kind_value, kind_label in publication_file_kind_choices %}
+                        {% if kind_value != 'pdf' %}
+                        <option value="{{ kind_value }}" {% if kind_value == 'other' %}selected{% endif %}>{{ kind_label }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <p class="mb-2 text-sm font-medium text-slate-700">Создать новый</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" class="project-publication-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="docx" data-default-title="Новый документ публикации">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-blue-600 text-xs font-bold text-white">W</span> Word
+                        </button>
+                        <button type="button" class="project-publication-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="xlsx" data-default-title="Новая таблица публикации">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-600 text-xs font-bold text-white">X</span> Excel
+                        </button>
+                        <button type="button" class="project-publication-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="pptx" data-default-title="Новая презентация публикации">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-orange-600 text-xs font-bold text-white">P</span> PowerPoint
+                        </button>
+                        <button type="button" class="project-publication-file-type-btn rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" data-file-type="txt" data-default-title="Новая заметка публикации">
+                            <span class="mr-1 inline-flex h-5 w-5 items-center justify-center rounded bg-slate-600 text-[10px] font-bold text-white">TXT</span> Текст
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">Создать файл</button>
+            </form>
+
+            <form action="{% url 'project_publication_file_upload' active_project.id %}" method="post" enctype="multipart/form-data" class="space-y-4 rounded-xl border border-slate-200 p-4">
+                {% csrf_token %}
+                <input type="hidden" name="publication_id" id="projectPublicationFileUploadPublicationId">
+
+                <div>
+                    <label for="projectPublicationUploadDescriptionInput" class="mb-1 block text-sm font-medium text-slate-700">Название (опционально)</label>
+                    <input id="projectPublicationUploadDescriptionInput" name="description" type="text" maxlength="200" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Оставьте пустым, чтобы взять имя файла">
+                </div>
+
+                <div>
+                    <label for="projectPublicationFileKindUploadInput" class="mb-1 block text-sm font-medium text-slate-700">Тип файла</label>
+                    <select id="projectPublicationFileKindUploadInput" name="kind" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        {% for kind_value, kind_label in publication_file_kind_choices %}
+                        <option value="{{ kind_value }}" {% if kind_value == 'other' %}selected{% endif %}>{{ kind_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="projectPublicationUploadFileInput" class="mb-1 block text-sm font-medium text-slate-700">Файл с компьютера</label>
+                    <input id="projectPublicationUploadFileInput" name="file" type="file" required class="block w-full rounded-md border-gray-300 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90">
+                </div>
+
+                <p class="text-xs text-slate-500">
+                    DOCX, XLSX и PPTX откроются в OnlyOffice. PDF будет показан во встроенном просмотре.
+                </p>
+
+                <button type="submit" class="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">Загрузить файл</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block footer %}
+{% endblock %}
+
+
+{% block scripts %}
+    {% if project_onlyoffice_api_js %}
+    <script src="{{ project_onlyoffice_api_js }}"></script>
+    {% endif %}
+    <script src="{% static 'llm/workspace.js' %}"></script>
+    <script src="{% static 'llm/project_workspace_page.js' %}"></script>
+    {% comment %}
+    <script>
+        (function () {
+            function ready(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                    return;
+                }
+                fn();
+            }
+
+            function initFallbackPanels() {
+                var shell = document.getElementById('projectWorkspaceShell');
+                var backdrop = document.getElementById('projectWorkspaceBackdrop');
+                var left = document.getElementById('projectWorkspaceLeftSidebar');
+                var right = document.getElementById('projectWorkspaceRightSidebar');
+                if (!shell || !left || !right || shell.dataset.workspaceBound === '1') {
+                    return;
+                }
+
+                var leftButtons = Array.prototype.slice.call(document.querySelectorAll('.js-workspace-left-toggle'));
+                var rightButtons = Array.prototype.slice.call(document.querySelectorAll('.js-workspace-right-toggle'));
+                if (!leftButtons.length && !rightButtons.length) {
+                    return;
+                }
+
+                function isDesktop() {
+                    return window.innerWidth >= 1024;
+                }
+
+                function setText(buttons, opened, side) {
+                    buttons.forEach(function (btn) {
+                        if (side === 'left') {
+                            btn.textContent = opened ? '' : '';
+                        } else {
+                            btn.textContent = opened ? '' : '';
+                        }
+                        btn.setAttribute('aria-expanded', opened ? 'true' : 'false');
+                    });
+                }
+
+                function closeMobile() {
+                    shell.classList.remove('is-left-open-mobile');
+                    shell.classList.remove('is-right-open-mobile');
+                    shell.classList.remove('has-mobile-sidebar');
+                    document.body.classList.remove('overflow-hidden');
+                    setText(leftButtons, false, 'left');
+                    setText(rightButtons, false, 'right');
+                }
+
+                leftButtons.forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        if (isDesktop()) {
+                            var hidden = shell.classList.toggle('is-left-collapsed');
+                            setText(leftButtons, !hidden, 'left');
+                            return;
+                        }
+                        var opened = shell.classList.toggle('is-left-open-mobile');
+                        shell.classList.remove('is-right-open-mobile');
+                        shell.classList.toggle('has-mobile-sidebar', opened);
+                        document.body.classList.toggle('overflow-hidden', opened);
+                        setText(leftButtons, opened, 'left');
+                        setText(rightButtons, false, 'right');
+                    });
+                });
+
+                rightButtons.forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        if (isDesktop()) {
+                            var hidden = shell.classList.toggle('is-right-collapsed');
+                            setText(rightButtons, !hidden, 'right');
+                            return;
+                        }
+                        var opened = shell.classList.toggle('is-right-open-mobile');
+                        shell.classList.remove('is-left-open-mobile');
+                        shell.classList.toggle('has-mobile-sidebar', opened);
+                        document.body.classList.toggle('overflow-hidden', opened);
+                        setText(rightButtons, opened, 'right');
+                        setText(leftButtons, false, 'left');
+                    });
+                });
+
+                if (backdrop) {
+                    backdrop.addEventListener('click', closeMobile);
+                }
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        closeMobile();
+                    }
+                });
+            }
+
+            function initFallbackModal() {
+                var modal = document.getElementById('projectFileModal');
+                if (!modal) {
+                    return;
+                }
+                if (modal.dataset.bound === '1') {
+                    return;
+                }
+                modal.dataset.bound = '1';
+
+                var openButtons = Array.prototype.slice.call(document.querySelectorAll('#projectAddFileButton, .js-project-add-file'));
+                var closeButtons = Array.prototype.slice.call(modal.querySelectorAll("[data-modal-close='1']"));
+
+                function openModal() {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.body.classList.add('overflow-hidden');
+                }
+
+                function closeModal() {
+                    modal.classList.remove('flex');
+                    modal.classList.add('hidden');
+                    modal.setAttribute('aria-hidden', 'true');
+                    document.body.classList.remove('overflow-hidden');
+                }
+
+                openButtons.forEach(function (btn) {
+                    btn.addEventListener('click', openModal);
+                });
+                closeButtons.forEach(function (btn) {
+                    btn.addEventListener('click', closeModal);
+                });
+                modal.addEventListener('click', function (event) {
+                    if (event.target === modal) {
+                        closeModal();
+                    }
+                });
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+                        closeModal();
+                    }
+                });
+            }
+
+            function initFallbackAgentChat() {
+                var sidebar = document.getElementById('projectWorkspaceRightSidebar');
+                var messagesContainer = document.getElementById('projectAgentMessages');
+                var input = document.getElementById('projectAgentInput');
+                var sendButton = document.getElementById('projectAgentSendButton');
+                var modeSelect = document.getElementById('projectAgentThinkingMode');
+                var accessSelect = document.getElementById('projectAgentAccessScope');
+                var interactionModeSelect = document.getElementById('projectAgentInteractionMode');
+                var statusNode = document.getElementById('projectAgentStatus');
+                if (!sidebar || !messagesContainer || !input || !sendButton) {
+                    return;
+                }
+                if (sidebar.dataset.agentChatBound === '1') {
+                    return;
+                }
+                sidebar.dataset.agentChatBound = '1';
+
+                var sessionUrl = sidebar.dataset.sessionUrl || '';
+                var askUrl = sidebar.dataset.askUrl || '';
+                var sessionId = sidebar.dataset.sessionId || '';
+                var documentId = sidebar.dataset.documentId || '';
+                var publicationId = sidebar.dataset.publicationId || '';
+                var publicationFileId = sidebar.dataset.publicationFileId || '';
+                var thinkingMode = (sidebar.dataset.thinkingMode || 'middle').toLowerCase();
+                var accessScope = (sidebar.dataset.accessScope || 'active_project').toLowerCase();
+                var interactionMode = (sidebar.dataset.interactionMode || 'ask').toLowerCase();
+                var loading = false;
+                var sendLabel = sendButton.textContent || 'Отправить';
+
+                function normalizeThinkingMode(rawValue) {
+                    var value = String(rawValue || '').toLowerCase().trim();
+                    if (value === 'fast' || value === 'middle' || value === 'high') {
+                        return value;
+                    }
+                    return 'middle';
+                }
+
+                function normalizeAccessScope(rawValue) {
+                    var value = String(rawValue || '').toLowerCase().trim();
+                    if (value === 'active_document' || value === 'active_project' || value === 'full_access') {
+                        return value;
+                    }
+                    if (value === 'high' || value === 'full' || value === 'all' || value === 'global') {
+                        return 'full_access';
+                    }
+                    return 'active_project';
+                }
+
+                function normalizeInteractionMode(rawValue) {
+                    var value = String(rawValue || '').toLowerCase().trim();
+                    if (value === 'autonomous' || value === 'ask') {
+                        return value;
+                    }
+                    return 'ask';
+                }
+
+                function getThinkingMode() {
+                    thinkingMode = normalizeThinkingMode(modeSelect ? modeSelect.value : thinkingMode);
+                    sidebar.dataset.thinkingMode = thinkingMode;
+                    return thinkingMode;
+                }
+
+                function getAccessScope() {
+                    accessScope = normalizeAccessScope(accessSelect ? accessSelect.value : accessScope);
+                    sidebar.dataset.accessScope = accessScope;
+                    return accessScope;
+                }
+
+                function getInteractionMode() {
+                    interactionMode = normalizeInteractionMode(interactionModeSelect ? interactionModeSelect.value : interactionMode);
+                    sidebar.dataset.interactionMode = interactionMode;
+                    return interactionMode;
+                }
+
+                thinkingMode = normalizeThinkingMode(thinkingMode);
+                sidebar.dataset.thinkingMode = thinkingMode;
+                if (modeSelect) {
+                    modeSelect.value = thinkingMode;
+                    modeSelect.addEventListener('change', function () {
+                        thinkingMode = normalizeThinkingMode(modeSelect.value);
+                        modeSelect.value = thinkingMode;
+                        sidebar.dataset.thinkingMode = thinkingMode;
+                    });
+                }
+
+                accessScope = normalizeAccessScope(accessScope);
+                sidebar.dataset.accessScope = accessScope;
+                if (accessSelect) {
+                    accessSelect.value = accessScope;
+                    accessSelect.addEventListener('change', function () {
+                        accessScope = normalizeAccessScope(accessSelect.value);
+                        accessSelect.value = accessScope;
+                        sidebar.dataset.accessScope = accessScope;
+                    });
+                }
+
+                interactionMode = normalizeInteractionMode(interactionMode);
+                sidebar.dataset.interactionMode = interactionMode;
+                if (interactionModeSelect) {
+                    interactionModeSelect.value = interactionMode;
+                    interactionModeSelect.addEventListener('change', function () {
+                        interactionMode = normalizeInteractionMode(interactionModeSelect.value);
+                        interactionModeSelect.value = interactionMode;
+                        sidebar.dataset.interactionMode = interactionMode;
+                    });
+                }
+
+                function getCsrfToken() {
+                    var name = 'csrftoken=';
+                    var parts = document.cookie ? document.cookie.split(';') : [];
+                    for (var i = 0; i < parts.length; i += 1) {
+                        var cookie = parts[i].trim();
+                        if (cookie.indexOf(name) === 0) {
+                            return decodeURIComponent(cookie.substring(name.length));
+                        }
+                    }
+                    var csrfInput = document.querySelector("input[name='csrfmiddlewaretoken']");
+                    if (csrfInput && csrfInput.value) {
+                        return csrfInput.value;
+                    }
+                    return '';
+                }
+
+                function setStatus(text, isError) {
+                    if (!statusNode) {
+                        return;
+                    }
+                    statusNode.textContent = text || '';
+                    statusNode.classList.toggle('hidden', !text);
+                    statusNode.classList.remove('text-rose-600');
+                    statusNode.classList.remove('text-emerald-700');
+                    statusNode.classList.remove('text-slate-500');
+                    if (!text) {
+                        return;
+                    }
+                    statusNode.classList.add(isError ? 'text-rose-600' : 'text-slate-500');
+                }
+
+                function setLoading(nextState) {
+                    loading = !!nextState;
+                    sendButton.disabled = loading;
+                    input.disabled = loading;
+                    sendButton.textContent = loading ? 'Отправка...' : sendLabel;
+                    if (modeSelect) {
+                        modeSelect.disabled = loading;
+                    }
+                    if (accessSelect) {
+                        accessSelect.disabled = loading;
+                    }
+                    if (interactionModeSelect) {
+                        interactionModeSelect.disabled = loading;
+                    }
+                }
+
+                function appendMessage(role, text) {
+                    var row = document.createElement('div');
+                    row.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+
+                    var bubble = document.createElement('div');
+                    if (role === 'user') {
+                        bubble.className = "max-w-[92%] rounded-2xl bg-blue-600 px-4 py-3 text-sm text-white shadow-md";
+                    } else {
+                        bubble.className = 'max-w-[92%] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm';
+                    }
+
+                    var title = document.createElement('div');
+                    title.className = 'mb-1 text-xs font-semibold';
+                    title.textContent = role === 'user' ? 'Вы' : 'SU Scholar';
+                    title.classList.add(role === 'user' ? 'text-slate-200' : 'text-slate-500');
+
+                    var body = document.createElement('div');
+                    body.className = 'whitespace-pre-wrap break-words';
+                    body.textContent = text || '';
+
+                    bubble.appendChild(title);
+                    bubble.appendChild(body);
+                    row.appendChild(bubble);
+                    messagesContainer.appendChild(row);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+
+                async function parseResponseJson(response) {
+                    var text = await response.text();
+                    if (!text) {
+                        return {};
+                    }
+                    try {
+                        return JSON.parse(text);
+                    } catch (error) {
+                        return { detail: String(text).slice(0, 240) };
+                    }
+                }
+
+                async function loadSession() {
+                    if (!sessionUrl) {
+                        return;
+                    }
+                    var search = documentId ? '?document_id=' + encodeURIComponent(documentId) : '';
+                    try {
+                        var response = await fetch(sessionUrl + search, {
+                            method: 'GET',
+                            credentials: 'same-origin',
+                            headers: { Accept: 'application/json' },
+                        });
+                        var data = await parseResponseJson(response);
+                        if (!response.ok) {
+                            throw new Error((data && data.detail) || 'Не удалось загрузить историю чата.');
+                        }
+                        sessionId = data.session_id || sessionId || '';
+                        if (Array.isArray(data.messages) && data.messages.length) {
+                            messagesContainer.innerHTML = '';
+                            data.messages.forEach(function (item) {
+                                var role = String(item.role || '').toLowerCase() === 'assistant' ? 'assistant' : 'user';
+                                appendMessage(role, String(item.content || ''));
+                            });
+                        }
+                    } catch (error) {
+                        setStatus(error.message || 'Ошибка загрузки истории.', true);
+                    }
+                }
+
+                async function sendMessage() {
+                    var text = (input.value || '').trim();
+                    if (!text || loading) {
+                        return;
+                    }
+                    input.value = '';
+                    appendMessage('user', text);
+                    setStatus('', false);
+                    if (typeof window.appendStatus === 'function') {
+                        window.appendStatus('Обрабатываю запрос...');
+                    }
+
+                    if (!askUrl) {
+                        appendMessage('assistant', 'Агент недоступен на сервере.');
+                        setStatus('Агент недоступен на сервере.', true);
+                        return;
+                    }
+
+                    setLoading(true);
+                    try {
+                        var response = await fetch(askUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                            body: JSON.stringify({
+                                message: text,
+                                session_id: sessionId || null,
+                                document_id: documentId || null,
+                                publication_id: publicationId || null,
+                                publication_file_id: publicationFileId || null,
+                                thinking_mode: getThinkingMode(),
+                                access_scope: getAccessScope(),
+                                interaction_mode: getInteractionMode(),
+                            }),
+                        });
+                        var data = await parseResponseJson(response);
+                        if (!response.ok) {
+                            throw new Error((data && data.detail) || 'Не удалось получить ответ агента.');
+                        }
+                        sessionId = data.session_id || sessionId || '';
+                        sidebar.dataset.sessionId = sessionId ? String(sessionId) : '';
+                        if (!window.__projectAgentWsConnected) {
+                            if (data.mode === 'error' && typeof window.appendError === 'function') {
+                                window.appendError(data.assistant_message || data.response_text || 'Ошибка');
+                            } else if (typeof window.appendAgentComplete === 'function') {
+                                window.appendAgentComplete(data);
+                            }
+                        }
+                        if (data.document_updated) {
+                            setStatus('Документ обновлен. Обновите страницу редактора.', false);
+                        } else if (Array.isArray(data.warnings) && data.warnings.length) {
+                            setStatus(String(data.warnings[0] || ''), false);
+                        } else {
+                            setStatus('', false);
+                        }
+                    } catch (error) {
+                        if (typeof window.appendError === 'function') {
+                            window.appendError(error.message || 'Ошибка обработки запроса.');
+                        } else {
+                            appendMessage('assistant', error.message || 'Ошибка обработки запроса.');
+                        }
+                        setStatus(error.message || 'Ошибка обработки запроса.', true);
+                    } finally {
+                        setLoading(false);
+                        input.focus();
+                    }
+                }
+
+                sendButton.addEventListener('click', sendMessage);
+                input.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                loadSession();
+            }
+            const fullscreenToggleButton = document.getElementById('toggleAiFullscreen');
+    const workspaceRootContainer = document.querySelector('.rms-content');
+    const siteHeaderElement = document.querySelector('header');
+    const siteFooterElement = document.querySelector('footer');
+
+    if (!fullscreenToggleButton || !workspaceRootContainer) return;
+
+    const fullscreenQueryParamName = 'full_screan';
+
+    let isWorkspaceFullscreenEnabled =
+        new URL(window.location.href).searchParams.get(fullscreenQueryParamName) === 'true';
+
+    function setFullscreenEnterIcon() {
+        fullscreenToggleButton.innerHTML = '<i class="bi bi-fullscreen"></i>';
+    }
+
+    function setFullscreenExitIcon() {
+        fullscreenToggleButton.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+    }
+
+    function updateWorkspaceUrlFullscreenState() {
+        const currentPageUrl = new URL(window.location.href);
+
+        if (isWorkspaceFullscreenEnabled) {
+            currentPageUrl.searchParams.set(fullscreenQueryParamName, 'true');
+        } else {
+            currentPageUrl.searchParams.delete(fullscreenQueryParamName);
+        }
+
+        window.history.replaceState({}, '', currentPageUrl);
+    }
+
+    function updateProjectDocumentLinksFullscreenState() {
+        const projectDocumentLinks = document.querySelectorAll('a[href*="?file="], a[href*="&file="]');
+
+        projectDocumentLinks.forEach(function (projectDocumentLink) {
+            const projectDocumentUrl = new URL(projectDocumentLink.href, window.location.origin);
+
+            if (isWorkspaceFullscreenEnabled) {
+                projectDocumentUrl.searchParams.set(fullscreenQueryParamName, 'true');
+            } else {
+                projectDocumentUrl.searchParams.delete(fullscreenQueryParamName);
+            }
+
+            projectDocumentLink.href = projectDocumentUrl.toString();
+        });
+    }
+
+    function applyWorkspaceFullscreenMode() {
+        isWorkspaceFullscreenEnabled = true;
+
+        document.body.classList.add('ai-fullscreen-mode');
+        workspaceRootContainer.classList.add('ai-fullscreen-target');
+
+        if (siteHeaderElement) {
+            siteHeaderElement.style.display = 'none';
+        }
+
+        if (siteFooterElement) {
+            siteFooterElement.style.display = 'none';
+        }
+
+        setFullscreenExitIcon();
+        updateWorkspaceUrlFullscreenState();
+        updateProjectDocumentLinksFullscreenState();
+    }
+
+    function removeWorkspaceFullscreenMode() {
+        isWorkspaceFullscreenEnabled = false;
+
+        document.body.classList.remove('ai-fullscreen-mode');
+        workspaceRootContainer.classList.remove('ai-fullscreen-target');
+
+        if (siteHeaderElement) {
+            siteHeaderElement.style.display = '';
+        }
+
+        if (siteFooterElement) {
+            siteFooterElement.style.display = '';
+        }
+
+        setFullscreenEnterIcon();
+        updateWorkspaceUrlFullscreenState();
+        updateProjectDocumentLinksFullscreenState();
+    }
+
+    function toggleWorkspaceFullscreenMode() {
+        if (isWorkspaceFullscreenEnabled) {
+            removeWorkspaceFullscreenMode();
+        } else {
+            applyWorkspaceFullscreenMode();
+        }
+    }
+
+    fullscreenToggleButton.addEventListener('click', toggleWorkspaceFullscreenMode);
+
+    if (isWorkspaceFullscreenEnabled) {
+        applyWorkspaceFullscreenMode();
+    } else {
+        removeWorkspaceFullscreenMode();
+    }
+
+            ready(function () {
+                initFallbackPanels();
+                initFallbackModal();
+                initFallbackAgentChat();
+            });
+        })();
+
+    </script>
+    <script>
+        (function () {
+            var sidebar = document.getElementById('projectWorkspaceRightSidebar');
+            var messagesContainer = document.getElementById('projectAgentMessages');
+            var statusNode = document.getElementById('projectAgentStatus');
+            if (!sidebar || !messagesContainer) {
+                return;
+            }
+
+            var projectId = parseInt(sidebar.dataset.projectId || '', 10);
+            var sessionId = String(sidebar.dataset.sessionId || '').trim();
+            var statusRow = null;
+            var socket = null;
+            var lastAgentMessageText = '';
+            var lastAgentMessageTs = 0;
+            var lastSuggestionKey = '';
+            var lastSuggestionTs = 0;
+            window.__projectAgentWsConnected = false;
+
+            function ensureSpinnerStyles() {
+                if (document.getElementById('projectAgentSpinnerStyles')) {
+                    return;
+                }
+                var style = document.createElement('style');
+                style.id = 'projectAgentSpinnerStyles';
+                style.textContent = '' +
+                    '@keyframes projectAgentSpinnerRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
+                    '.project-agent-spinner {' +
+                    'display:inline-block;width:12px;height:12px;border:2px solid #cbd5e1;border-top-color:#0f172a;' +
+                    'border-radius:9999px;animation:projectAgentSpinnerRotate 0.75s linear infinite;flex-shrink:0;' +
+                    '}';
+                document.head.appendChild(style);
+            }
+
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function setFooterStatus(text, isError) {
+                if (!statusNode) {
+                    return;
+                }
+                statusNode.textContent = text || '';
+                statusNode.classList.toggle('hidden', !text);
+                statusNode.classList.remove('text-rose-600');
+                statusNode.classList.remove('text-slate-500');
+                if (text) {
+                    statusNode.classList.add(isError ? 'text-rose-600' : 'text-slate-500');
+                }
+            }
+
+            function removeStatusRow() {
+                if (statusRow && statusRow.parentNode) {
+                    statusRow.parentNode.removeChild(statusRow);
+                }
+                statusRow = null;
+            }
+
+            function appendRow(sender, text, isError) {
+                var normalizedSender = sender === 'user' ? 'user' : 'agent';
+                var row = document.createElement('div');
+                row.className = normalizedSender === 'user' ? 'flex justify-end' : 'flex justify-start';
+
+                var bubble = document.createElement('div');
+                if (normalizedSender === 'user') {
+                    bubble.className = 'max-w-[92%] rounded-2xl bg-blue-600 px-4 py-3 text-sm text-white shadow-md';
+                } else if (isError) {
+                    bubble.className = 'max-w-[92%] rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm';
+                } else {
+                    bubble.className = 'max-w-[92%] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm';
+                }
+
+                var title = document.createElement('div');
+                title.className = 'mb-1 text-xs font-semibold';
+                title.textContent = normalizedSender === 'user' ? 'Вы' : 'SU Scholar';
+                title.classList.add(normalizedSender === 'user' ? 'text-slate-200' : 'text-slate-500');
+
+                var body = document.createElement('div');
+                body.className = 'whitespace-pre-wrap break-words';
+                body.textContent = text || '';
+
+                bubble.appendChild(title);
+                bubble.appendChild(body);
+                row.appendChild(bubble);
+                messagesContainer.appendChild(row);
+                scrollToBottom();
+            }
+
+            function getCsrfToken() {
+                var name = 'csrftoken=';
+                var parts = document.cookie ? document.cookie.split(';') : [];
+                for (var i = 0; i < parts.length; i += 1) {
+                    var cookie = parts[i].trim();
+                    if (cookie.indexOf(name) === 0) {
+                        return decodeURIComponent(cookie.substring(name.length));
+                    }
+                }
+                var csrfInput = document.querySelector("input[name='csrfmiddlewaretoken']");
+                return csrfInput && csrfInput.value ? csrfInput.value : '';
+            }
+
+            function truncateText(value, limit) {
+                var text = String(value || '').trim();
+                if (!text || text.length <= limit) {
+                    return text;
+                }
+                return text.slice(0, Math.max(0, limit - 1)).trim() + '…';
+            }
+
+            async function addPublicationReference(button) {
+                if (!button || button.disabled) {
+                    return;
+                }
+                var addUrl = sidebar.dataset.referenceAddUrl || '';
+                var targetPublicationId = button.getAttribute('data-target-publication-id') || '';
+                var referencedPublicationId = button.getAttribute('data-referenced-publication-id') || '';
+                if (!addUrl || !targetPublicationId || !referencedPublicationId) {
+                    setFooterStatus('Не удалось определить публикацию для добавления reference.', true);
+                    return;
+                }
+
+                var initialText = button.textContent || 'Добавить как reference';
+                button.disabled = true;
+                button.textContent = 'Добавляю...';
+
+                try {
+                    var response = await fetch(addUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        body: JSON.stringify({
+                            target_publication_id: targetPublicationId,
+                            referenced_publication_id: referencedPublicationId,
+                        }),
+                    });
+                    var responseText = await response.text();
+                    var payload = {};
+                    try {
+                        payload = responseText ? JSON.parse(responseText) : {};
+                    } catch (error) {
+                        payload = {};
+                    }
+                    if (!response.ok) {
+                        throw new Error((payload && payload.detail) || 'Не удалось добавить PublicationReference.');
+                    }
+
+                    button.textContent = payload.status === 'already_exists' ? 'Уже добавлено' : 'Добавлено';
+                    button.classList.remove('bg-slate-900', 'text-white');
+                    button.classList.add('border', 'border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
+                    setFooterStatus('PublicationReference добавлен в список литературы.', false);
+                } catch (error) {
+                    button.disabled = false;
+                    button.textContent = initialText;
+                    setFooterStatus(error.message || 'Не удалось добавить PublicationReference.', true);
+                }
+            }
+
+            function appendReferenceSuggestions(items, targetTitle) {
+                if (!Array.isArray(items) || !items.length) {
+                    return;
+                }
+
+                var suggestionKey = String(targetTitle || '') + '|' + items.map(function (item) {
+                    return String(item.id || '');
+                }).join(',');
+                var now = Date.now();
+                if (suggestionKey && suggestionKey === lastSuggestionKey && (now - lastSuggestionTs) < 3000) {
+                    return;
+                }
+                lastSuggestionKey = suggestionKey;
+                lastSuggestionTs = now;
+
+                var row = document.createElement('div');
+                row.className = 'flex justify-start';
+
+                var bubble = document.createElement('div');
+                bubble.className = 'max-w-[92%] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm';
+
+                var header = document.createElement('div');
+                header.className = 'mb-1 text-xs font-semibold text-slate-500';
+                header.textContent = 'Релевантные работы';
+
+                var subtitle = document.createElement('div');
+                subtitle.className = 'mb-3 text-xs text-slate-500';
+                subtitle.textContent = targetTitle
+                    ? 'Можно добавить в список литературы публикации: ' + targetTitle
+                    : '';
+
+                var list = document.createElement('div');
+                list.className = 'space-y-3';
+
+                items.forEach(function (item) {
+                    var card = document.createElement('div');
+                    card.className = 'rounded-2xl border border-slate-200 bg-slate-50 p-3';
+
+                    var cardTitle = document.createElement('div');
+                    cardTitle.className = 'text-sm font-semibold text-slate-900';
+                    cardTitle.textContent = (item.rank ? item.rank + '. ' : '') + String(item.title || 'Публикация');
+                    card.appendChild(cardTitle);
+
+                    var metaParts = [];
+                    if (item.year) {
+                        metaParts.push(String(item.year));
+                    }
+                    if (item.venue) {
+                        metaParts.push(String(item.venue));
+                    }
+                    if (metaParts.length) {
+                        var meta = document.createElement('div');
+                        meta.className = 'mt-1 text-xs text-slate-500';
+                        meta.textContent = metaParts.join(' · ');
+                        card.appendChild(meta);
+                    }
+
+                    if (item.abstract) {
+                        var abstractNode = document.createElement('div');
+                        abstractNode.className = 'mt-2 text-sm text-slate-700';
+                        abstractNode.textContent = truncateText(item.abstract, 280);
+                        card.appendChild(abstractNode);
+                    }
+
+                    var actions = document.createElement('div');
+                    actions.className = 'mt-3 flex flex-wrap items-center gap-2';
+
+                    if (item.detail_url) {
+                        var link = document.createElement('a');
+                        link.href = item.detail_url;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.className = 'inline-flex rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100';
+                        link.textContent = 'Открыть';
+                        actions.appendChild(link);
+                    }
+
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'inline-flex rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90';
+                    button.setAttribute('data-target-publication-id', String(item.target_publication_id || ''));
+                    button.setAttribute('data-referenced-publication-id', String(item.id || ''));
+
+                    if (item.already_added) {
+                        button.disabled = true;
+                        button.textContent = 'Уже добавлено';
+                        button.classList.remove('bg-slate-900', 'text-white');
+                        button.classList.add('border', 'border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
+                    } else if (item.can_add_reference) {
+                        button.textContent = 'Добавить как reference';
+                        button.addEventListener('click', function () {
+                            addPublicationReference(button);
+                        });
+                    } else {
+                        button.disabled = true;
+                        button.textContent = 'Добавление недоступно';
+                        button.classList.remove('bg-slate-900', 'text-white');
+                        button.classList.add('border', 'border-slate-300', 'bg-slate-100', 'text-slate-500');
+                    }
+                    actions.appendChild(button);
+
+                    if (item.disabled_reason && !item.can_add_reference && !item.already_added) {
+                        var hint = document.createElement('div');
+                        hint.className = 'basis-full text-xs text-slate-500';
+                        hint.textContent = String(item.disabled_reason);
+                        actions.appendChild(hint);
+                    }
+
+                    card.appendChild(actions);
+                    list.appendChild(card);
+                });
+
+                bubble.appendChild(header);
+                bubble.appendChild(subtitle);
+                bubble.appendChild(list);
+                row.appendChild(bubble);
+                messagesContainer.appendChild(row);
+                scrollToBottom();
+            }
+
+            window.appendChatMessage = function (sender, text) {
+                var normalizedSender = sender === 'user' ? 'user' : 'agent';
+                var normalizedText = String(text || '').trim();
+                if (normalizedSender === 'agent' && normalizedText) {
+                    var now = Date.now();
+                    if (normalizedText === lastAgentMessageText && (now - lastAgentMessageTs) < 3000) {
+                        return;
+                    }
+                    lastAgentMessageText = normalizedText;
+                    lastAgentMessageTs = now;
+                }
+                removeStatusRow();
+                setFooterStatus('', false);
+                appendRow(normalizedSender, normalizedText || '', false);
+            };
+
+            window.appendStatus = function (text) {
+                var message = String(text || '').trim();
+                if (!message) {
+                    return;
+                }
+                ensureSpinnerStyles();
+                removeStatusRow();
+
+                statusRow = document.createElement('div');
+                statusRow.className = 'flex justify-start';
+                statusRow.setAttribute('data-agent-status', '1');
+
+                var bubble = document.createElement('div');
+                bubble.className = 'max-w-[92%] rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 shadow-sm';
+
+                var header = document.createElement('div');
+                header.className = 'mb-1 text-xs font-semibold text-slate-500';
+                header.textContent = 'SU Scholar';
+
+                var body = document.createElement('div');
+                body.className = 'flex items-center gap-2 whitespace-pre-wrap break-words';
+
+                var spinner = document.createElement('span');
+                spinner.className = 'project-agent-spinner';
+
+                var textNode = document.createElement('span');
+                textNode.textContent = message;
+
+                body.appendChild(spinner);
+                body.appendChild(textNode);
+                bubble.appendChild(header);
+                bubble.appendChild(body);
+                statusRow.appendChild(bubble);
+                messagesContainer.appendChild(statusRow);
+                setFooterStatus(message, false);
+                scrollToBottom();
+            };
+
+            window.appendPlan = function (steps) {
+                if (!Array.isArray(steps) || !steps.length) {
+                    window.appendStatus('Формирую план...');
+                    return;
+                }
+                var lines = steps
+                    .map(function (step, index) {
+                        return (index + 1) + '. ' + String(step || '').trim();
+                    })
+                    .filter(function (line) { return !!line; });
+                window.appendStatus(lines.join('\n') || 'Формирую план...');
+            };
+
+            window.appendError = function (text) {
+                var message = String(text || 'Ошибка обработки запроса.').trim();
+                removeStatusRow();
+                setFooterStatus(message, true);
+                appendRow('agent', message, true);
+            };
+
+            window.appendAgentComplete = function (payload) {
+                var data = payload && typeof payload === 'object' ? payload : {};
+                var responseText = String(data.assistant_message || data.response_text || '').trim();
+                if (responseText) {
+                    window.appendChatMessage('agent', responseText);
+                }
+                if (Array.isArray(data.reference_suggestions) && data.reference_suggestions.length) {
+                    appendReferenceSuggestions(
+                        data.reference_suggestions,
+                        data.reference_target_publication_title || sidebar.dataset.publicationTitle || ''
+                    );
+                }
+            };
+
+            if (!projectId || !sessionId) {
+                return;
+            }
+
+            var wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            var wsUrl = wsScheme + '://' + window.location.host + '/ws/project_agent/' + projectId + '/' + sessionId + '/';
+            if (window.__projectAgentWsSocket && window.__projectAgentWsSocket.readyState <= 1) {
+                try {
+                    window.__projectAgentWsSocket.close();
+                } catch (error) {
+                    // ignore close errors for stale sockets
+                }
+            }
+            socket = new WebSocket(wsUrl);
+            window.__projectAgentWsSocket = socket;
+
+            socket.onopen = function () {
+                window.__projectAgentWsConnected = true;
+            };
+
+            socket.onmessage = function (event) {
+                var data = {};
+                try {
+                    data = JSON.parse(event.data || '{}');
+                } catch (error) {
+                    return;
+                }
+
+                switch (data.type) {
+                case 'connection_ready':
+                    if (data.message) {
+                        // window.appendStatus(data.message);
+                        console.log(data.message)
+                    }
+                    break;
+                case 'status':
+                case 'step_started':
+                case 'step_completed':
+                    window.appendStatus(data.message || 'Обрабатываю запрос...');
+                    break;
+                case 'plan':
+                    window.appendPlan(data.steps || []);
+                    break;
+                case 'complete':
+                    if (typeof window.appendAgentComplete === 'function') {
+                        window.appendAgentComplete(data);
+                    } else {
+                        window.appendChatMessage('agent', data.assistant_message || data.response_text || 'Готово');
+                    }
+                    break;
+                case 'error':
+                    window.appendError(data.message || 'Ошибка');
+                    break;
+                default:
+                    break;
+                }
+            };
+
+            socket.onerror = function () {
+                window.__projectAgentWsConnected = false;
+            };
+
+            socket.onclose = function () {
+                window.__projectAgentWsConnected = false;
+            };
+        })();
+
+
+        </script>
+    {% endcomment %}
+{% endblock %}

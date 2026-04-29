@@ -18,6 +18,14 @@ class ChatSession(models.Model):
     created = models.DateTimeField(auto_now_add=True, verbose_name="Created at")
     updated = models.DateTimeField(auto_now=True, verbose_name="Updated at")
     title = models.CharField(max_length=500, default=DEFAULT_TITLE, verbose_name="Title")
+    project = models.ForeignKey(
+        "main.Project",
+        on_delete=models.SET_NULL,
+        related_name="llm_chat_sessions",
+        null=True,
+        blank=True,
+        verbose_name="project_chat_sessions",
+    )
 
     class Meta:
         ordering = ("-updated", "-id")

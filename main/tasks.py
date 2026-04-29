@@ -474,7 +474,7 @@ def sync_user_profile_full_cycle_task(
 
     satbayev_result = {"status": "skipped", "reason": "satbayev_profile_url_missing"}
     if str(user.satbayev_profile_url or "").strip():
-        _push("Satbayev enrichment: старт", stage="satbayev", level="info")
+        _push("Satbayev enrichment", stage="satbayev", level="info")
         satbayev_result = enrich_user_profile_from_satbayev.run(user_id=user.id, force=force)
         satbayev_status = str(satbayev_result.get("status", "")).strip().lower()
         if satbayev_status == "ok":
@@ -535,7 +535,7 @@ def sync_user_profile_full_cycle_task(
             }
             continue
 
-        _push(f"Импорт {PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)}: старт", stage=source_key, level="info")
+        _push(f"Импорт {PROFILE_SYNC_SOURCE_LABELS.get(source_key, source_key)} в процессе", stage=source_key, level="info")
         try:
             if source_key == "orcid":
                 result = import_publications_for_user(user=user, force=force, sources=("orcid",))
@@ -619,7 +619,7 @@ def sync_user_profile_full_cycle_task(
     summary["publication_count"] = len(publication_ids)
 
     if publication_ids:
-        _push("Дополнить данные доступных работ (кол-во): старт", stage="abstracts", level="info")
+        _push("Дополнить данные доступных работ", stage="abstracts", level="info")
         abstracts_result = enrich_publications_with_abstracts(
             limit=len(publication_ids),
             force=False,
@@ -657,7 +657,7 @@ def sync_user_profile_full_cycle_task(
         "errors": [],
     }
     if pipeline_publication_ids:
-        _push("Publication Pipeline: старт", stage="pipeline", level="info")
+        _push("Publication Pipeline: в процессе", stage="pipeline", level="info")
         for index, publication_id in enumerate(pipeline_publication_ids, start=1):
             self.log_progress(
                 message=f"Publication Pipeline ({index}/{len(pipeline_publication_ids)})",
@@ -706,7 +706,7 @@ def sync_user_profile_full_cycle_task(
         "updated": 0,
     }
     if author_ids:
-        _push("Author Normalization: старт", stage="author_normalization", level="info")
+        _push("Author Normalization: в процессе", stage="author_normalization", level="info")
         for author_id in author_ids:
             author = Author.objects.select_related("user").get(id=author_id)
             normalization_summary["processed"] += 1

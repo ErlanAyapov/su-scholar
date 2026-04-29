@@ -13,6 +13,7 @@ from main.models import (
     PublicationFile,
     PublicationIdentifier,
     PublicationProject,
+    PublicationReference,
     PublicationType,
     RepositoryLink,
     Tag,
@@ -21,6 +22,16 @@ from main.models import (
     NewsItem,
     NewsMedia,
 )
+
+
+class PublicationReferenceInline(admin.TabularInline):
+    model = PublicationReference
+    fk_name = "publication"
+    extra = 0
+    fields = ("order", "referenced_publication", "raw_text", "note")
+    autocomplete_fields = ("referenced_publication",)
+    ordering = ("order", "id")
+    show_change_link = True
 
 try:
     from lingua import Language as LinguaLanguage
@@ -100,11 +111,12 @@ def _detect_title_language_code(title: str) -> str:
 
 @admin.register(Publication)
 class PublicationAdmin(admin.ModelAdmin):
-    list_display = ("id", "title_original", "language", "year", "pub_type", "created_by")
-    list_filter = ("language", "year", "pub_type", "status", "open_access")
+    list_display = ("id", "title_original", "language", "year", "pub_type", "created_by", "private")
+    list_filter = ("language", "year", "pub_type", "status", "open_access", "private")
     search_fields = ("title_original", "doi", "record_id", "authors__full_name")
     ordering = ("-year", "-id")
     actions = ("action_autodetect_language_by_title",)
+    inlines = (PublicationReferenceInline,)
 
     @admin.action(description="Auto-detect language from title for Unknown language rows")
     def action_autodetect_language_by_title(self, request, queryset):
@@ -230,6 +242,14 @@ class PublicationProjectAdmin(admin.ModelAdmin):
     search_fields = ("publication__title_original", "project__name")
 
 
+@admin.register(PublicationReference)
+class PublicationReferenceAdmin(admin.ModelAdmin):
+    list_display = ("id", "publication", "order", "referenced_publication", "note")
+    search_fields = ("publication__title_original", "referenced_publication__title_original", "raw_text", "note")
+    ordering = ("publication_id", "order", "id")
+    autocomplete_fields = ("publication", "referenced_publication")
+
+
 @admin.register(PublicationFile)
 class PublicationFileAdmin(admin.ModelAdmin):
     list_display = ("id", "publication", "kind", "source_url", "description")
@@ -244,4 +264,3 @@ class RepositoryLinkAdmin(admin.ModelAdmin):
 
 admin.site.register(NewsItem)
 admin.site.register(NewsMedia)
-

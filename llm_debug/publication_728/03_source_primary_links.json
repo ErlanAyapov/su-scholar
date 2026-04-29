@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://ieeexplore.ieee.org/rest/api/hpdata",
+    "label": ""
+  },
+  {
+    "url": "https://www.ieee.org/profile/changeusrpwd/showChangeUsrPwdPage.html?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Change Username/Password"
+  },
+  {
+    "url": "https://www.ieee.org/profile/address/getAddrInfoPage.html?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Update Address"
+  },
+  {
+    "url": "https://www.ieee.org/profile/payment/showPaymentHome.html?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Payment Options"
+  },
+  {
+    "url": "https://www.ieee.org/profile/vieworder/showOrderHistory.html?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Order History"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/articleSale/purchaseHistory.jsp",
+    "label": "View Purchased Documents"
+  },
+  {
+    "url": "https://www.ieee.org/ieee-privacyportal/app/ibp?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Communications Preferences"
+  },
+  {
+    "url": "https://www.ieee.org/profile/profedu/getProfEduInformation.html?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Profession and Education"
+  },
+  {
+    "url": "https://www.ieee.org/profile/tips/getTipsInfo.html?refSite=https://ieeexplore.ieee.org&refSiteName=IEEE Xplore",
+    "label": "Technical Interests"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/xpl/contact",
+    "label": "Contact & Support"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/Xplorehelp/overview-of-ieee-xplore/about-ieee-xplore",
+    "label": "About IEEE Xplore"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/xpl/contact",
+    "label": "Contact Us"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/Xplorehelp",
+    "label": "Help"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/Xplorehelp/overview-of-ieee-xplore/accessibility-statement",
+    "label": "Accessibility"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/Xplorehelp/overview-of-ieee-xplore/terms-of-use",
+    "label": "Terms of Use"
+  },
+  {
+    "url": "http://www.ieee.org/web/aboutus/whatis/policies/p9-26.html",
+    "label": "Nondiscrimination Policy"
+  },
+  {
+    "url": "https://ieeexplore.ieee.org/xpl/sitemap.jsp",
+    "label": "Sitemap"
+  },
+  {
+    "url": "http://www.ieee.org/about/help/security_privacy.html",
+    "label": "Privacy & Opting Out of Cookies"
+  }
+]

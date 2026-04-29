@@ -51,6 +51,73 @@ class RegisterForm(UserCreationForm):
         raise forms.ValidationError("Бұл email қызметкер профиліне тиесілі. Аккаунтты белсендіруді таңдаңыз.")
 
 
+class InactiveUserCreateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = (
+            "username",
+            "first_name",
+            "last_name",
+            "father_name",
+            "email",
+            "gender",
+            "department",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].required = True
+        self.fields["first_name"].required = True
+        self.fields["last_name"].required = True
+        self.fields["email"].required = True
+        self.fields["email"].widget = forms.EmailInput()
+
+        self.fields["username"].label = "Username"
+        self.fields["first_name"].label = "First name"
+        self.fields["last_name"].label = "Last name"
+        self.fields["father_name"].label = "Middle name"
+        self.fields["email"].label = "Email"
+        self.fields["gender"].label = "Gender"
+        self.fields["department"].label = "Department"
+
+        for name, field in self.fields.items():
+            if name == "gender":
+                field.widget.attrs.update({"class": "form-select"})
+            else:
+                field.widget.attrs.update({"class": "form-control"})
+            field.widget.attrs.setdefault("placeholder", field.label)
+
+    def clean_username(self):
+        username = str(self.cleaned_data.get("username") or "").strip()
+        if not username:
+            raise forms.ValidationError("Username is required.")
+
+        existing = User.objects.filter(username__iexact=username).first()
+        if existing:
+            raise forms.ValidationError("A user with this username already exists.")
+        return username
+
+    def clean_email(self):
+        email = str(self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            raise forms.ValidationError("Email is required.")
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.is_user = False
+        user.is_active = False
+        user.is_staff = False
+        user.is_superuser = False
+        user.set_unusable_password()
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
+
+
 class LoginForm(AuthenticationForm):
     username = forms.CharField(label="Пайдаланушы аты")
     password = forms.CharField(label="Құпиясөз", widget=forms.PasswordInput)

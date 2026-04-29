@@ -98,8 +98,9 @@
                   <span class="badge rounded-pill text-bg-dark">{{ primary_role.name }}</span>
                 {% endif %}
               </div>
-              {% if can_edit_profile %}
+              {% if can_manage_sync or can_edit_profile %}
                 <div class="d-flex">
+                  {% if can_manage_sync and profile_sync_form %}
                   <button
                   type="button"
                   id="userProfileSynchButton"
@@ -107,10 +108,12 @@
                   data-bs-toggle="modal"
                   data-bs-target="#userProfileSyncModal"
                   title="Синхронизация профиля с базами журналов"
-                  disabled
+                  
                 >
                   <i class="bi bi-arrow-repeat"></i>
                 </button>
+                  {% endif %}
+                  {% if can_edit_profile %}
                   <button
                   type="button"
                   id="userProfileEditButton"
@@ -129,6 +132,7 @@
                 >
                   <i class="bi bi-door-open-fill"></i>
               </a>
+                  {% endif %}
                 </div>
               {% endif %}
             </div>
@@ -163,29 +167,29 @@
         <div class="col-6 col-xl-3">
           <div class="metric-card p-3 h-100">
             <div class="text-muted small">Публикации</div>
-            <div class="metric-number fs-2">128</div>
-            <div class="small text-muted">+14% к прошлому периоду</div>
+            <div class="metric-number fs-2" id="profileMetricPublicationsValue">{{ publication_count_display }}</div>
+            <div class="small text-muted" id="profileMetricPublicationsDelta">{{ publication_change_caption }}</div>
           </div>
         </div>
         <div class="col-6 col-xl-3">
           <div class="metric-card p-3 h-100">
             <div class="text-muted small">Цитирования</div>
-            <div class="metric-number fs-2">2 436</div>
-            <div class="small text-muted">+9% к прошлому периоду</div>
+            <div class="metric-number fs-2" id="profileMetricCitationsValue">{{ citations_total_display }}</div>
+            <div class="small text-muted" id="profileMetricCitationsDelta">{{ citations_change_caption }}</div>
           </div>
         </div>
         <div class="col-6 col-xl-3">
           <div class="metric-card p-3 h-100">
             <div class="text-muted small">Гранты</div>
-            <div class="metric-number fs-2">18</div>
-            <div class="small text-muted">+3 к прошлому периоду</div>
+            <div class="metric-number fs-2" id="profileMetricGrantsValue">{{ grant_count_display }}</div>
+            <div class="small text-muted" id="profileMetricGrantsDelta">{{ grant_change_caption }}</div>
           </div>
         </div>
         <div class="col-6 col-xl-3">
           <div class="metric-card p-3 h-100">
             <div class="text-muted small">Финансирование</div>
-            <div class="metric-number fs-2">486 млн</div>
-            <div class="small text-muted">+11% к прошлому периоду</div>
+            <div class="metric-number fs-2" id="profileMetricFundingValue">{{ funding_total_display }}</div>
+            <div class="small text-muted" id="profileMetricFundingDelta">{{ funding_change_caption }}</div>
           </div>
         </div>
       </div>
@@ -200,7 +204,8 @@
             <span class="badge text-bg-light border">Сортировка</span>
           </div>
         </div>
-        <div class="vstack gap-3">
+        <div id="profileRecentPublicationsList" class="vstack gap-3">
+          <a class="soft-tile text-muted text-decoration-none text-center pt-2 pb-2" href="{% url 'project_page' %}?create=true">добавить работу</a>
           {% for publication in recent_publications %}
             <div class="soft-tile p-3">
               <div class="d-flex justify-content-between align-items-start gap-3">
@@ -259,27 +264,26 @@
         <div class="list-group list-group-flush">
           <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
             <span>Проекты и гранты</span>
-            <strong>7</strong>
+            <strong id="profileFinanceProjectsCount">{{ projects_total_display }}</strong>
           </div>
           <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
             <span>Привлеченное финансирование</span>
-            <strong>96 млн</strong>
+            <strong id="profileFinanceFundingTotal">{{ funding_total_display }}</strong>
           </div>
           <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
             <span>Внешние партнеры</span>
-            <strong>12</strong>
+            <strong id="profileFinanceCollaboratorsCount">{{ collaborators_total_display }}</strong>
           </div>
           <div class="list-group-item bg-transparent px-0 d-flex justify-content-between">
             <span>Open Access</span>
-            <strong>68%</strong>
+            <strong id="profileFinanceOpenAccessShare">{{ open_access_share_display }}</strong>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-{% if can_edit_profile and profile_form %}
-  {% if profile_sync_form %}
+{% if can_manage_sync and profile_sync_form %}
     <div
       class="modal fade"
       id="userProfileSyncModal"
@@ -288,8 +292,10 @@
       aria-hidden="true"
       data-open-on-load="{% if sync_modal_open %}1{% else %}0{% endif %}"
       data-sync-fields-url="{{ profile_sync_fields_url }}"
+      data-sync-reset-url="{% if sync_reset_enabled %}{{ profile_sync_reset_url }}{% endif %}"
       data-sync-start-url="{{ profile_sync_start_url }}"
       data-sync-status-url-template="{{ profile_sync_status_url_template }}"
+      data-publications-fragment-url="{{ profile_publications_fragment_url }}"
     >
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -322,10 +328,24 @@
                 {% endfor %}
               </div>
 
-              <div class="profile-sync-log-wrap">
-                <div class="small fw-semibold mb-2">Логи синхронизации</div>
-                <div id="profileSyncLog" class="profile-sync-log">
-                  <div class="profile-sync-log-empty">Логи появятся после запуска синхронизации.</div>
+              <div class="profile-sync-status-wrap" aria-live="polite" aria-atomic="true">
+                <div class="profile-sync-status-line">
+                  <span
+                    id="profileSyncSpinner"
+                    class="spinner-border spinner-border-sm text-primary d-none"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                  <span id="profileSyncStatusText" class="profile-sync-status-text is-info">
+                    Ожидание запуска синхронизации.
+                  </span>
+                </div>
+                <div id="profileSyncProgressWrap" class="progress profile-sync-progress d-none" aria-hidden="true">
+                  <div
+                    class="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar"
+                    style="width: 100%;"
+                  ></div>
                 </div>
               </div>
 
@@ -333,6 +353,9 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+              {% if sync_reset_enabled %}
+                <button type="button" class="btn btn-outline-danger" id="profileSyncResetButton">Сбросить данные</button>
+              {% endif %}
               <button type="button" class="btn btn-outline-primary" id="profileSyncSaveButton">Сохранить поля</button>
               <button type="button" class="btn btn-primary" id="profileSyncStartButton">Запустить синхронизацию</button>
             </div>
@@ -341,7 +364,9 @@
       </div>
     </div>
     {{ profile_sync_availability|json_script:"profile-sync-availability" }}
-  {% endif %}
+{% endif %}
+
+{% if can_edit_profile and profile_form %}
 
   <div
     class="modal fade"
@@ -475,9 +500,11 @@
 {% block scripts %}
 {{ block.super }}
 <script src="{% static 'account/scripts/profile_export.js' %}"></script>
-{% if can_edit_profile %}
+{% if can_manage_sync and profile_sync_form %}
+  <script src="{% static 'account/scripts/user_profile_sync.js' %}"></script>
+{% endif %}
+{% if can_edit_profile and profile_form %}
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script src="{% static 'account/scripts/user_profile.js' %}"></script>
-  <script src="{% static 'account/scripts/user_profile_sync.js' %}"></script>
 {% endif %}
 {% endblock %}

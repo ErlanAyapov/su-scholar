@@ -1,0 +1,35 @@
+{
+  "publication_id": 727,
+  "sources": [
+    {
+      "url": "http://www.scopus.com/inward/record.url?eid=2-s2.0-85089521884&partnerID=MN8TOARS",
+      "fetch_error": "HTTPSConnectionPool(host='next-js.scopus.elsevier.systems', port=443): Max retries exceeded with url: /pages/redirect?monolithReturnUrl=%2Finward%2Frecord.url%3Feid%3D2-s2.0-85089521884%26partnerID%3DMN8TOARS (Caused by NewConnectionError(\"HTTPSConnection(host='next-js.scopus.elsevier.systems', port=443): Failed to establish a new connection: [Errno 111] Connection refused\"))"
+    },
+    {
+      "requested_url": "https://doi.org/10.1109/CBI49978.2020.10062",
+      "final_url": "https://ieeexplore.ieee.org/document/9140242/",
+      "source_type": "google_scholar",
+      "fetch_time_sec": 1.543,
+      "http_status": 200,
+      "content_type": "text/html;charset=utf-8",
+      "html_chars": 55157,
+      "cleaned_text_chars": 705,
+      "prompt_tokens_est": 0,
+      "response_tokens_est": 0,
+      "llm_time_sec": 0
+    }
+  ],
+  "total_sources_fetched": 1,
+  "pdf_files_saved": 0,
+  "merge_time_sec": 0.0,
+  "normalization_time_sec": 0.0,
+  "author_matching": {
+    "total_authors": 0,
+    "auto_linked": 0,
+    "review_linked": 0
+  },
+  "db_update_time_sec": 0.007,
+  "total_chars_html": 55157,
+  "total_cleaned_text_chars": 705,
+  "total_pipeline_time_sec": 194.928
+}

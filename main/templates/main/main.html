@@ -14,8 +14,12 @@
 </section>
 
 {% if active_tab == "documents" %}
-    <section class="research-shell">
-        <div class="research-search-card">
+    <div class="documents-mobile-layout">
+        {% include "main/partials/documents_search_full.html" with search_action="advanced_search" hide_quick_search=True %}
+    </div>
+
+    <section class="research-shell documents-desktop-layout">
+        <div class="research-search-card documents-desktop-search-card">
             <h1 class="h4 mb-3">Поиск публикаций</h1>
             <form method="get" action="{% url 'advanced_search' %}" class="research-search-form">
                 <input type="hidden" name="tab" value="documents">
@@ -186,76 +190,90 @@
                     <div class="result-meta-tools">
                         <span class="text-muted">Найдено: {{ total_count }}</span>
                         <div class="resultShowOptionBtns" data-view-group="documents-home" data-default-view="list">
-                            <button type="button" class="result-view-btn" data-view-target="list" aria-pressed="true" title="Таблица">
+                            <button type="button" class="result-view-btn" data-view-target="list" aria-pressed="true" title="Список">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M0 2.5A1.5 1.5 0 0 1 1.5 1h13A1.5 1.5 0 0 1 16 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5zM1.5 2a.5.5 0 0 0-.5.5V5h14V2.5a.5.5 0 0 0-.5-.5zm13.5 4H1v7.5a.5.5 0 0 0 .5.5H15z"/>
+                                    <path fill-rule="evenodd" d="M2 3a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1m4.5-.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5M2 8a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1m4.5-.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5M3 12a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2zm3.5.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5"/>
                                 </svg>
                             </button>
-                            <button type="button" class="result-view-btn" data-view-target="grid" aria-pressed="false" title="Карточки">
+                   
+                            <button type="button" class="result-view-btn" data-view-target="table" aria-pressed="false" title="Таблица">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M1 2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm0 1h4v4H1zm7-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm0 1h7v4H8zM1 9a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zm0 1h7v3H1zm10-1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zm0 1h4v3h-4z"/>
+                                    <path fill-rule="evenodd" d="M0 2.5A1.5 1.5 0 0 1 1.5 1h13A1.5 1.5 0 0 1 16 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5zM1.5 2a.5.5 0 0 0-.5.5V5h14V2.5a.5.5 0 0 0-.5-.5zm13.5 4H1v7.5a.5.5 0 0 0 .5.5H15z"/>
                                 </svg>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm mb-3">
+                <div class="card border-0 mb-3 report-compact-card">
                     <div class="card-body">
-                        <h2 class="h6 mb-2 text-muted" style="opacity: 0.7;">Сформируйте отчет по текущим результатам фильтрации.</h2>
+                        <div class="report-compact-head">
+                            <p class="report-compact-note mb-0">Отчет по текущей выборке</p>
+                            {% if report_templates %}
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary report-compact-toggle"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#reportBuildPanelMain"
+                                    aria-expanded="false"
+                                    aria-controls="reportBuildPanelMain"
+                                >
+                                    Сформировать отчет
+                                </button>
+                            {% endif %}
+                        </div>
+
                         {% if report_templates %}
-                            <form method="post" action="{% url 'main_search' %}" class="row g-2 align-items-end">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="generate_report">
-                                <input type="hidden" name="tab" value="documents">
-                                <input type="hidden" name="search" value="{{ request.GET.search|default:'' }}">
-                                <input type="hidden" name="show" value="{{ request.GET.show|default:'' }}">
-                                <input type="hidden" name="staff_user" value="{{ request.GET.staff_user|default:'' }}">
-                                <input type="hidden" name="type" value="{{ request.GET.type|default:'' }}">
-                                <input type="hidden" name="lang" value="{{ request.GET.lang|default:'' }}">
-                                <input type="hidden" name="status" value="{{ request.GET.status|default:'' }}">
-                                <input type="hidden" name="oa" value="{{ request.GET.oa|default:'' }}">
-                                <input type="hidden" name="y_min" value="{{ request.GET.y_min|default:'' }}">
-                                <input type="hidden" name="y_max" value="{{ request.GET.y_max|default:'' }}">
-                                <input type="hidden" name="db" value="{{ request.GET.db|default:'' }}">
-                                <input type="hidden" name="quartile" value="{{ request.GET.quartile|default:'' }}">
-                                <input type="hidden" name="area" value="{{ request.GET.area|default:'' }}">
-                                <input type="hidden" name="venue" value="{{ request.GET.venue|default:'' }}">
-                                {% for tag in selected_tags %}
-                                    <input type="hidden" name="tags" value="{{ tag }}">
-                                {% endfor %}
-                                {% get_document_generators request.user "search" as doc_templates %}
+                            <div id="reportBuildPanelMain" class="collapse mt-2">
+                                <form method="post" action="{% url 'main_search' %}" class="row g-2 align-items-end">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="generate_report">
+                                    <input type="hidden" name="tab" value="documents">
+                                    <input type="hidden" name="search" value="{{ request.GET.search|default:'' }}">
+                                    <input type="hidden" name="show" value="{{ request.GET.show|default:'' }}">
+                                    <input type="hidden" name="staff_user" value="{{ request.GET.staff_user|default:'' }}">
+                                    <input type="hidden" name="type" value="{{ request.GET.type|default:'' }}">
+                                    <input type="hidden" name="lang" value="{{ request.GET.lang|default:'' }}">
+                                    <input type="hidden" name="status" value="{{ request.GET.status|default:'' }}">
+                                    <input type="hidden" name="oa" value="{{ request.GET.oa|default:'' }}">
+                                    <input type="hidden" name="y_min" value="{{ request.GET.y_min|default:'' }}">
+                                    <input type="hidden" name="y_max" value="{{ request.GET.y_max|default:'' }}">
+                                    <input type="hidden" name="db" value="{{ request.GET.db|default:'' }}">
+                                    <input type="hidden" name="quartile" value="{{ request.GET.quartile|default:'' }}">
+                                    <input type="hidden" name="area" value="{{ request.GET.area|default:'' }}">
+                                    <input type="hidden" name="venue" value="{{ request.GET.venue|default:'' }}">
+                                    {% for tag in selected_tags %}
+                                        <input type="hidden" name="tags" value="{{ tag }}">
+                                    {% endfor %}
+                                    {% get_document_generators request.user "search" as doc_templates %}
 
-                                <div class="col">
-                                    <select id="reportTemplateMain" name="template_key" class="form-select" required>
-                                        {% for template in doc_templates %}
-                                            <option value="{{ template.id }}">{{ template.title }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                                    <div class="col-12 col-md">
+                                        <select id="reportTemplateMain" name="template_key" class="form-select form-select-sm" required>
+                                            {% for template in doc_templates %}
+                                                <option value="{{ template.id }}">{{ template.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
 
-                                <div class="col-md-2 d-grid">
-                                    <button
-                                        type="submit"
-                                        class="btn btn-primary"
-                                        style="height: 37px;"
-                                        aria-label="Скачать отчет"
-                                        title="Скачать отчет"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-docx" viewBox="0 0 16 16">
-                                            <path fill-rule="evenodd" d="M14 4.5V11h-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zm-6.839 9.688v-.522a1.5 1.5 0 0 0-.117-.641.86.86 0 0 0-.322-.387.86.86 0 0 0-.469-.129.87.87 0 0 0-.471.13.87.87 0 0 0-.32.386 1.5 1.5 0 0 0-.117.641v.522q0 .384.117.641a.87.87 0 0 0 .32.387.9.9 0 0 0 .471.126.9.9 0 0 0 .469-.126.86.86 0 0 0 .322-.386 1.55 1.55 0 0 0 .117-.642m.803-.516v.513q0 .563-.205.973a1.47 1.47 0 0 1-.589.627q-.381.216-.917.216a1.86 1.86 0 0 1-.92-.216 1.46 1.46 0 0 1-.589-.627 2.15 2.15 0 0 1-.205-.973v-.513q0-.569.205-.975.205-.411.59-.627.386-.22.92-.22.535 0 .916.22.383.219.59.63.204.406.204.972M1 15.925v-3.999h1.459q.609 0 1.005.235.396.233.589.68.196.445.196 1.074 0 .634-.196 1.084-.197.451-.595.689-.396.237-.999.237zm1.354-3.354H1.79v2.707h.563q.277 0 .483-.082a.8.8 0 0 0 .334-.252q.132-.17.196-.422a2.3 2.3 0 0 0 .068-.592q0-.45-.118-.753a.9.9 0 0 0-.354-.454q-.237-.152-.61-.152Zm6.756 1.116q0-.373.103-.633a.87.87 0 0 1 .301-.398.8.8 0 0 1 .475-.138q.225 0 .398.097a.7.7 0 0 1 .273.26.85.85 0 0 1 .12.381h.765v-.073a1.33 1.33 0 0 0-.466-.964 1.4 1.4 0 0 0-.49-.272 1.8 1.8 0 0 0-.606-.097q-.534 0-.911.223-.375.222-.571.633-.197.41-.197.978v.498q0 .568.194.976.195.406.571.627.375.216.914.216.44 0 .785-.164t.551-.454a1.27 1.27 0 0 0 .226-.674v-.076h-.765a.8.8 0 0 1-.117.364.7.7 0 0 1-.273.248.9.9 0 0 1-.401.088.85.85 0 0 1-.478-.131.83.83 0 0 1-.298-.393 1.7 1.7 0 0 1-.103-.627zm5.092-1.76h.894l-1.275 2.006 1.254 1.992h-.908l-.85-1.415h-.035l-.852 1.415h-.862l1.24-2.015-1.228-1.984h.932l.832 1.439h.035z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </form>
+                                    <div class="col-12 col-md-auto d-grid">
+                                        <button
+                                            type="submit"
+                                            class="btn btn-primary btn-sm report-compact-submit"
+                                            aria-label="Скачать отчет"
+                                            title="Скачать отчет"
+                                        >
+                                            Скачать DOCX
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         {% else %}
-                            <div class="alert alert-light border mb-0">Нет доступного шаблона для формирования отчета.</div>
+                            <div class="small text-muted mt-2">Нет доступных шаблонов для формирования отчета.</div>
                         {% endif %}
                     </div>
                 </div>
-
                 {% if results %}
-                    <div class="table-responsive results-table-wrap" data-view-panel="documents-home:list">
+                    <div class="table-responsive results-table-wrap d-none" data-view-panel="documents-home:table">
                         <table class="table table-hover align-middle results-table">
                             <thead>
                                 <tr>
@@ -277,9 +295,9 @@
                         </table>
                     </div>
 
-                    <div class="results-grid d-none" data-view-panel="documents-home:grid">
+                    <div class="search-results-list" data-view-panel="documents-home:list">
                         {% for publication in results %}
-                            {% include "main/publication_card.html" with publication=publication %}
+                            {% include "main/publication_google_result.html" with publication=publication %}
                         {% endfor %}
                     </div>
                 {% else %}
@@ -505,6 +523,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'main/scripts/main_filter.js' %}"></script>
 <script src="{% static 'main/scripts/result_view_toggle.js' %}"></script>
 <script src="{% static 'main/scripts/researcher_hierarchy_filters.js' %}"></script>
 {% endblock %}

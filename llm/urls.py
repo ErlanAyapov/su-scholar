@@ -1,9 +1,71 @@
 from django.urls import path
 
-from .views import llm_page, llm_share_create, llm_shared_chat
+from .views import (
+    create_project,
+    llm_page,
+    llm_share_create,
+    llm_shared_chat,
+    project_agent_ask,
+    project_agent_session,
+    project_agent_cancel,
+    project_detail_page,
+    project_file_create,
+    project_file_upload,
+    project_publication_create,
+    project_publication_file_create,
+    project_publication_file_onlyoffice_callback,
+    project_publication_file_onlyoffice_config,
+    project_publication_file_stream,
+    project_publication_file_upload,
+    project_publication_reference_add,
+    project_publication_link,
+    project_page,
+    project_agent_task,
+)
 
 urlpatterns = [
     path('', llm_page, name='llm_page'),
     path('share/create/', llm_share_create, name='llm_share_create'),
     path('share/<str:token>/', llm_shared_chat, name='llm_shared_chat'),
+    path('project/', project_page, name='project_page'),
+    path('project/create/', create_project, name='project_create'),
+    path('project/<int:project_id>/', project_detail_page, name='project_detail_page'),
+    path('project/<int:project_id>/agent/session/', project_agent_session, name='project_agent_session'),
+    path('project/<int:project_id>/agent/ask/', project_agent_ask, name='project_agent_ask'),
+    path('project/<int:project_id>/agent/task/', project_agent_task, name='project_agent_task'),
+    path('project/<int:project_id>/agent/task/cancel/', project_agent_cancel, name='project_agent_cancel'),
+    path('project/<int:project_id>/files/create/', project_file_create, name='project_file_create'),
+    path('project/<int:project_id>/files/upload/', project_file_upload, name='project_file_upload'),
+    path('project/<int:project_id>/publications/create/', project_publication_create, name='project_publication_create'),
+    path('project/<int:project_id>/publications/link/', project_publication_link, name='project_publication_link'),
+    path(
+        'project/<int:project_id>/publications/references/add/',
+        project_publication_reference_add,
+        name='project_publication_reference_add',
+    ),
+    path(
+        'project/<int:project_id>/publication-files/create/',
+        project_publication_file_create,
+        name='project_publication_file_create',
+    ),
+    path(
+        'project/<int:project_id>/publication-files/upload/',
+        project_publication_file_upload,
+        name='project_publication_file_upload',
+    ),
+    path(
+        'project/<int:project_id>/publication-files/<int:file_id>/config/',
+        project_publication_file_onlyoffice_config,
+        name='project_publication_file_onlyoffice_config',
+    ),
+    path(
+        'project/<int:project_id>/publication-files/<int:file_id>/stream/',
+        project_publication_file_stream,
+        name='project_publication_file_stream',
+    ),
+    path(
+        'project/<int:project_id>/publication-files/<int:file_id>/callback/',
+        project_publication_file_onlyoffice_callback,
+        name='project_publication_file_onlyoffice_callback',
+    ),
 ]
